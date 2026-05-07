@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_exp_minutes: int = 30
     refresh_token_exp_minutes: int = 60 * 24 * 7
-    model_config = SettingsConfigDict(env_file=".env")
+    sms_provider: str = "mock"
+    ai_provider: str = "mock"
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()
