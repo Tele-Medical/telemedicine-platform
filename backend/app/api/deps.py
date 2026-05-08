@@ -27,7 +27,9 @@ def get_current_user(db: Session = Depends(get_db), token_data: HTTPAuthorizatio
         # HTTPBearer returns an object, we need the .credentials string
         token = token_data.credentials
         payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-        user_id: str = payload.get("sub")
+        if payload.get("type") != "access":
+            raise credentials_exception
+        user_id: str | None = payload.get("sub")
         if user_id is None:
             raise credentials_exception
     except JWTError:

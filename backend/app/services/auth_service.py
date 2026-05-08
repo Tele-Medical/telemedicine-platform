@@ -1,10 +1,10 @@
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 from app.models.auth import User, OTPChallenge, Session as DBSession
 from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token
-from app.schemas.auth import OTPRequest, OTPVerify, StaffLogin, TokenResponse
-from datetime import datetime, timedelta
-import random
+from app.schemas.auth import OTPVerify, StaffLogin, TokenResponse
+from datetime import datetime, timedelta, timezone
+import secrets
 import hashlib
 
 def hash_token(token: str) -> str:
@@ -12,7 +12,7 @@ def hash_token(token: str) -> str:
 
 def request_otp(db: Session, phone: str) -> dict:
     # 1. Generate fake OTP for now (would use SMS provider here)
-    otp_code = str(random.randint(100000, 999999))
+    otp_code = str(secrets.randbelow(900000) + 100000)
     if phone == "+1234567890": # Test account
         otp_code = "123456"
     
@@ -20,7 +20,7 @@ def request_otp(db: Session, phone: str) -> dict:
     otp_hash = get_password_hash(otp_code)
     
     # 3. Create the challenge
-    expires = datetime.utcnow() + timedelta(minutes=5)
+    expires = datetime.now(timezone.utc) + timedelta(minutes=5)
     challenge = OTPChallenge(
         phone=phone,
         otp_hash=otp_hash,
@@ -29,9 +29,6 @@ def request_otp(db: Session, phone: str) -> dict:
     db.add(challenge)
     db.commit()
     
-    # In reality, trigger SMS adapter here
-    print(f"DEBUG: Sent OTP {otp_code} to {phone}")
-    
     return {"message": "OTP sent successfully"}
 
 def verify_otp(db: Session, payload: OTPVerify) -> TokenResponse:
@@ -39,7 +36,7 @@ def verify_otp(db: Session, payload: OTPVerify) -> TokenResponse:
     challenge = db.query(OTPChallenge).filter(
         OTPChallenge.phone == payload.phone,
         OTPChallenge.status == "pending",
-        OTPChallenge.expires_at > datetime.utcnow()
+        OTPChallenge.expires_at > datetime.now(timezone.utc)
     ).order_by(OTPChallenge.created_at.desc()).first()
     
     if not challenge:
@@ -53,7 +50,7 @@ def verify_otp(db: Session, payload: OTPVerify) -> TokenResponse:
         
     # 3. Mark challenge as verified
     challenge.status = "verified"
-    challenge.verified_at = datetime.utcnow()
+    challenge.verified_at = datetime.now(timezone.utc)
     
     # 4. Find or Create User
     user = db.query(User).filter(User.phone == payload.phone).first()
@@ -74,7 +71,7 @@ def verify_otp(db: Session, payload: OTPVerify) -> TokenResponse:
     db_session = DBSession(
         user_id=user.id,
         refresh_token_hash=refresh_hash,
-        expires_at=datetime.utcnow() + timedelta(days=7)
+        expires_at=datetime.now(timezone.utc) + timedelta(days=7)
     )
     db.add(db_session)
     db.commit()
@@ -97,7 +94,7 @@ def authenticate_staff(db: Session, payload: StaffLogin) -> TokenResponse:
     db_session = DBSession(
         user_id=user.id,
         refresh_token_hash=refresh_hash,
-        expires_at=datetime.utcnow() + timedelta(days=7)
+        expires_at=datetime.now(timezone.utc) + timedelta(days=7)
     )
     db.add(db_session)
     db.commit()
