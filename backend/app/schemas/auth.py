@@ -1,17 +1,16 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from uuid import UUID
-from datetime import datetime
 
 class OTPRequest(BaseModel):
-    phone: str = Field(..., description="The phone number to send the OTP to")
+    phone: str = Field(..., pattern=r"^\+?[1-9]\d{1,14}$", description="The phone number to send the OTP to (E.164 format)")
 
 class OTPVerify(BaseModel):
-    phone: str
+    phone: str = Field(..., pattern=r"^\+?[1-9]\d{1,14}$")
     code: str = Field(..., min_length=6, max_length=6)
 
 class StaffLogin(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=3)
+    password: str = Field(..., min_length=8)
 
 class RefreshRequest(BaseModel):
     refresh_token: str
@@ -29,5 +28,4 @@ class UserResponse(BaseModel):
     default_role: str | None = None
     is_active: bool
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
