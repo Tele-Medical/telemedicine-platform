@@ -1,0 +1,40 @@
+# General
+.DS_Store
+.vscode/
+.idea/
+*.log
+.env
+.env.*
+!.env.example
+
+# Backend (Python / FastAPI)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+ENV/
+env.bak/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+alembic.ini.bak
+uv.lock
+
+# Frontend (Node.js / React / PWA)
+node_modules/
+dist/
+build/
+coverage/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+.vite/
+
+# Signaling (Node/Python)
+# Uses the same ignore rules as Backend/Frontend above.

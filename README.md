@@ -59,17 +59,12 @@ You do not need to install PostgreSQL or Redis on your laptop. Docker will handl
    ```bash
    cd backend
    ```
-2. Create and activate a virtual environment:
+2. Initialize and Install dependencies:
+   `uv` handles environment creation and package installation in one step.
    ```bash
-   # Using standard venv
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   uv sync
    ```
-3. Install the dependencies:
-   ```bash
-   pip install -r requirements.txt
-   # Or if using uv: uv pip install -r requirements.txt
-   ```
+   *Note: If you need to add a new package, use `uv add <package_name>`.*
 
 ### 3. Environment Variables
 Create a `.env` file inside the `backend/` folder. Use the following defaults for local development:
@@ -78,7 +73,7 @@ Create a `.env` file inside the `backend/` folder. Use the following defaults fo
 # backend/.env
 APP_ENV=development
 # Points to your local Docker container
-DATABASE_URL=postgresql://postgres:localpassword@localhost:5432/telemedicine
+DATABASE_URL=postgresql+psycopg://postgres:localpassword@localhost:5432/telemedicine
 REDIS_URL=redis://localhost:6379/0
 JWT_SECRET=super-secret-local-key
 JWT_ALGORITHM=HS256
@@ -91,17 +86,17 @@ AI_PROVIDER=mock
 
 ### 4. Database Migrations
 Before running the server, ensure your local Docker database has the correct tables.
-1. Make sure you are in the `backend/` directory with your virtual environment activated.
-2. Apply the latest migrations:
+1. Make sure you are in the `backend/` directory.
+2. Apply the latest migrations via `uv run`:
    ```bash
-   alembic upgrade head
+   uv run alembic upgrade head
    ```
 
 ### 5. Running the Local Server
-Start the FastAPI application with hot-reloading enabled:
+Start the FastAPI application via `uv run` with hot-reloading enabled:
 
 ```bash
-uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload
 ```
 
 The API will be available at: `http://localhost:8000`
@@ -144,11 +139,11 @@ To keep the `main` branch stable, the team must follow the **Feature Branch Work
 7.  Require at least 1 team member to review and approve the PR before merging.
 
 ### Code Quality Standards
-Before committing backend code, ensure you run the linting and typing checks:
+Before committing backend code, ensure you run the linting and typing checks via `uv run`:
 ```bash
-ruff check .
-mypy app
-pytest
+uv run ruff check .
+uv run mypy app
+uv run pytest
 ```
 
 ---
