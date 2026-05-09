@@ -42,7 +42,7 @@ def auth_headers(user: User) -> dict:
 # ---------------------------------------------------------------------------
 
 def test_create_encounter_from_appointment(client: TestClient, db_session: Session):
-    doc_user = make_user(db_session, phone="+918000000001", role="doctor")
+    doc_user = make_user(db_session, phone="+918000000001", role="practitioner")
     doc = make_practitioner(db_session, doc_user)
     patient_user = make_user(db_session, phone="+918000000002", role="patient")
     patient = make_patient(db_session, full_name="Encounter Patient")
@@ -58,8 +58,6 @@ def test_create_encounter_from_appointment(client: TestClient, db_session: Sessi
         headers=auth_headers(patient_user),
         json=appt_payload
     )
-    # If appointments endpoint isn't implemented, this test will fail here, 
-    # which is fine TDD behavior.
     assert appt_resp.status_code == 200, "Appointment creation failed"
     appt_id = appt_resp.json()["id"]
     
@@ -88,7 +86,7 @@ def test_create_encounter_from_appointment(client: TestClient, db_session: Sessi
 
 def test_create_encounter_walk_in(client: TestClient, db_session: Session):
     """Creating an encounter without a scheduled appointment (e.g. emergency)."""
-    doc_user = make_user(db_session, phone="+918000000003", role="doctor")
+    doc_user = make_user(db_session, phone="+918000000003", role="practitioner")
     doc = make_practitioner(db_session, doc_user)
     patient = make_patient(db_session, full_name="Walk-in Patient")
     
@@ -111,7 +109,7 @@ def test_create_encounter_walk_in(client: TestClient, db_session: Session):
 
 
 def test_create_encounter_invalid_modality(client: TestClient, db_session: Session):
-    doc_user = make_user(db_session, phone="+918000000004", role="doctor")
+    doc_user = make_user(db_session, phone="+918000000004", role="practitioner")
     patient = make_patient(db_session)
     
     enc_payload = {
@@ -128,14 +126,15 @@ def test_create_encounter_invalid_modality(client: TestClient, db_session: Sessi
 
 
 def test_submit_encounter_summary_success(client: TestClient, db_session: Session):
-    doc_user = make_user(db_session, phone="+918000000005", role="doctor")
+    doc_user = make_user(db_session, phone="+918000000005", role="practitioner")
+    doc = make_practitioner(db_session, doc_user)
     patient = make_patient(db_session)
     
     # 1. Create Encounter
     enc_resp = client.post(
         "/api/v1/encounters/",
         headers=auth_headers(doc_user),
-        json={"patient_id": str(patient.id), "encounter_mode": "audio"}
+        json={"patient_id": str(patient.id), "practitioner_id": str(doc.id), "encounter_mode": "audio"}
     )
     assert enc_resp.status_code == 200
     enc_id = enc_resp.json()["id"]
@@ -160,7 +159,7 @@ def test_submit_encounter_summary_success(client: TestClient, db_session: Sessio
 
 def test_submit_encounter_summary_unauthorized(client: TestClient, db_session: Session):
     """A patient should not be able to write the clinical summary of their own encounter."""
-    doc_user = make_user(db_session, phone="+918000000006", role="doctor")
+    doc_user = make_user(db_session, phone="+918000000006", role="practitioner")
     patient_user = make_user(db_session, phone="+918000000007", role="patient")
     patient = make_patient(db_session)
     
@@ -180,4 +179,4 @@ def test_submit_encounter_summary_unauthorized(client: TestClient, db_session: S
         json={"clinical_summary": "I am fine now."}
     )
     
-    assert sum_resp.status_code in [403, 401] # Forbidden
+    assert sum_resp.status_code == 403 # Forbidden

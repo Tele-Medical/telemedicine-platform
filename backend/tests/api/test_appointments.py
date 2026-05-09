@@ -136,12 +136,13 @@ def test_get_appointments_list(client: TestClient, db_session: Session):
     data = response.json()
     assert isinstance(data, list)
     assert len(data) >= 2
-    assert data[0]["patient_id"] == str(patient.id)
+    assert any(item["patient_id"] == str(patient.id) for item in data)
 
 
 def test_update_appointment_status(client: TestClient, db_session: Session):
     # Setup
-    doc_user = make_user(db_session, phone="+919000000006", role="doctor")
+    doc_user = make_user(db_session, phone="+919000000006", role="practitioner")
+    doc = make_practitioner(db_session, doc_user)
     patient_user = make_user(db_session, phone="+919000000007", role="patient")
     patient = make_patient(db_session, full_name="Status Patient")
     
@@ -149,8 +150,9 @@ def test_update_appointment_status(client: TestClient, db_session: Session):
     create_resp = client.post(
         "/api/v1/appointments/",
         headers=auth_headers(patient_user),
-        json={"patient_id": str(patient.id), "channel": "telemedicine"}
+        json={"patient_id": str(patient.id), "practitioner_id": str(doc.id), "channel": "telemedicine"}
     )
+    assert create_resp.status_code == 200
     appt_id = create_resp.json()["id"]
     
     # Update Status to confirmed (Doctor action)
@@ -175,6 +177,7 @@ def test_update_appointment_invalid_status(client: TestClient, db_session: Sessi
         headers=auth_headers(user),
         json={"patient_id": str(patient.id), "channel": "telemedicine"}
     )
+    assert create_resp.status_code == 200
     appt_id = create_resp.json()["id"]
     
     # Invalid transition or status
