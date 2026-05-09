@@ -1,7 +1,8 @@
-"""Unit / integration tests for app/services/auth_service.py (added in this PR)."""
+"""Unit / integration tests for app/services/auth_service.py."""
 import hashlib
 import pytest
-from datetime import datetime, timedelta
+import uuid
+from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -53,9 +54,7 @@ def test_request_otp_creates_challenge(db_session: Session):
 def test_request_otp_stores_hashed_not_plain(db_session: Session):
     request_otp(db_session, "+9999999998")
     challenge = db_session.query(OTPChallenge).filter_by(phone="+9999999998").first()
-    # otp_hash should not be a 6-digit string (plain OTP)
     assert len(challenge.otp_hash) > 6
-    # It should look like a bcrypt hash ($2b$ prefix)
     assert challenge.otp_hash.startswith("$2")
 
 
@@ -64,7 +63,6 @@ def test_request_otp_test_phone_uses_fixed_code(db_session: Session):
     request_otp(db_session, "+1234567890")
     challenge = db_session.query(OTPChallenge).filter_by(phone="+1234567890").first()
     assert challenge is not None
-    # Verify against fixed code
     from app.core.security import verify_password
     assert verify_password("123456", challenge.otp_hash) is True
 
@@ -72,7 +70,7 @@ def test_request_otp_test_phone_uses_fixed_code(db_session: Session):
 def test_request_otp_expiry_is_in_future(db_session: Session):
     request_otp(db_session, "+9999999997")
     challenge = db_session.query(OTPChallenge).filter_by(phone="+9999999997").first()
-    assert challenge.expires_at > datetime.utcnow()
+    assert challenge.expires_at > datetime.now(timezone.utc)
 
 
 def test_request_otp_multiple_challenges_same_phone(db_session: Session):
@@ -88,7 +86,7 @@ def test_request_otp_multiple_challenges_same_phone(db_session: Session):
 # ---------------------------------------------------------------------------
 
 def test_verify_otp_no_challenge_raises_400(db_session: Session):
-    payload = OTPVerify(phone="+0000000000", code="123456")
+    payload = OTPVerify(phone="+910000000000", code="123456")
     with pytest.raises(HTTPException) as exc_info:
         verify_otp(db_session, payload)
     assert exc_info.value.status_code == 400
@@ -97,15 +95,15 @@ def test_verify_otp_no_challenge_raises_400(db_session: Session):
 def test_verify_otp_expired_challenge_raises_400(db_session: Session):
     otp_hash = get_password_hash("123456")
     expired_challenge = OTPChallenge(
-        phone="+1111111111",
+        phone="+911111111111",
         otp_hash=otp_hash,
         status="pending",
-        expires_at=datetime.utcnow() - timedelta(minutes=1),  # already expired
+        expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),  # already expired
     )
     db_session.add(expired_challenge)
     db_session.commit()
 
-    payload = OTPVerify(phone="+1111111111", code="123456")
+    payload = OTPVerify(phone="+911111111111", code="123456")
     with pytest.raises(HTTPException) as exc_info:
         verify_otp(db_session, payload)
     assert exc_info.value.status_code == 400
@@ -114,15 +112,15 @@ def test_verify_otp_expired_challenge_raises_400(db_session: Session):
 def test_verify_otp_wrong_code_increments_attempts(db_session: Session):
     otp_hash = get_password_hash("123456")
     challenge = OTPChallenge(
-        phone="+2222222222",
+        phone="+912222222222",
         otp_hash=otp_hash,
         status="pending",
-        expires_at=datetime.utcnow() + timedelta(minutes=5),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
     )
     db_session.add(challenge)
     db_session.commit()
 
-    payload = OTPVerify(phone="+2222222222", code="000000")
+    payload = OTPVerify(phone="+912222222222", code="000000")
     with pytest.raises(HTTPException) as exc_info:
         verify_otp(db_session, payload)
     assert exc_info.value.status_code == 400
@@ -134,17 +132,17 @@ def test_verify_otp_wrong_code_increments_attempts(db_session: Session):
 def test_verify_otp_wrong_code_multiple_attempts(db_session: Session):
     otp_hash = get_password_hash("123456")
     challenge = OTPChallenge(
-        phone="+2222222223",
+        phone="+912222222223",
         otp_hash=otp_hash,
         status="pending",
-        expires_at=datetime.utcnow() + timedelta(minutes=5),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
     )
     db_session.add(challenge)
     db_session.commit()
 
     for _ in range(3):
         with pytest.raises(HTTPException):
-            verify_otp(db_session, OTPVerify(phone="+2222222223", code="000000"))
+            verify_otp(db_session, OTPVerify(phone="+912222222223", code="000000"))
 
     db_session.refresh(challenge)
     assert challenge.attempts == 3
@@ -163,11 +161,11 @@ def test_verify_otp_success_marks_challenge_verified(db_session: Session):
 
 
 def test_verify_otp_creates_new_user_for_unknown_phone(db_session: Session):
-    request_otp(db_session, "+1234567890")
-    payload = OTPVerify(phone="+1234567890", code="123456")
+    request_otp(db_session, "+1234567891")
+    payload = OTPVerify(phone="+1234567891", code="123456")
     verify_otp(db_session, payload)
 
-    user = db_session.query(User).filter_by(phone="+1234567890").first()
+    user = db_session.query(User).filter_by(phone="+1234567891").first()
     assert user is not None
     assert user.default_role == "patient"
 
@@ -182,7 +180,7 @@ def test_verify_otp_reuses_existing_user(db_session: Session):
         phone="+3333333333",
         otp_hash=otp_hash,
         status="pending",
-        expires_at=datetime.utcnow() + timedelta(minutes=5),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
     )
     db_session.add(challenge)
     db_session.commit()
@@ -194,8 +192,8 @@ def test_verify_otp_reuses_existing_user(db_session: Session):
 
 
 def test_verify_otp_returns_token_response(db_session: Session):
-    request_otp(db_session, "+1234567890")
-    result = verify_otp(db_session, OTPVerify(phone="+1234567890", code="123456"))
+    request_otp(db_session, "+1234567892")
+    result = verify_otp(db_session, OTPVerify(phone="+1234567892", code="123456"))
 
     assert result.access_token
     assert result.refresh_token
@@ -203,33 +201,33 @@ def test_verify_otp_returns_token_response(db_session: Session):
 
 
 def test_verify_otp_access_token_contains_user_id(db_session: Session):
-    request_otp(db_session, "+1234567890")
-    result = verify_otp(db_session, OTPVerify(phone="+1234567890", code="123456"))
+    request_otp(db_session, "+1234567893")
+    result = verify_otp(db_session, OTPVerify(phone="+1234567893", code="123456"))
 
     payload = decode_token(result.access_token)
     assert payload is not None
 
-    user = db_session.query(User).filter_by(phone="+1234567890").first()
+    user = db_session.query(User).filter_by(phone="+1234567893").first()
     assert payload["sub"] == str(user.id)
 
 
 def test_verify_otp_creates_session_record(db_session: Session):
-    request_otp(db_session, "+1234567890")
-    verify_otp(db_session, OTPVerify(phone="+1234567890", code="123456"))
+    request_otp(db_session, "+1234567894")
+    verify_otp(db_session, OTPVerify(phone="+1234567894", code="123456"))
 
-    user = db_session.query(User).filter_by(phone="+1234567890").first()
+    user = db_session.query(User).filter_by(phone="+1234567894").first()
     session = db_session.query(DBSession).filter_by(user_id=user.id).first()
     assert session is not None
     assert session.refresh_token_hash is not None
-    assert session.expires_at > datetime.utcnow()
+    assert session.expires_at > datetime.now(timezone.utc)
 
 
 def test_verify_otp_refresh_token_hash_stored(db_session: Session):
     """The stored refresh_token_hash should match hash_token(refresh_token)."""
-    request_otp(db_session, "+1234567890")
-    result = verify_otp(db_session, OTPVerify(phone="+1234567890", code="123456"))
+    request_otp(db_session, "+1234567895")
+    result = verify_otp(db_session, OTPVerify(phone="+1234567895", code="123456"))
 
-    user = db_session.query(User).filter_by(phone="+1234567890").first()
+    user = db_session.query(User).filter_by(phone="+1234567895").first()
     session = db_session.query(DBSession).filter_by(user_id=user.id).first()
     assert session.refresh_token_hash == hash_token(result.refresh_token)
 
@@ -257,13 +255,13 @@ def test_authenticate_staff_wrong_password_raises_401(db_session: Session):
     db_session.commit()
 
     with pytest.raises(HTTPException) as exc_info:
-        authenticate_staff(db_session, StaffLogin(username="staff_wrong_pw", password="wrong"))
+        authenticate_staff(db_session, StaffLogin(username="staff_wrong_pw", password="wrong_password"))
     assert exc_info.value.status_code == 401
 
 
 def test_authenticate_staff_nonexistent_user_raises_401(db_session: Session):
     with pytest.raises(HTTPException) as exc_info:
-        authenticate_staff(db_session, StaffLogin(username="ghost_user", password="any"))
+        authenticate_staff(db_session, StaffLogin(username="ghost_user", password="some_password"))
     assert exc_info.value.status_code == 401
 
 
@@ -274,17 +272,17 @@ def test_authenticate_staff_no_password_raises_401(db_session: Session):
     db_session.commit()
 
     with pytest.raises(HTTPException) as exc_info:
-        authenticate_staff(db_session, StaffLogin(username="otp_only_user", password="any"))
+        authenticate_staff(db_session, StaffLogin(username="otp_only_user", password="any_password"))
     assert exc_info.value.status_code == 401
 
 
 def test_authenticate_staff_creates_session(db_session: Session):
-    hashed_pw = get_password_hash("pass123")
+    hashed_pw = get_password_hash("password123")
     user = User(username="staff_session", hashed_password=hashed_pw, is_active=True)
     db_session.add(user)
     db_session.commit()
 
-    authenticate_staff(db_session, StaffLogin(username="staff_session", password="pass123"))
+    authenticate_staff(db_session, StaffLogin(username="staff_session", password="password123"))
 
     session = db_session.query(DBSession).filter_by(user_id=user.id).first()
     assert session is not None
@@ -292,12 +290,12 @@ def test_authenticate_staff_creates_session(db_session: Session):
 
 
 def test_authenticate_staff_access_token_contains_user_id(db_session: Session):
-    hashed_pw = get_password_hash("pass456")
+    hashed_pw = get_password_hash("password456")
     user = User(username="staff_token_check", hashed_password=hashed_pw, is_active=True)
     db_session.add(user)
     db_session.commit()
 
-    result = authenticate_staff(db_session, StaffLogin(username="staff_token_check", password="pass456"))
+    result = authenticate_staff(db_session, StaffLogin(username="staff_token_check", password="password456"))
     payload = decode_token(result.access_token)
     assert payload is not None
     assert payload["sub"] == str(user.id)
