@@ -1,0 +1,33 @@
+"""fix_schema_mismatches_v2
+
+Revision ID: bdd4881a0698
+Revises: 891023486d8e
+Create Date: 2026-05-09 17:59:25.535308
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = 'bdd4881a0698'
+down_revision: Union[str, Sequence[str], None] = '891023486d8e'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Upgrade schema."""
+    # Redundant preferred_language addition removed (it's in 891023486d8e)
+    op.alter_column('users', 'username',
+               existing_type=sa.VARCHAR(),
+               nullable=True)
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    op.alter_column('users', 'username',
+               existing_type=sa.VARCHAR(),
+               nullable=False)

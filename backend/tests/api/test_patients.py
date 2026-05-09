@@ -35,6 +35,111 @@ def auth_headers(user: User) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Patient CRUD
+# ---------------------------------------------------------------------------
+
+def test_create_patient_success(client: TestClient, db_session: Session):
+    user = make_user(db_session, phone="+5550003331")
+    payload = {
+        "full_name": "John Doe",
+        "phone": "+919876543210",
+        "preferred_language": "pa",
+        "gender": "male",
+        "village": "Nabha"
+    }
+    response = client.post(
+        "/api/v1/patients/",
+        headers=auth_headers(user),
+        json=payload
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["full_name"] == "John Doe"
+    assert data["phone"] == "+919876543210"
+    assert data["created_by_user_id"] == str(user.id)
+    assert "id" in data
+
+
+def test_create_patient_assisted_no_phone(client: TestClient, db_session: Session):
+    """Test creating a patient without a phone number (assisted registration)."""
+    user = make_user(db_session, phone="+5550003332")
+    payload = {
+        "full_name": "Child Patient",
+        "phone": None,
+        "emergency_contact_name": "Guardian Name",
+        "emergency_contact_phone": "+919999988888"
+    }
+    response = client.post(
+        "/api/v1/patients/",
+        headers=auth_headers(user),
+        json=payload
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["full_name"] == "Child Patient"
+    assert data["phone"] is None
+    assert data["emergency_contact_phone"] == "+919999988888"
+
+
+def test_get_patient_success(client: TestClient, db_session: Session):
+    user = make_user(db_session, phone="+5550003333")
+    patient = make_patient(db_session, "Fetchable Patient")
+    
+    response = client.get(
+        f"/api/v1/patients/{patient.id}",
+        headers=auth_headers(user)
+    )
+    assert response.status_code == 200
+    assert response.json()["full_name"] == "Fetchable Patient"
+
+
+def test_get_patient_not_found(client: TestClient, db_session: Session):
+    user = make_user(db_session, phone="+5550003334")
+    random_id = uuid.uuid4()
+    response = client.get(
+        f"/api/v1/patients/{random_id}",
+        headers=auth_headers(user)
+    )
+    assert response.status_code == 404
+
+
+def test_search_patients_success(client: TestClient, db_session: Session):
+    user = make_user(db_session, phone="+5550003335")
+    make_patient(db_session, "Amrit Singh")
+    make_patient(db_session, "Amrit Kaur")
+    make_patient(db_session, "Deepak Kumar")
+    
+    response = client.get(
+        "/api/v1/patients/?q=Amrit",
+        headers=auth_headers(user)
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    names = {p["full_name"] for p in data}
+    assert "Amrit Singh" in names
+    assert "Amrit Kaur" in names
+
+
+def test_update_patient_success(client: TestClient, db_session: Session):
+    user = make_user(db_session, phone="+5550003336")
+    patient = make_patient(db_session, "Original Name")
+    
+    payload = {"full_name": "Updated Name", "village": "Patiala"}
+    response = client.patch(
+        f"/api/v1/patients/{patient.id}",
+        headers=auth_headers(user),
+        json=payload
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["full_name"] == "Updated Name"
+    assert data["village"] == "Patiala"
+    assert data["updated_by_user_id"] == str(user.id)
+    assert data["record_version"] == 2
+
+
+# ---------------------------------------------------------------------------
 # GET /api/v1/patients/{id}/identifiers
 # ---------------------------------------------------------------------------
 

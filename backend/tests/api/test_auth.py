@@ -100,13 +100,13 @@ def test_verify_otp_no_otp_requested(client: TestClient, db_session: Session):
 
 def test_verify_otp_attempts_incremented_on_wrong_code(client: TestClient, db_session: Session):
     client.post("/api/v1/auth/request-otp", json={"phone": "+1234567890"})
-
     client.post("/api/v1/auth/verify-otp", json={"phone": "+1234567890", "code": "000000"})
 
     from app.models.auth import OTPChallenge
     challenge = db_session.query(OTPChallenge).filter_by(
         phone="+1234567890", status="pending"
-    ).first()
+    ).order_by(OTPChallenge.created_at.desc()).first()
+    
     assert challenge is not None
     assert challenge.attempts == 1
 
@@ -133,7 +133,7 @@ def test_verify_otp_idempotent_user(client: TestClient, db_session: Session):
     """Verifying OTP twice for same phone should not create a second user."""
     from app.models.auth import User, OTPChallenge
     from app.core.security import get_password_hash as hash_pw
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
     # First verification creates the user
     client.post("/api/v1/auth/request-otp", json={"phone": "+1234567890"})
@@ -145,7 +145,7 @@ def test_verify_otp_idempotent_user(client: TestClient, db_session: Session):
         phone="+1234567890",
         otp_hash=otp_hash,
         status="pending",
-        expires_at=datetime.utcnow() + timedelta(minutes=5),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
     )
     db_session.add(challenge)
     db_session.commit()

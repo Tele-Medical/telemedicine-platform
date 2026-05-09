@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from app.models.auth import User, OTPChallenge, Session as DBSession
 from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token
+from app.core.config import settings
 from app.schemas.auth import OTPVerify, StaffLogin, TokenResponse
 from datetime import datetime, timedelta, timezone
 import secrets
@@ -13,7 +14,7 @@ def hash_token(token: str) -> str:
 def request_otp(db: Session, phone: str) -> dict:
     # 1. Generate fake OTP for now (would use SMS provider here)
     otp_code = str(secrets.randbelow(900000) + 100000)
-    if phone == "+1234567890": # Test account
+    if settings.app_env != "production" and phone.startswith("+123456"): # Test accounts
         otp_code = "123456"
     
     # 2. Hash the OTP (we never store plain text OTPs)
