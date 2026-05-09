@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, DateTime, ForeignKey, BigInteger, Boolean
+from sqlalchemy import String, DateTime, ForeignKey, BigInteger, Boolean, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -22,3 +22,8 @@ class Appointment(Base):
     updated_by_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        CheckConstraint("status IN ('requested', 'confirmed', 'completed', 'cancelled')", name="appointments_status_check"),
+        CheckConstraint("channel IN ('telemedicine', 'assisted')", name="appointments_channel_check"),
+    )

@@ -29,6 +29,11 @@ def create_appointment(
         if not practitioner:
             raise HTTPException(status_code=404, detail="Practitioner not found")
         
+    if current_user.default_role == "practitioner":
+        practitioner = db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
+        if not practitioner:
+            raise HTTPException(status_code=403, detail="Practitioner profile not found")
+            
     appt = Appointment(
         patient_id=appt_in.patient_id,
         practitioner_id=appt_in.practitioner_id,
@@ -81,7 +86,9 @@ def update_appointment(
         
     if current_user.default_role == "practitioner":
         practitioner = db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
-        if practitioner and appt.practitioner_id and appt.practitioner_id != practitioner.id:
+        if not practitioner:
+            raise HTTPException(status_code=403, detail="Practitioner profile not found")
+        if appt.practitioner_id and appt.practitioner_id != practitioner.id:
              raise HTTPException(status_code=403, detail="Not authorized to update this appointment")
 
     appt.status = appt_in.status

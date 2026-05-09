@@ -39,6 +39,11 @@ def create_encounter(
             
     if current_user.default_role == "patient":
          raise HTTPException(status_code=403, detail="Patients cannot create encounters")
+         
+    if current_user.default_role == "practitioner":
+        practitioner = db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
+        if not practitioner:
+            raise HTTPException(status_code=403, detail="Practitioner profile not found")
 
     enc = Encounter(
         appointment_id=enc_in.appointment_id,
@@ -89,7 +94,9 @@ def submit_encounter_summary(
         
     if current_user.default_role == "practitioner":
         practitioner = db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
-        if practitioner and enc.practitioner_id and enc.practitioner_id != practitioner.id:
+        if not practitioner:
+            raise HTTPException(status_code=403, detail="Practitioner profile not found")
+        if enc.practitioner_id and enc.practitioner_id != practitioner.id:
             raise HTTPException(status_code=403, detail="Not authorized to update this encounter")
         
     enc.clinical_summary = summary_in.clinical_summary

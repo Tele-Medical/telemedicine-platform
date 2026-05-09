@@ -110,10 +110,12 @@ def test_create_encounter_walk_in(client: TestClient, db_session: Session):
 
 def test_create_encounter_invalid_modality(client: TestClient, db_session: Session):
     doc_user = make_user(db_session, phone="+918000000004", role="practitioner")
+    doc = make_practitioner(db_session, doc_user)
     patient = make_patient(db_session)
     
     enc_payload = {
         "patient_id": str(patient.id),
+        "practitioner_id": str(doc.id),
         "encounter_mode": "hologram" # Invalid mode
     }
     enc_resp = client.post(
@@ -160,6 +162,7 @@ def test_submit_encounter_summary_success(client: TestClient, db_session: Sessio
 def test_submit_encounter_summary_unauthorized(client: TestClient, db_session: Session):
     """A patient should not be able to write the clinical summary of their own encounter."""
     doc_user = make_user(db_session, phone="+918000000006", role="practitioner")
+    doc = make_practitioner(db_session, doc_user)
     patient_user = make_user(db_session, phone="+918000000007", role="patient")
     patient = make_patient(db_session)
     
@@ -167,7 +170,7 @@ def test_submit_encounter_summary_unauthorized(client: TestClient, db_session: S
     enc_resp = client.post(
         "/api/v1/encounters/",
         headers=auth_headers(doc_user),
-        json={"patient_id": str(patient.id), "encounter_mode": "video"}
+        json={"patient_id": str(patient.id), "practitioner_id": str(doc.id), "encounter_mode": "video"}
     )
     assert enc_resp.status_code == 200
     enc_id = enc_resp.json()["id"]

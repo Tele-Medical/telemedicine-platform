@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, DateTime, ForeignKey, BigInteger, Boolean, Text
+from sqlalchemy import String, DateTime, ForeignKey, BigInteger, Boolean, Text, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -27,6 +27,11 @@ class Encounter(Base):
     updated_by_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        CheckConstraint("encounter_mode IN ('video', 'audio', 'async', 'audio_fallback')", name="encounters_mode_check"),
+        CheckConstraint("status IN ('in_progress', 'completed', 'cancelled')", name="encounters_status_check"),
+    )
 
 class EncounterParticipant(Base):
     """Tracks who joined the encounter (e.g., patient, doctor, asha_worker) and when."""
