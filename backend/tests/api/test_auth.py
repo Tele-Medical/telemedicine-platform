@@ -100,13 +100,13 @@ def test_verify_otp_no_otp_requested(client: TestClient, db_session: Session):
 
 def test_verify_otp_attempts_incremented_on_wrong_code(client: TestClient, db_session: Session):
     client.post("/api/v1/auth/request-otp", json={"phone": "+1234567890"})
-
     client.post("/api/v1/auth/verify-otp", json={"phone": "+1234567890", "code": "000000"})
 
     from app.models.auth import OTPChallenge
     challenge = db_session.query(OTPChallenge).filter_by(
         phone="+1234567890", status="pending"
-    ).first()
+    ).order_by(OTPChallenge.created_at.desc()).first()
+    
     assert challenge is not None
     assert challenge.attempts == 1
 
