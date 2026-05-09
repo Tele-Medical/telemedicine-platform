@@ -67,6 +67,16 @@ def test_request_otp_test_phone_uses_fixed_code(db_session: Session):
     assert verify_password("123456", challenge.otp_hash) is True
 
 
+def test_request_otp_normal_phone_does_not_use_fixed_code(db_session: Session):
+    """A normal phone should NOT get the fixed 123456 code."""
+    # Note: There is a very small (1 in 900,000) chance this fails randomly, 
+    # but for a unit test it's acceptable.
+    request_otp(db_session, "+9990001112")
+    challenge = db_session.query(OTPChallenge).filter_by(phone="+9990001112").first()
+    from app.core.security import verify_password
+    assert verify_password("123456", challenge.otp_hash) is False
+
+
 def test_request_otp_expiry_is_in_future(db_session: Session):
     request_otp(db_session, "+9999999997")
     challenge = db_session.query(OTPChallenge).filter_by(phone="+9999999997").first()

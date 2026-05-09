@@ -10,4 +10,11 @@ def get_by_user_id(db: Session, user_id: UUID) -> Optional[Practitioner]:
     return db.query(Practitioner).filter(Practitioner.user_id == user_id, Practitioner.is_active).first()
 
 def list_all(db: Session, skip: int = 0, limit: int = 100) -> List[Practitioner]:
-    return db.query(Practitioner).filter(Practitioner.is_active).offset(skip).limit(limit).all()
+    return (
+        db.query(Practitioner)
+        .filter(Practitioner.is_active)
+        .order_by(Practitioner.id.asc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )

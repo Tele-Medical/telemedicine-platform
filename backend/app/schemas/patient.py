@@ -20,7 +20,7 @@ class PatientCreate(PatientBase):
     pass
 
 class PatientUpdate(BaseModel):
-    full_name: Optional[str] = None
+    full_name: Optional[str] = Field(None, min_length=1)
     phone: Optional[str] = None
     preferred_language: Optional[str] = None
     date_of_birth: Optional[date] = None

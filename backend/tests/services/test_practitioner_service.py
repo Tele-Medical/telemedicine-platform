@@ -32,3 +32,8 @@ def test_list_practitioners_service(db_session: Session):
     
     results = practitioner_service.list_practitioners(db_session)
     assert len(results) >= 2
+    
+    # Verify specific IDs are present
+    result_ids = [r.id for r in results]
+    assert p1.id in result_ids
+    assert p2.id in result_ids

@@ -26,6 +26,7 @@ def update_patient(db: Session, patient_id: UUID, obj_in: PatientUpdate, updater
     return patient_repo.update(db, patient, obj_in, updated_by_id=updater_id)
 
 def search_patients(db: Session, query: str) -> List[Patient]:
+    query = query.strip()
     if len(query) < 2:
         return []
     return patient_repo.search(db, query)
