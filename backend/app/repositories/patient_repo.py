@@ -39,8 +39,10 @@ def update(db: Session, db_obj: Patient, obj_in: PatientUpdate, updated_by_id: O
         )
     )
     
+    import typing
+    from sqlalchemy import CursorResult
     result = db.execute(stmt)
-    if result.rowcount == 0:
+    if typing.cast(CursorResult, result).rowcount == 0:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

@@ -1,5 +1,4 @@
 """Unit tests for app/core/security.py (added in this PR)."""
-import pytest
 from datetime import timedelta
 from jose import jwt
 
