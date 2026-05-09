@@ -238,7 +238,9 @@ def test_verify_otp_refresh_token_hash_stored(db_session: Session):
     result = verify_otp(db_session, OTPVerify(phone="+1234567895", code="123456"))
 
     user = db_session.query(User).filter_by(phone="+1234567895").first()
+    assert user is not None
     session = db_session.query(DBSession).filter_by(user_id=user.id).first()
+    assert session is not None
     assert session.refresh_token_hash == hash_token(result.refresh_token)
 
 

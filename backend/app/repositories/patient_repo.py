@@ -40,7 +40,7 @@ def update(db: Session, db_obj: Patient, obj_in: PatientUpdate, updated_by_id: O
     )
     
     result = db.execute(stmt)
-    if result.rowcount == 0:
+    if result.rowcount == 0:  # type: ignore
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

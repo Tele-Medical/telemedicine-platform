@@ -9,7 +9,7 @@ class PractitionerBase(BaseModel):
     specialty: Optional[str] = None
     registration_number: Optional[str] = None
 
-    model_config = ConfigDict(from_attributes=True, kw_only=True)
+    model_config = ConfigDict(from_attributes=True)
 
 class PractitionerRead(PractitionerBase):
     id: UUID

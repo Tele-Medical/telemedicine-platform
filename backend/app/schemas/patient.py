@@ -14,7 +14,7 @@ class PatientBase(BaseModel):
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
 
-    model_config = ConfigDict(from_attributes=True, kw_only=True)
+    model_config = ConfigDict(from_attributes=True)
 
 class PatientCreate(PatientBase):
     pass
@@ -30,7 +30,7 @@ class PatientUpdate(BaseModel):
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
 
-    model_config = ConfigDict(from_attributes=True, kw_only=True)
+    model_config = ConfigDict(from_attributes=True)
 
 class PatientRead(PatientBase):
     id: UUID

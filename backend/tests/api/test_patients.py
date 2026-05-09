@@ -1,12 +1,11 @@
 """Integration tests for app/api/v1/patients.py (added in this PR)."""
 import uuid
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.models.auth import User
 from app.models.patient import Patient, PatientIdentifier
-from app.core.security import get_password_hash, create_access_token
+from app.core.security import create_access_token
 
 
 # ---------------------------------------------------------------------------
