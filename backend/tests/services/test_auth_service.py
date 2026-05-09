@@ -1,7 +1,6 @@
 """Unit / integration tests for app/services/auth_service.py."""
 import hashlib
 import pytest
-import uuid
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException
 from sqlalchemy.orm import Session

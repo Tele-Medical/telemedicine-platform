@@ -105,27 +105,35 @@ def update_allergy(
     allergy_in: AllergyUpdate,
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
+    from sqlalchemy import update
+    import typing
+    from sqlalchemy import CursorResult
+    
     enforce_clinical_permissions(current_user)
     
-    allergy = db.query(Allergy).filter(Allergy.id == id).first()
-    if not allergy:
-        raise HTTPException(status_code=404, detail="Allergy not found")
-        
-    if allergy_in.base_version != allergy.record_version:
+    stmt = (
+        update(Allergy)
+        .where(Allergy.id == id)
+        .where(Allergy.record_version == allergy_in.base_version)
+        .values(
+            criticality=allergy_in.criticality,
+            record_version=Allergy.record_version + 1,
+            updated_by_user_id=current_user.id
+        )
+    )
+    result = db.execute(stmt)
+    if typing.cast(CursorResult, result).rowcount == 0:
+        db.rollback()
+        allergy_exists = db.query(Allergy).filter(Allergy.id == id).first()
+        if not allergy_exists:
+            raise HTTPException(status_code=404, detail="Allergy not found")
         raise HTTPException(status_code=409, detail="Sync conflict: record version mismatch")
         
-    allergy.criticality = allergy_in.criticality
-    allergy.record_version += 1
-    allergy.updated_by_user_id = current_user.id
-    
-    db.add(allergy)
-    db.commit()
-    db.refresh(allergy)
-    
-    create_provenance_event(db, "allergies", allergy.id, "update", current_user.id)
+    db.flush()
+    create_provenance_event(db, "allergies", id, "update", current_user.id)
     db.commit()
     
-    return allergy
+    return db.query(Allergy).filter(Allergy.id == id).first()
 
 # --- Conditions ---
 @router.post("/conditions", response_model=ConditionResponse)

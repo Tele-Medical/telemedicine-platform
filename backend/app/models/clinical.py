@@ -80,4 +80,5 @@ class MedicationRequest(Base):
 
     __table_args__ = (
         CheckConstraint("status IN ('active', 'completed', 'cancelled')", name="medication_requests_status_check"),
+        CheckConstraint("duration_days IS NULL OR duration_days > 0", name="medication_requests_duration_check"),
     )

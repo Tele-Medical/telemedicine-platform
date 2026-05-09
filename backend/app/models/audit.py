@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, DateTime, ForeignKey
+from sqlalchemy import String, DateTime, ForeignKey, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -20,3 +20,7 @@ class ProvenanceEvent(Base):
     metadata_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        CheckConstraint("action IN ('create', 'update', 'soft_delete')", name="provenance_events_action_check"),
+    )

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Literal, Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Observation
 class ObservationBase(BaseModel):
@@ -31,7 +31,7 @@ class AllergyCreate(AllergyBase):
 
 class AllergyUpdate(BaseModel):
     criticality: Literal["low", "high", "unable_to_assess"]
-    base_version: int
+    base_version: int = Field(..., ge=1)
 
 class AllergyResponse(AllergyBase):
     id: uuid.UUID
@@ -65,7 +65,7 @@ class MedicationRequestBase(BaseModel):
     encounter_id: Optional[uuid.UUID] = None
     medicine_catalog_id: uuid.UUID
     dosage_instruction: str
-    duration_days: Optional[int] = None
+    duration_days: Optional[int] = Field(None, ge=1)
     status: Literal["active", "completed", "cancelled"] = "active"
 
 class MedicationRequestCreate(MedicationRequestBase):
