@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, DateTime, ForeignKey, BigInteger, Text, CheckConstraint
+from sqlalchemy import String, DateTime, ForeignKey, BigInteger, Text, CheckConstraint, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -21,6 +21,7 @@ class Encounter(Base):
     clinical_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     outcome: Mapped[str | None] = mapped_column(String, nullable=True) # completed, referred, follow_up
     
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     # Audit & Sync Standards (Crucial for offline capabilities)
     record_version: Mapped[int] = mapped_column(BigInteger, default=1)
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
