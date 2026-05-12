@@ -34,13 +34,19 @@ class LocalStorageProvider(StorageProvider):
     """
     
     def __init__(self, base_path: str = "./local_storage"):
-        self.base_path = base_path
+        self.base_path = os.path.abspath(base_path)
         os.makedirs(self.base_path, exist_ok=True)
 
+    def _get_safe_path(self, file_name: str) -> str:
+        # Prevent path traversal
+        file_path = os.path.abspath(os.path.join(self.base_path, file_name))
+        if not file_path.startswith(self.base_path):
+            raise ValueError("Path traversal attack detected")
+        return file_path
+
     def upload_file(self, file_name: str, file_data: bytes, content_type: str) -> str:
-        # Generate a unique filename to prevent collisions
-        unique_name = f"{uuid.uuid4()}_{file_name}"
-        file_path = os.path.join(self.base_path, unique_name)
+        unique_name = f"{uuid.uuid4()}_{os.path.basename(file_name)}"
+        file_path = self._get_safe_path(unique_name)
         
         with open(file_path, "wb") as f:
             f.write(file_data)
@@ -49,6 +55,13 @@ class LocalStorageProvider(StorageProvider):
         return file_path
 
     def download_file(self, file_uri: str) -> bytes:
+        # Re-verify safe path for download in case file_uri was manipulated
+        if not os.path.isabs(file_uri):
+            file_uri = os.path.abspath(os.path.join(self.base_path, os.path.basename(file_uri)))
+            
+        if not file_uri.startswith(self.base_path):
+             raise ValueError("Path traversal attack detected")
+
         if not os.path.exists(file_uri):
             raise FileNotFoundError(f"File not found: {file_uri}")
             
@@ -56,6 +69,12 @@ class LocalStorageProvider(StorageProvider):
             return f.read()
 
     def delete_file(self, file_uri: str) -> bool:
+        if not os.path.isabs(file_uri):
+            file_uri = os.path.abspath(os.path.join(self.base_path, os.path.basename(file_uri)))
+            
+        if not file_uri.startswith(self.base_path):
+             raise ValueError("Path traversal attack detected")
+
         if os.path.exists(file_uri):
             os.remove(file_uri)
             return True
@@ -72,7 +91,7 @@ class S3StorageProvider(StorageProvider):
         
         if not settings.aws_access_key_id or not settings.aws_secret_access_key or not self.bucket_name:
             logger.warning("AWS S3 credentials or bucket name missing. Storage operations will fail.")
-            # self.s3_client = None
+            raise ValueError("AWS S3 credentials missing")
         else:
             # self.s3_client = boto3.client(
             #     's3',

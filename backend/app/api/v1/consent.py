@@ -12,12 +12,24 @@ router = APIRouter()
 
 @router.get("/{patient_id}/consents", response_model=List[ConsentResponse])
 def get_patient_consents(patient_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return ConsentService.get_patient_consents(db, patient_id)
+    """
+    Retrieve all active and historical consents for a specific patient.
+    Requires patient self-authorization or staff role.
+    """
+    return ConsentService.get_patient_consents(db, patient_id, current_user)
 
 @router.post("/{patient_id}/consents", response_model=ConsentResponse, status_code=status.HTTP_201_CREATED)
 def create_patient_consent(patient_id: uuid.UUID, request: ConsentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Create a new consent grant for a specific patient.
+    Requires patient self-authorization or staff role.
+    """
     return ConsentService.create_consent(db, patient_id, request, current_user)
 
 @router.patch("/{patient_id}/consents/{consent_id}", response_model=ConsentResponse)
 def update_patient_consent(patient_id: uuid.UUID, consent_id: uuid.UUID, request: ConsentUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Update the status of an existing consent (e.g., revoke or expire).
+    Requires patient self-authorization or staff role.
+    """
     return ConsentService.update_consent(db, patient_id, consent_id, request, current_user)

@@ -41,5 +41,5 @@ def test_local_storage_provider(tmp_path):
     assert success is True
     
     # Download after delete should fail or return None
-    with pytest.raises(Exception): # Assuming it raises FileNotFoundError
+    with pytest.raises(FileNotFoundError):
         provider.download_file(file_url)

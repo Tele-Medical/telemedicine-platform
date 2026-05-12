@@ -21,8 +21,9 @@ class MockSMSProvider(SMSProvider):
     """
 
     def send_sms(self, to_phone: str, message: str) -> bool:
-        logger.info(f"MOCK SMS sent to {to_phone}: {message}")
-        print(f"\n[MOCK SMS] To: {to_phone} | Message: {message}\n")
+        masked_phone = to_phone[:4] + "****" + to_phone[-4:] if len(to_phone) > 8 else "****"
+        logger.info(f"MOCK SMS sent to {masked_phone}: <REDACTED OTP MESSAGE>")
+        print(f"\n[MOCK SMS] To: {masked_phone} | Message: <REDACTED OTP MESSAGE>\n")
         return True
 
 class TwilioSMSProvider(SMSProvider):
@@ -37,7 +38,7 @@ class TwilioSMSProvider(SMSProvider):
         
         if not self.account_sid or not self.auth_token:
             logger.warning("Twilio credentials missing. SMS sending will fail.")
-            self.client = None
+            raise ValueError("Twilio credentials missing")
         else:
             self.client = Client(self.account_sid, self.auth_token)
 
@@ -49,7 +50,8 @@ class TwilioSMSProvider(SMSProvider):
                     from_=self.from_number,
                     to=to_phone
                 )
-                logger.info(f"TWILIO SMS sent to {to_phone}")
+                masked_phone = to_phone[:4] + "****" + to_phone[-4:] if len(to_phone) > 8 else "****"
+                logger.info(f"TWILIO SMS sent to {masked_phone}")
                 return True
             else:
                 logger.error("Twilio client is not initialized.")

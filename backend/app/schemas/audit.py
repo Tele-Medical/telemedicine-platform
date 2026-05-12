@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Literal
 import uuid
 
 class ConsentCreate(BaseModel):
@@ -9,7 +9,7 @@ class ConsentCreate(BaseModel):
     expires_at: Optional[datetime] = None
 
 class ConsentUpdate(BaseModel):
-    status: str # active, revoked, expired
+    status: Literal["active", "revoked", "expired"]
 
 class ConsentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
