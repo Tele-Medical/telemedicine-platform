@@ -13,6 +13,14 @@ from app.core.config import settings
 engine = create_engine(settings.database_url)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
+@pytest.fixture(autouse=True)
+def force_mock_sms_provider():
+    original_provider = settings.sms_provider
+    settings.sms_provider = "mock"
+    yield
+    settings.sms_provider = original_provider
+
 @pytest.fixture(scope="session")
 def setup_db():
     # In a real TDD setup, you might create/drop test db here

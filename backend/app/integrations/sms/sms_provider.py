@@ -42,12 +42,15 @@ class TwilioSMSProvider(SMSProvider):
         self.account_sid = settings.twilio_account_sid
         self.auth_token = settings.twilio_auth_token
         self.from_number = settings.twilio_from_number
-        
-        if not self.account_sid or not self.auth_token:
-            logger.warning("Twilio credentials missing. SMS sending will fail.")
-            raise ValueError("Twilio credentials missing")
-        else:
-            self.client = Client(self.account_sid, self.auth_token)
+
+        if not self.account_sid or not self.auth_token or not self.from_number:
+            logger.warning(
+                "Twilio config missing (account_sid/auth_token/from_number). "
+                "SMS sending will fail."
+            )
+            raise ValueError("Twilio config missing")
+
+        self.client = Client(self.account_sid, self.auth_token)
 
     def send_sms(self, to_phone: str, message: str) -> bool:
         """
@@ -77,8 +80,11 @@ def get_sms_provider() -> SMSProvider:
     
     if provider_type == "twilio":
         return TwilioSMSProvider()
-    elif provider_type == "mock":
+    if provider_type == "mock":
         return MockSMSProvider()
-    else:
-        logger.warning(f"Unknown SMS_PROVIDER '{provider_type}', falling back to Mock.")
-        return MockSMSProvider()
+
+    logger.error(
+        "Unknown SMS_PROVIDER '%s'. Refusing fallback in OTP path.",
+        provider_type,
+    )
+    raise ValueError(f"Unsupported SMS provider: {provider_type}")
