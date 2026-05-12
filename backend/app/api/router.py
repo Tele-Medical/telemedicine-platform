@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1 import auth, patients, practitioners, appointments, encounters, clinical, sync, pharmacy
+from app.api.v1 import auth, patients, practitioners, appointments, encounters, clinical, sync, pharmacy, consent
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -11,3 +11,4 @@ api_router.include_router(encounters.router, prefix="/encounters", tags=["encoun
 api_router.include_router(clinical.router, tags=["clinical"])
 api_router.include_router(sync.router, tags=["sync"])
 api_router.include_router(pharmacy.router, tags=["pharmacy"])
+api_router.include_router(consent.router, prefix="/patients", tags=["consent"])

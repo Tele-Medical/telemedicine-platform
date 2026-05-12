@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
@@ -8,6 +8,7 @@ from app.schemas.identity import IdentifierCreate, IdentifierResponse
 from app.schemas.patient import PatientCreate, PatientRead, PatientUpdate
 from app.services import identity_service, patient_service
 from app.models.auth import User
+from app.services.audit_service import AuditService
 
 router = APIRouter()
 
@@ -30,10 +31,20 @@ def search_patients(
 @router.get("/{id}", response_model=PatientRead)
 def get_patient(
     id: UUID,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return patient_service.get_patient(db, id)
+    patient = patient_service.get_patient(db, id)
+    AuditService.log_access(
+        db=db,
+        target_entity_type="patients",
+        target_entity_id=patient.id,
+        actor_user_id=current_user.id,
+        action="read",
+        request=request
+    )
+    return patient
 
 @router.patch("/{id}", response_model=PatientRead)
 def update_patient(
