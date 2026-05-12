@@ -76,6 +76,10 @@ class PrescriptionItem(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
+    __table_args__ = (
+        CheckConstraint("quantity_prescribed > 0", name="prescription_items_qty_check"),
+    )
+
 class StockBatch(Base):
     """
     Represents a specific batch of medication received by a pharmacy.
@@ -163,3 +167,7 @@ class FulfillmentItem(Base):
     
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        CheckConstraint("quantity_dispensed > 0", name="fulfillment_items_qty_check"),
+    )

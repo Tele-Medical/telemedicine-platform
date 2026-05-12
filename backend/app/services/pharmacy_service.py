@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_
+from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 import uuid
 
@@ -105,22 +106,14 @@ class PharmacyService:
     def record_stock_intake(db: Session, request: StockIntakeRequest, current_user: User):
         """
         Records the intake of a new stock batch or adds to an existing batch.
-        Updates the append-only StockMovement ledger.
+        Updates the append-only StockMovement ledger. Handles concurrent inserts
+        using a try-except block for IntegrityError.
         """
         if request.quantity_received <= 0:
             raise HTTPException(status_code=400, detail="Quantity received must be positive")
 
-        # Use with_for_update for batch to prevent race condition if updating existing
-        batch = db.query(StockBatch).with_for_update().filter(
-            StockBatch.pharmacy_id == request.pharmacy_id,
-            StockBatch.medicine_id == request.medicine_id,
-            StockBatch.batch_number == request.batch_number
-        ).first()
-
-        if batch:
-            batch.current_quantity += request.quantity_received
-            batch.initial_quantity += request.quantity_received
-        else:
+        try:
+            db.begin_nested()
             batch = StockBatch(
                 pharmacy_id=request.pharmacy_id,
                 medicine_id=request.medicine_id,
@@ -130,8 +123,23 @@ class PharmacyService:
                 current_quantity=request.quantity_received
             )
             db.add(batch)
-            
-        db.flush()
+            db.flush()
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            # The batch row already exists, fetch it with an update lock
+            batch = db.query(StockBatch).with_for_update().filter(
+                StockBatch.pharmacy_id == request.pharmacy_id,
+                StockBatch.medicine_id == request.medicine_id,
+                StockBatch.batch_number == request.batch_number
+            ).first()
+
+            if not batch:
+                 raise HTTPException(status_code=500, detail="Concurrency error while recording stock intake")
+
+            batch.current_quantity += request.quantity_received
+            batch.initial_quantity += request.quantity_received
+            db.flush()
 
         # Add movement
         movement = StockMovement(
@@ -181,8 +189,13 @@ class PharmacyService:
     def accept_fulfillment(db: Session, prescription_id: uuid.UUID, request: FulfillmentAcceptRequest, current_user: User) -> Fulfillment:
         """
         Accepts a prescription for fulfillment at a specific pharmacy.
-        Prevents duplicate processing.
+        Validates pharmacy existence and prevents duplicate processing.
         """
+        # Validate pharmacy exists
+        pharmacy = db.get(Pharmacy, request.pharmacy_id)
+        if not pharmacy:
+            raise HTTPException(status_code=404, detail="Pharmacy not found")
+
         # Lock prescription to avoid race conditions when accepting
         rx = db.query(Prescription).with_for_update().filter(Prescription.id == prescription_id).first()
         if not rx:
@@ -218,7 +231,7 @@ class PharmacyService:
     def dispense_fulfillment(db: Session, fulfillment_id: uuid.UUID, request: FulfillmentDispenseRequest, current_user: User) -> Fulfillment:
         """
         Dispenses medicines for a fulfillment.
-        Verifies batch ownership, prescription items, and handles stock deductions safely.
+        Verifies batch ownership, prescription items, medicine matching, quantity limits, and handles stock deductions safely.
         """
         fulfillment = db.query(Fulfillment).with_for_update().filter(Fulfillment.id == fulfillment_id).first()
         if not fulfillment:
@@ -230,13 +243,15 @@ class PharmacyService:
         rx = db.query(Prescription).filter(Prescription.id == fulfillment.prescription_id).first()
         
         # Pre-load valid prescription items for validation
-        valid_prescription_item_ids = {item.id for item in rx.items}
+        valid_prescription_items = {item.id: item for item in rx.items}
 
         for item in request.items:
             # Validate ownership of prescription item
-            if item.prescription_item_id not in valid_prescription_item_ids:
+            if item.prescription_item_id not in valid_prescription_items:
                 db.rollback()
                 raise HTTPException(status_code=400, detail=f"Prescription item {item.prescription_item_id} does not belong to this prescription")
+
+            rx_item = valid_prescription_items[item.prescription_item_id]
 
             # Lock the batch and validate ownership
             batch = db.query(StockBatch).with_for_update().filter(StockBatch.id == item.batch_id).first()
@@ -247,6 +262,21 @@ class PharmacyService:
             if batch.pharmacy_id != fulfillment.pharmacy_id:
                  db.rollback()
                  raise HTTPException(status_code=400, detail=f"Batch {item.batch_id} does not belong to the fulfilling pharmacy")
+
+            # Verify the medicine matches
+            if batch.medicine_id != rx_item.medicine_id:
+                 db.rollback()
+                 raise HTTPException(status_code=400, detail=f"Batch medicine {batch.medicine_id} does not match prescribed medicine {rx_item.medicine_id}")
+
+            # Verify that total dispensed quantity doesn't exceed prescribed quantity
+            total_dispensed_so_far = db.query(func.sum(FulfillmentItem.quantity_dispensed)).join(Fulfillment).filter(
+                FulfillmentItem.prescription_item_id == rx_item.id,
+                Fulfillment.status.in_(["processing", "completed"])
+            ).scalar() or 0
+
+            if total_dispensed_so_far + item.quantity_dispensed > rx_item.quantity_prescribed:
+                 db.rollback()
+                 raise HTTPException(status_code=400, detail=f"Total dispensed quantity for item {rx_item.id} exceeds prescribed quantity")
 
             if batch.current_quantity < item.quantity_dispensed:
                 db.rollback()
