@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from app.models.auth import User
 from app.models.clinical import Allergy
+from app.models.sync import SyncConflict
 from app.core.security import create_access_token
 
 def get_auth_headers(db_session: Session):
@@ -175,22 +176,62 @@ def test_sync_pull_incremental(client: TestClient, db_session: Session):
 
 def test_sync_conflict_resolution_client_wins(client: TestClient, db_session: Session):
     headers, user = get_auth_headers(db_session)
+    patient_id = uuid.uuid4()
     allergy_id = uuid.uuid4()
     
-    # Setup a conflict manually (Mocked for now as we don't have the model yet)
-    # In a real test, we'd trigger it via push or insert into sync_conflicts table.
+    # 1. Setup Patient and Allergy
+    from app.models.patient import Patient
+    patient = Patient(id=patient_id, full_name="Conflict Patient", record_version=1)
+    db_session.add(patient)
+    db_session.flush()
+    allergy = Allergy(id=allergy_id, patient_id=patient_id, substance="Peanuts", criticality="low", record_version=1, created_by_user_id=user.id)
+    db_session.add(allergy)
+    db_session.commit()
     
-    # For now, let's assume we have an endpoint to resolve
-    # We'll use a dummy ID for the conflict
-    conflict_id = uuid.uuid4()
+    # 2. Trigger a conflict via push
+    sync_payload = {
+        "operations": [
+            {
+                "operation_id": str(uuid.uuid4()),
+                "entity_type": "allergy",
+                "entity_id": str(allergy_id),
+                "action": "update",
+                "base_version": 0, # Stale version (should be 1)
+                "payload": {"criticality": "high"},
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+        ]
+    }
+    client.post("/api/v1/sync/push", json=sync_payload, headers=headers)
     
-    # This test will likely fail with 404 until implemented
+    conflict = db_session.query(SyncConflict).filter_by(entity_id=allergy_id).first()
+    assert conflict is not None
+    
+    # 3. Resolve with client_wins
     response = client.post(
-        f"/api/v1/sync/conflicts/{conflict_id}/resolve",
+        f"/api/v1/sync/conflicts/{conflict.id}/resolve",
         json={"strategy": "client_wins"},
         headers=headers
     )
-    # assert response.status_code == 200
+    assert response.status_code == 200
+    
+    # 4. Verify persistence
+    db_session.refresh(allergy)
+    assert allergy.criticality == "high"
+    assert allergy.record_version == 2
+
+def test_sync_conflict_manual_merge_validation(client: TestClient, db_session: Session):
+    headers, user = get_auth_headers(db_session)
+    conflict_id = uuid.uuid4()
+    
+    # Test that manual_merge requires merged_payload
+    response = client.post(
+        f"/api/v1/sync/conflicts/{conflict_id}/resolve",
+        json={"strategy": "manual_merge"},
+        headers=headers
+    )
+    assert response.status_code == 422 # Pydantic validation error
+    assert "merged_payload is required" in response.text
 
 def test_sync_push_delete(client: TestClient, db_session: Session):
     headers, user = get_auth_headers(db_session)

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import List, Optional, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from enum import Enum
 
 class SyncAction(str, Enum):
@@ -43,3 +43,9 @@ class ConflictResolutionStrategy(str, Enum):
 class ConflictResolutionRequest(BaseModel):
     strategy: ConflictResolutionStrategy
     merged_payload: Optional[dict] = None
+
+    @model_validator(mode="after")
+    def validate_manual_merge(self) -> "ConflictResolutionRequest":
+        if self.strategy == ConflictResolutionStrategy.MANUAL_MERGE and self.merged_payload is None:
+            raise ValueError("merged_payload is required for MANUAL_MERGE strategy")
+        return self
