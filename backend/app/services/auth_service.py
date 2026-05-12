@@ -4,7 +4,7 @@ from app.models.auth import User, OTPChallenge, Session as DBSession
 from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token
 from app.core.config import settings
 from app.schemas.auth import OTPVerify, StaffLogin, TokenResponse
-from app.integrations.sms.sms_provider import MockSMSProvider
+from app.integrations.sms.sms_provider import get_sms_provider
 from datetime import datetime, timedelta, timezone
 import secrets
 import hashlib
@@ -22,7 +22,7 @@ def request_otp(db: Session, phone: str) -> dict:
     otp_hash = get_password_hash(otp_code)
     
     # 3. Send OTP using Provider
-    sms_provider = MockSMSProvider() # Dependency Injection can be added later
+    sms_provider = get_sms_provider() # Dynamically loaded based on settings.sms_provider
     sms_provider.send_sms(to_phone=phone, message=f"Your Rural Telemedicine Platform OTP is {otp_code}")
 
     # 4. Create the challenge
