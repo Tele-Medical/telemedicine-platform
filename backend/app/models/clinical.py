@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, DateTime, ForeignKey, BigInteger, CheckConstraint
+from sqlalchemy import String, DateTime, ForeignKey, BigInteger, CheckConstraint, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -18,8 +18,10 @@ class Observation(Base):
     value_string: Mapped[str] = mapped_column(String)
     unit: Mapped[str | None] = mapped_column(String, nullable=True)
     
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class Allergy(Base):
     """High-risk data. Strict conflict resolution applies here during sync."""
@@ -30,6 +32,7 @@ class Allergy(Base):
     substance: Mapped[str] = mapped_column(String)
     criticality: Mapped[str] = mapped_column(String) # low, high, unable_to_assess
     
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     record_version: Mapped[int] = mapped_column(BigInteger, default=1)
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
     updated_by_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
@@ -52,8 +55,12 @@ class Condition(Base):
     disease_code: Mapped[str | None] = mapped_column(String, nullable=True)
     disease_name: Mapped[str] = mapped_column(String)
     
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    record_version: Mapped[int] = mapped_column(BigInteger, default=1)
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
+    updated_by_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         CheckConstraint("clinical_status IN ('active', 'resolved', 'inactive')", name="conditions_status_check"),
@@ -72,6 +79,7 @@ class MedicationRequest(Base):
     duration_days: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     status: Mapped[str] = mapped_column(String, default="active") # active, completed, cancelled
     
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     record_version: Mapped[int] = mapped_column(BigInteger, default=1)
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
     updated_by_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
