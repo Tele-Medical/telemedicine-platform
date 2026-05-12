@@ -1,0 +1,102 @@
+from sqlalchemy.orm import Session
+from fastapi import HTTPException, Request
+import uuid
+from typing import List
+
+from app.models.audit import Consent, AuditEvent
+from app.models.patient import Patient
+from app.models.auth import User
+from app.schemas.audit import ConsentCreate, ConsentUpdate
+
+class AuditService:
+    """
+    Service responsible for logging secure audit trails for PHI access.
+    """
+    @staticmethod
+    def log_access(db: Session, target_entity_type: str, target_entity_id: uuid.UUID, actor_user_id: uuid.UUID, action: str, request: Request = None):
+        """
+        Logs a read or export action for sensitive entities.
+        Captures IP address and User Agent for security auditing.
+        Uses flush() to keep the audit event within the caller's transaction boundary.
+        """
+        ip_address = request.client.host if request and request.client else None
+        user_agent = request.headers.get("user-agent") if request else None
+
+        audit_event = AuditEvent(
+            target_entity_type=target_entity_type,
+            target_entity_id=target_entity_id,
+            actor_user_id=actor_user_id,
+            action=action,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        db.add(audit_event)
+        db.flush()
+
+class ConsentService:
+    """
+    Service to manage patient consents, adhering to ABHA-ready policies.
+    """
+
+    @staticmethod
+    def _check_auth(patient_id: uuid.UUID, current_user: User):
+        """
+        Verifies if the current user is authorized to manage or view consents for this patient.
+        Allows access if the user is the patient themselves, or a member of staff.
+        """
+        allowed_staff_roles = ["doctor", "asha", "admin", "pharmacist"]
+        if current_user.default_role == "patient":
+            if current_user.id != patient_id:
+                raise HTTPException(status_code=403, detail="Not authorized to access this patient's consents")
+        elif current_user.default_role not in allowed_staff_roles:
+            raise HTTPException(status_code=403, detail="Role not authorized to manage consents")
+
+    @staticmethod
+    def create_consent(db: Session, patient_id: uuid.UUID, request: ConsentCreate, current_user: User) -> Consent:
+        """
+        Creates a new active consent for a specific purpose.
+        """
+        ConsentService._check_auth(patient_id, current_user)
+        patient = db.get(Patient, patient_id)
+        if not patient:
+            raise HTTPException(status_code=404, detail="Patient not found")
+
+        consent = Consent(
+            patient_id=patient_id,
+            granted_by_user_id=current_user.id,
+            purpose=request.purpose,
+            scope=request.scope,
+            expires_at=request.expires_at,
+            status="active"
+        )
+        db.add(consent)
+        db.commit()
+        db.refresh(consent)
+        return consent
+
+    @staticmethod
+    def update_consent(db: Session, patient_id: uuid.UUID, consent_id: uuid.UUID, request: ConsentUpdate, current_user: User) -> Consent:
+        """
+        Updates an existing consent (e.g., revoking it).
+        """
+        ConsentService._check_auth(patient_id, current_user)
+        consent = db.query(Consent).filter(Consent.id == consent_id, Consent.patient_id == patient_id).first()
+        if not consent:
+            raise HTTPException(status_code=404, detail="Consent not found")
+
+        consent.status = request.status
+        db.commit()
+        db.refresh(consent)
+        return consent
+
+    @staticmethod
+    def get_patient_consents(db: Session, patient_id: uuid.UUID, current_user: User) -> List[Consent]:
+        """
+        Retrieves all consents associated with a specific patient.
+        """
+        ConsentService._check_auth(patient_id, current_user)
+        patient = db.get(Patient, patient_id)
+        if not patient:
+            raise HTTPException(status_code=404, detail="Patient not found")
+            
+        return db.query(Consent).filter(Consent.patient_id == patient_id).all()

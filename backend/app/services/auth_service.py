@@ -4,6 +4,7 @@ from app.models.auth import User, OTPChallenge, Session as DBSession
 from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token
 from app.core.config import settings
 from app.schemas.auth import OTPVerify, StaffLogin, TokenResponse
+from app.integrations.sms.sms_provider import get_sms_provider
 from datetime import datetime, timedelta, timezone
 import secrets
 import hashlib
@@ -12,7 +13,7 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode('utf-8')).hexdigest()
 
 def request_otp(db: Session, phone: str) -> dict:
-    # 1. Generate fake OTP for now (would use SMS provider here)
+    # 1. Generate fake OTP for now
     otp_code = str(secrets.randbelow(900000) + 100000)
     if settings.app_env != "production" and phone.startswith("+123456"): # Test accounts
         otp_code = "123456"
@@ -20,7 +21,11 @@ def request_otp(db: Session, phone: str) -> dict:
     # 2. Hash the OTP (we never store plain text OTPs)
     otp_hash = get_password_hash(otp_code)
     
-    # 3. Create the challenge
+    # 3. Send OTP using Provider
+    sms_provider = get_sms_provider() # Dynamically loaded based on settings.sms_provider
+    sms_provider.send_sms(to_phone=phone, message=f"Your Rural Telemedicine Platform OTP is {otp_code}")
+
+    # 4. Create the challenge
     expires = datetime.now(timezone.utc) + timedelta(minutes=5)
     challenge = OTPChallenge(
         phone=phone,
