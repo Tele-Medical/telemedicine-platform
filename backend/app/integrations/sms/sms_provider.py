@@ -30,30 +30,30 @@ class TwilioSMSProvider(SMSProvider):
     Real Twilio SMS implementation.
     """
     def __init__(self):
-        # In a real setup, you would install the twilio package: `uv add twilio`
-        # and import Client here.
-        # from twilio.rest import Client
+        from twilio.rest import Client
         self.account_sid = settings.twilio_account_sid
         self.auth_token = settings.twilio_auth_token
         self.from_number = settings.twilio_from_number
         
         if not self.account_sid or not self.auth_token:
             logger.warning("Twilio credentials missing. SMS sending will fail.")
-            # self.client = None
+            self.client = None
         else:
-            # self.client = Client(self.account_sid, self.auth_token)
-            pass
+            self.client = Client(self.account_sid, self.auth_token)
 
     def send_sms(self, to_phone: str, message: str) -> bool:
         try:
-            # if self.client:
-            #     self.client.messages.create(
-            #         body=message,
-            #         from_=self.from_number,
-            #         to=to_phone
-            #     )
-            logger.info(f"TWILIO SMS sent to {to_phone} (Simulated Twilio call for now)")
-            return True
+            if self.client:
+                self.client.messages.create(
+                    body=message,
+                    from_=self.from_number,
+                    to=to_phone
+                )
+                logger.info(f"TWILIO SMS sent to {to_phone}")
+                return True
+            else:
+                logger.error("Twilio client is not initialized.")
+                return False
         except Exception as e:
             logger.error(f"Failed to send Twilio SMS: {e}")
             return False
