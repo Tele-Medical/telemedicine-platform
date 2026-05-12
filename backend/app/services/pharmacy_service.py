@@ -1,5 +1,5 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func, or_
 from fastapi import HTTPException
 import uuid
 
@@ -7,6 +7,7 @@ from app.models.pharmacy import (
     Prescription, PrescriptionItem, MedicineCatalog, Pharmacy, 
     StockBatch, StockMovement, Fulfillment, FulfillmentItem
 )
+from app.models.patient import Patient
 from app.models.auth import User
 from app.schemas.pharmacy import (
     PrescriptionCreate, StockIntakeRequest, StockAdjustmentRequest, 
@@ -14,9 +15,31 @@ from app.schemas.pharmacy import (
 )
 
 class PharmacyService:
+    """
+    Service layer handling pharmacy and inventory business logic.
+    Provides methods for prescription creation, inventory management, and fulfillment.
+    """
 
     @staticmethod
     def create_prescription(db: Session, request: PrescriptionCreate, current_user: User) -> Prescription:
+        """
+        Creates a new prescription with associated items.
+        Validates patient existence and medicine catalog entries.
+        """
+        # Validate patient exists
+        patient = db.get(Patient, request.patient_id)
+        if not patient:
+            raise HTTPException(status_code=400, detail="Patient not found")
+
+        # Validate medicines exist
+        medicine_ids = [item.medicine_id for item in request.items]
+        found_medicines = db.query(MedicineCatalog.id).filter(MedicineCatalog.id.in_(medicine_ids)).all()
+        found_ids = {m[0] for m in found_medicines}
+        
+        missing_ids = set(medicine_ids) - found_ids
+        if missing_ids:
+            raise HTTPException(status_code=400, detail=f"Medicines not found in catalog: {missing_ids}")
+
         # Create prescription
         rx = Prescription(
             patient_id=request.patient_id,
@@ -45,6 +68,9 @@ class PharmacyService:
 
     @staticmethod
     def get_prescription(db: Session, prescription_id: uuid.UUID) -> Prescription:
+        """
+        Retrieves a prescription by its ID.
+        """
         rx = db.query(Prescription).filter(Prescription.id == prescription_id).first()
         if not rx:
             raise HTTPException(status_code=404, detail="Prescription not found")
@@ -52,6 +78,10 @@ class PharmacyService:
 
     @staticmethod
     def get_availability(db: Session, medicine_id: uuid.UUID):
+        """
+        Queries nearby pharmacies for available stock of a given medicine.
+        Returns a list of pharmacies with total quantity and the latest expiry date.
+        """
         # Query total current_quantity across active batches for each pharmacy
         results = db.query(
             Pharmacy,
@@ -73,8 +103,15 @@ class PharmacyService:
 
     @staticmethod
     def record_stock_intake(db: Session, request: StockIntakeRequest, current_user: User):
-        # Create or update batch
-        batch = db.query(StockBatch).filter(
+        """
+        Records the intake of a new stock batch or adds to an existing batch.
+        Updates the append-only StockMovement ledger.
+        """
+        if request.quantity_received <= 0:
+            raise HTTPException(status_code=400, detail="Quantity received must be positive")
+
+        # Use with_for_update for batch to prevent race condition if updating existing
+        batch = db.query(StockBatch).with_for_update().filter(
             StockBatch.pharmacy_id == request.pharmacy_id,
             StockBatch.medicine_id == request.medicine_id,
             StockBatch.batch_number == request.batch_number
@@ -111,7 +148,14 @@ class PharmacyService:
 
     @staticmethod
     def record_stock_adjustment(db: Session, request: StockAdjustmentRequest, current_user: User):
-        batch = db.query(StockBatch).filter(StockBatch.id == request.batch_id).first()
+        """
+        Records manual adjustments (e.g. damages, expiry) to an existing stock batch.
+        Ensures the resulting quantity is not negative and writes to the ledger.
+        """
+        if request.quantity_change == 0:
+            raise HTTPException(status_code=400, detail="Quantity change cannot be zero")
+
+        batch = db.query(StockBatch).with_for_update().filter(StockBatch.id == request.batch_id).first()
         if not batch:
             raise HTTPException(status_code=404, detail="Batch not found")
 
@@ -135,9 +179,26 @@ class PharmacyService:
 
     @staticmethod
     def accept_fulfillment(db: Session, prescription_id: uuid.UUID, request: FulfillmentAcceptRequest, current_user: User) -> Fulfillment:
-        rx = db.query(Prescription).filter(Prescription.id == prescription_id).first()
+        """
+        Accepts a prescription for fulfillment at a specific pharmacy.
+        Prevents duplicate processing.
+        """
+        # Lock prescription to avoid race conditions when accepting
+        rx = db.query(Prescription).with_for_update().filter(Prescription.id == prescription_id).first()
         if not rx:
             raise HTTPException(status_code=404, detail="Prescription not found")
+
+        if rx.status in ["processing", "completed"]:
+            raise HTTPException(status_code=400, detail=f"Prescription is already {rx.status}")
+
+        # Ensure no existing active fulfillment exists
+        existing_fulfillment = db.query(Fulfillment).filter(
+            Fulfillment.prescription_id == rx.id,
+            Fulfillment.status.in_(["processing", "completed"])
+        ).first()
+        
+        if existing_fulfillment:
+             raise HTTPException(status_code=400, detail="Prescription is already being fulfilled")
 
         fulfillment = Fulfillment(
             prescription_id=rx.id,
@@ -155,17 +216,37 @@ class PharmacyService:
 
     @staticmethod
     def dispense_fulfillment(db: Session, fulfillment_id: uuid.UUID, request: FulfillmentDispenseRequest, current_user: User) -> Fulfillment:
-        fulfillment = db.query(Fulfillment).filter(Fulfillment.id == fulfillment_id).first()
+        """
+        Dispenses medicines for a fulfillment.
+        Verifies batch ownership, prescription items, and handles stock deductions safely.
+        """
+        fulfillment = db.query(Fulfillment).with_for_update().filter(Fulfillment.id == fulfillment_id).first()
         if not fulfillment:
             raise HTTPException(status_code=404, detail="Fulfillment not found")
 
+        if fulfillment.status == "completed":
+            raise HTTPException(status_code=400, detail="Fulfillment is already completed")
+
         rx = db.query(Prescription).filter(Prescription.id == fulfillment.prescription_id).first()
+        
+        # Pre-load valid prescription items for validation
+        valid_prescription_item_ids = {item.id for item in rx.items}
 
         for item in request.items:
-            batch = db.query(StockBatch).filter(StockBatch.id == item.batch_id).first()
+            # Validate ownership of prescription item
+            if item.prescription_item_id not in valid_prescription_item_ids:
+                db.rollback()
+                raise HTTPException(status_code=400, detail=f"Prescription item {item.prescription_item_id} does not belong to this prescription")
+
+            # Lock the batch and validate ownership
+            batch = db.query(StockBatch).with_for_update().filter(StockBatch.id == item.batch_id).first()
             if not batch:
                 db.rollback()
                 raise HTTPException(status_code=404, detail=f"Batch {item.batch_id} not found")
+
+            if batch.pharmacy_id != fulfillment.pharmacy_id:
+                 db.rollback()
+                 raise HTTPException(status_code=400, detail=f"Batch {item.batch_id} does not belong to the fulfilling pharmacy")
 
             if batch.current_quantity < item.quantity_dispensed:
                 db.rollback()

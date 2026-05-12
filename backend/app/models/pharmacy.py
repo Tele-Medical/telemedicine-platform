@@ -1,12 +1,16 @@
 import uuid
 from datetime import datetime, timezone, date
-from sqlalchemy import String, DateTime, ForeignKey, BigInteger, Date, CheckConstraint, Boolean, Text
+from sqlalchemy import String, DateTime, ForeignKey, BigInteger, Date, CheckConstraint, Boolean, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
 class MedicineCatalog(Base):
+    """
+    Represents a type of medicine available in the system.
+    Provides a standardized catalog for prescriptions and inventory.
+    """
     __tablename__ = "medicine_catalog"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -19,6 +23,10 @@ class MedicineCatalog(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class Pharmacy(Base):
+    """
+    Represents a physical or logical pharmacy location that holds inventory
+    and fulfills prescriptions.
+    """
     __tablename__ = "pharmacies"
     
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -30,6 +38,10 @@ class Pharmacy(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class Prescription(Base):
+    """
+    A medical prescription created by a practitioner for a patient.
+    Can contain multiple medication items.
+    """
     __tablename__ = "prescriptions"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -46,6 +58,9 @@ class Prescription(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class PrescriptionItem(Base):
+    """
+    An individual medication item within a prescription.
+    """
     __tablename__ = "prescription_items"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -62,6 +77,10 @@ class PrescriptionItem(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class StockBatch(Base):
+    """
+    Represents a specific batch of medication received by a pharmacy.
+    Tracks expiration and current available quantity for that batch.
+    """
     __tablename__ = "stock_batches"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -77,7 +96,17 @@ class StockBatch(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
+    __table_args__ = (
+        UniqueConstraint("pharmacy_id", "medicine_id", "batch_number", name="uq_stock_batch"),
+        CheckConstraint("initial_quantity > 0", name="stock_batch_initial_qty_check"),
+        CheckConstraint("current_quantity >= 0", name="stock_batch_current_qty_check"),
+    )
+
 class StockMovement(Base):
+    """
+    An append-only ledger tracking all changes to a StockBatch.
+    Used for auditing intakes, adjustments, and dispensations.
+    """
     __tablename__ = "stock_movements"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -96,9 +125,13 @@ class StockMovement(Base):
 
     __table_args__ = (
         CheckConstraint("movement_type IN ('intake', 'adjustment', 'dispense')", name="stock_movements_type_check"),
+        CheckConstraint("quantity_change <> 0", name="stock_movements_qty_change_check"),
     )
 
 class Fulfillment(Base):
+    """
+    Represents the process of a pharmacy fulfilling a prescription.
+    """
     __tablename__ = "fulfillments"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -114,6 +147,9 @@ class Fulfillment(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class FulfillmentItem(Base):
+    """
+    Maps a specific quantity of a StockBatch dispensed for a PrescriptionItem.
+    """
     __tablename__ = "fulfillment_items"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
