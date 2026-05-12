@@ -17,6 +17,7 @@ class AuditService:
         """
         Logs a read or export action for sensitive entities.
         Captures IP address and User Agent for security auditing.
+        Uses flush() to keep the audit event within the caller's transaction boundary.
         """
         ip_address = request.client.host if request and request.client else None
         user_agent = request.headers.get("user-agent") if request else None
@@ -30,7 +31,7 @@ class AuditService:
             user_agent=user_agent
         )
         db.add(audit_event)
-        db.commit()
+        db.flush()
 
 class ConsentService:
     """
@@ -41,9 +42,14 @@ class ConsentService:
     def _check_auth(patient_id: uuid.UUID, current_user: User):
         """
         Verifies if the current user is authorized to manage or view consents for this patient.
+        Allows access if the user is the patient themselves, or a member of staff.
         """
-        if current_user.default_role == "patient" and current_user.id != patient_id:
-            raise HTTPException(status_code=403, detail="Not authorized to access this patient's consents")
+        allowed_staff_roles = ["doctor", "asha", "admin", "pharmacist"]
+        if current_user.default_role == "patient":
+            if current_user.id != patient_id:
+                raise HTTPException(status_code=403, detail="Not authorized to access this patient's consents")
+        elif current_user.default_role not in allowed_staff_roles:
+            raise HTTPException(status_code=403, detail="Role not authorized to manage consents")
 
     @staticmethod
     def create_consent(db: Session, patient_id: uuid.UUID, request: ConsentCreate, current_user: User) -> Consent:

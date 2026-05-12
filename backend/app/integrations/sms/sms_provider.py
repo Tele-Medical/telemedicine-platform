@@ -12,6 +12,10 @@ class SMSProvider(ABC):
 
     @abstractmethod
     def send_sms(self, to_phone: str, message: str) -> bool:
+        """
+        Sends an SMS message to the specified phone number.
+        Returns True if the provider accepted the request, False otherwise.
+        """
         pass
 
 class MockSMSProvider(SMSProvider):
@@ -21,6 +25,9 @@ class MockSMSProvider(SMSProvider):
     """
 
     def send_sms(self, to_phone: str, message: str) -> bool:
+        """
+        Simulates sending an SMS by printing a redacted message to the logs.
+        """
         masked_phone = to_phone[:4] + "****" + to_phone[-4:] if len(to_phone) > 8 else "****"
         logger.info(f"MOCK SMS sent to {masked_phone}: <REDACTED OTP MESSAGE>")
         print(f"\n[MOCK SMS] To: {masked_phone} | Message: <REDACTED OTP MESSAGE>\n")
@@ -43,30 +50,30 @@ class TwilioSMSProvider(SMSProvider):
             self.client = Client(self.account_sid, self.auth_token)
 
     def send_sms(self, to_phone: str, message: str) -> bool:
+        """
+        Sends an SMS using the Twilio REST API.
+        Masks the phone number in the logs and catches exceptions securely.
+        """
+        masked_phone = to_phone[:4] + "****" + to_phone[-4:] if len(to_phone) > 8 else "****"
         try:
-            if self.client:
-                self.client.messages.create(
-                    body=message,
-                    from_=self.from_number,
-                    to=to_phone
-                )
-                masked_phone = to_phone[:4] + "****" + to_phone[-4:] if len(to_phone) > 8 else "****"
-                logger.info(f"TWILIO SMS sent to {masked_phone}")
-                return True
-            else:
-                logger.error("Twilio client is not initialized.")
-                return False
-        except Exception as e:
-            logger.error(f"Failed to send Twilio SMS: {e}")
+            self.client.messages.create(
+                body=message,
+                from_=self.from_number,
+                to=to_phone
+            )
+            logger.info(f"TWILIO SMS successfully queued for {masked_phone}")
+            return True
+        except Exception:
+            # We do not log the full exception (e) to avoid leaking PII or API tokens
+            logger.error(f"Twilio API request failed for {masked_phone}")
             return False
 
-# The Factory Method for Dependency Injection
 def get_sms_provider() -> SMSProvider:
     """
     Returns the appropriate SMS provider based on environment configuration.
     This prevents hardcoding 'Mock' or 'Twilio' in the business logic.
     """
-    provider_type = settings.sms_provider.lower()
+    provider_type = (settings.sms_provider or "mock").lower()
     
     if provider_type == "twilio":
         return TwilioSMSProvider()
