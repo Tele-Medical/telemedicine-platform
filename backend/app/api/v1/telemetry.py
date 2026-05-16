@@ -38,7 +38,7 @@ class ConnectionManager:
             if not self.active_connections[appointment_id]:
                 del self.active_connections[appointment_id]
 
-    async def publish_to_room(self, message: dict, appointment_id: str):
+    async def publish_to_room(self, message: dict, appointment_id: str, exclude_socket: Optional[WebSocket] = None):
         """
         Publishes a message to the Redis channel for a specific appointment.
         All server instances subscribed to this channel will receive and relay the message.
@@ -49,7 +49,7 @@ class ConnectionManager:
         except Exception as e:
             logger.error(f"Redis publish error in room {appointment_id}: {e}")
             # Best-effort fallback: broadcast to local connections only
-            await self._broadcast_locally(message, appointment_id, None)
+            await self._broadcast_locally(message, appointment_id, exclude_socket)
 
     async def _broadcast_locally(self, message: dict, appointment_id: str, exclude_socket: Optional[WebSocket]):
         """Relays a message to all WebSockets connected to THIS server process."""
@@ -76,9 +76,9 @@ class ConnectionManager:
         """
         pubsub = redis_client.pubsub()
         channel = f"telemetry:room:{appointment_id}"
-        await pubsub.subscribe(channel)
         
         try:
+            await pubsub.subscribe(channel)
             while True:
                 message = await pubsub.get_message(ignore_subscribe_messages=True)
                 if message:
@@ -173,7 +173,7 @@ async def signaling_endpoint(
             "user_id": user_id_str, 
             "role": user.default_role,
             "sender_id": user_id_str
-        }, appointment_id)
+        }, appointment_id, exclude_socket=websocket)
 
         while True:
             # Relay client-to-client signals
@@ -183,7 +183,7 @@ async def signaling_endpoint(
             if data.get("type") == "network_status":
                 logger.info(f"Signal quality report for {appointment_id}: {data.get('status')}")
             
-            await manager.publish_to_room(data, appointment_id)
+            await manager.publish_to_room(data, appointment_id, exclude_socket=websocket)
             
     except WebSocketDisconnect:
         logger.info(f"Normal WS disconnect for user {user_id_str}")
@@ -195,10 +195,13 @@ async def signaling_endpoint(
         manager.disconnect(websocket, appointment_id)
         await manager.publish_to_room({
             "type": "peer_left", 
-            "user_id": user_id_str,
+            "user_id": user_id_str, 
             "sender_id": user_id_str
-        }, appointment_id)
+        }, appointment_id, exclude_socket=websocket)
         try:
             await listen_task
         except asyncio.CancelledError:
             pass
+        except Exception as e:
+            logger.error(f"Error while cleaning up Redis listener task for {appointment_id}: {e}")
+

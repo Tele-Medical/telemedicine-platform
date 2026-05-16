@@ -1,3 +1,4 @@
+from unittest.mock import MagicMock, AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -7,15 +8,13 @@ from app.main import app as fastapi_app
 from app.core.database import Base
 from app.api.deps import get_db
 from app.core.config import settings
+import app.core.redis
+import app.api.v1.telemetry
 
 # Create a test database engine (using the main db but we will rollback)
 # For better isolation, we could use a separate test DB, but for now we use transactions.
 engine = create_engine(settings.database_url)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
-from unittest.mock import MagicMock, AsyncMock
-import app.core.redis
 
 # Mock Redis
 @pytest.fixture(autouse=True)
@@ -23,9 +22,12 @@ def mock_redis(monkeypatch):
     """
     Globally mocks the redis_client to prevent tests from requiring a live Redis server.
     Mocks both standard commands (publish) and Pub/Sub mechanics.
+    Targeting both core and module-bound references.
     """
     mock = MagicMock()
-    mock.publish = AsyncMock()
+    # Force publish to raise an exception so the signaling server falls back
+    # to local broadcast, allowing the WebSocket tests to receive messages.
+    mock.publish = AsyncMock(side_effect=Exception("Forcing local broadcast fallback for tests"))
     
     # Mock PubSub lifecycle
     mock_pubsub = AsyncMock()
@@ -36,7 +38,10 @@ def mock_redis(monkeypatch):
     
     mock.pubsub.return_value = mock_pubsub
     
+    # Patch all known references
     monkeypatch.setattr(app.core.redis, "redis_client", mock)
+    monkeypatch.setattr(app.api.v1.telemetry, "redis_client", mock)
+    
     return mock
 
 @pytest.fixture(autouse=True)
