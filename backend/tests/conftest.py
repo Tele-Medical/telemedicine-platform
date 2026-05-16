@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.main import app
+from app.main import app as fastapi_app
 from app.core.database import Base
 from app.api.deps import get_db
 from app.core.config import settings
@@ -13,6 +13,31 @@ from app.core.config import settings
 engine = create_engine(settings.database_url)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
+from unittest.mock import MagicMock, AsyncMock
+import app.core.redis
+
+# Mock Redis
+@pytest.fixture(autouse=True)
+def mock_redis(monkeypatch):
+    """
+    Globally mocks the redis_client to prevent tests from requiring a live Redis server.
+    Mocks both standard commands (publish) and Pub/Sub mechanics.
+    """
+    mock = MagicMock()
+    mock.publish = AsyncMock()
+    
+    # Mock PubSub lifecycle
+    mock_pubsub = AsyncMock()
+    mock_pubsub.subscribe = AsyncMock()
+    mock_pubsub.unsubscribe = AsyncMock()
+    mock_pubsub.get_message = AsyncMock(return_value=None)
+    mock_pubsub.aclose = AsyncMock()
+    
+    mock.pubsub.return_value = mock_pubsub
+    
+    monkeypatch.setattr(app.core.redis, "redis_client", mock)
+    return mock
 
 @pytest.fixture(autouse=True)
 def force_mock_sms_provider():
@@ -53,7 +78,7 @@ def client(db_session):
     def override_get_db():
         yield db_session
 
-    app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
+    fastapi_app.dependency_overrides[get_db] = override_get_db
+    with TestClient(fastapi_app) as test_client:
         yield test_client
-    app.dependency_overrides.clear()
+    fastapi_app.dependency_overrides.clear()
