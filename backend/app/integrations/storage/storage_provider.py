@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 import os
-import shutil
 import uuid
 import logging
 from app.core.config import settings
