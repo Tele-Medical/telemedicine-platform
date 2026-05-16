@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Type, Set
 from sqlalchemy.orm import Session
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_
 from fastapi import HTTPException
 
 from app.models import (
@@ -175,11 +175,11 @@ class SyncService:
             
         # If user is a patient, they can only see their own clinical data
         # Check for patient_id column or if the record itself is a Patient
-        patient_id = None
-        if isinstance(record, Patient):
-            patient_id = record.id
-        elif hasattr(record, 'patient_id'):
-            patient_id = record.patient_id
+        # patient_id = None
+        # if isinstance(record, Patient):
+        #     patient_id = record.id
+        # elif hasattr(record, 'patient_id'):
+        #     patient_id = record.patient_id
             
         # We need a way to link the User to a Patient. 
         # For now, let's assume we check if the user is linked to the patient record.
