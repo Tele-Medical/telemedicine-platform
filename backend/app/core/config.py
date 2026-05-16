@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     aws_secret_access_key: Optional[str] = None
     aws_region_name: Optional[str] = None
     s3_bucket_name: Optional[str] = None
+    
+    # ABDM / NHA Sandbox settings
+    abdm_client_id: Optional[str] = None
+    abdm_client_secret: Optional[str] = None
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

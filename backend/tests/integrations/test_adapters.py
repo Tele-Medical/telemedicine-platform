@@ -9,7 +9,7 @@ from app.integrations.sms.sms_provider import (
     TwilioSMSProvider,
     get_sms_provider,
 )
-from app.integrations.storage.storage_provider import StorageProvider, LocalStorageProvider
+from app.integrations.storage.storage_provider import LocalStorageProvider
 
 def test_mock_sms_provider():
     provider = MockSMSProvider()

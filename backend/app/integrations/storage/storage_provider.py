@@ -1,11 +1,18 @@
 from abc import ABC, abstractmethod
 import os
-import shutil
 import uuid
 import logging
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+ALLOWED_MIME_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "application/pdf",
+    "text/plain"
+}
 
 class StorageProvider(ABC):
     """
@@ -28,6 +35,11 @@ class StorageProvider(ABC):
         """Deletes the file and returns success status."""
         pass
 
+    @abstractmethod
+    def get_signed_url(self, file_uri: str, expiration_seconds: int = 900) -> str:
+        """Generates a temporary signed URL for secure file access."""
+        pass
+
 class LocalStorageProvider(StorageProvider):
     """
     Local file system storage for development and testing.
@@ -45,6 +57,9 @@ class LocalStorageProvider(StorageProvider):
         return file_path
 
     def upload_file(self, file_name: str, file_data: bytes, content_type: str) -> str:
+        if content_type not in ALLOWED_MIME_TYPES:
+            raise ValueError(f"Invalid MIME type: {content_type}")
+
         unique_name = f"{uuid.uuid4()}_{os.path.basename(file_name)}"
         file_path = self._get_safe_path(unique_name)
         
@@ -80,39 +95,49 @@ class LocalStorageProvider(StorageProvider):
             return True
         return False
 
+    def get_signed_url(self, file_uri: str, expiration_seconds: int = 900) -> str:
+        # Local storage doesn't support signed URLs directly in the same way,
+        # but we could return a specific API endpoint that streams the file if authenticated.
+        # For MVP, just returning the relative path or an API route.
+        key = os.path.basename(file_uri)
+        return f"/api/v1/uploads/local/{key}"
+
 class S3StorageProvider(StorageProvider):
     """
     Real AWS S3 Storage implementation.
     """
     def __init__(self):
-        # In a real setup, you would install boto3: `uv add boto3`
-        # import boto3
+        try:
+            import boto3
+        except ImportError:
+            raise RuntimeError("boto3 is required for S3StorageProvider. Install it via 'uv add boto3'.")
+
         self.bucket_name = settings.s3_bucket_name
         
         if not settings.aws_access_key_id or not settings.aws_secret_access_key or not self.bucket_name:
             logger.warning("AWS S3 credentials or bucket name missing. Storage operations will fail.")
             raise ValueError("AWS S3 credentials missing")
-        else:
-            # self.s3_client = boto3.client(
-            #     's3',
-            #     aws_access_key_id=settings.aws_access_key_id,
-            #     aws_secret_access_key=settings.aws_secret_access_key,
-            #     region_name=settings.aws_region_name
-            # )
-            pass
+        
+        # Initialize boto3 client
+        self.s3_client = boto3.client(
+            's3',
+            aws_access_key_id=settings.aws_access_key_id,
+            aws_secret_access_key=settings.aws_secret_access_key,
+            region_name=settings.aws_region_name
+        )
 
     def upload_file(self, file_name: str, file_data: bytes, content_type: str) -> str:
-        unique_name = f"{uuid.uuid4()}_{file_name}"
+        if content_type not in ALLOWED_MIME_TYPES:
+            raise ValueError(f"Invalid MIME type: {content_type}")
+
+        unique_name = f"{uuid.uuid4()}_{os.path.basename(file_name)}"
         try:
-            # if self.s3_client:
-            #     self.s3_client.put_object(
-            #         Bucket=self.bucket_name,
-            #         Key=unique_name,
-            #         Body=file_data,
-            #         ContentType=content_type
-            #     )
-            #     return f"s3://{self.bucket_name}/{unique_name}"
-            logger.info(f"Simulated S3 Upload: {unique_name}")
+            self.s3_client.put_object(
+                Bucket=self.bucket_name,
+                Key=unique_name,
+                Body=file_data,
+                ContentType=content_type
+            )
             return f"s3://{self.bucket_name}/{unique_name}"
         except Exception as e:
             logger.error(f"Failed to upload to S3: {e}")
@@ -120,27 +145,34 @@ class S3StorageProvider(StorageProvider):
 
     def download_file(self, file_uri: str) -> bytes:
         try:
-            # if self.s3_client:
-            #     key = file_uri.split('/')[-1]
-            #     response = self.s3_client.get_object(Bucket=self.bucket_name, Key=key)
-            #     return response['Body'].read()
-            logger.info(f"Simulated S3 Download: {file_uri}")
-            return b"simulated_data"
+            key = file_uri.split('/')[-1]
+            response = self.s3_client.get_object(Bucket=self.bucket_name, Key=key)
+            return response['Body'].read()
         except Exception as e:
             logger.error(f"Failed to download from S3: {e}")
             raise
 
     def delete_file(self, file_uri: str) -> bool:
         try:
-            # if self.s3_client:
-            #     key = file_uri.split('/')[-1]
-            #     self.s3_client.delete_object(Bucket=self.bucket_name, Key=key)
-            #     return True
-            logger.info(f"Simulated S3 Delete: {file_uri}")
+            key = file_uri.split('/')[-1]
+            self.s3_client.delete_object(Bucket=self.bucket_name, Key=key)
             return True
         except Exception as e:
             logger.error(f"Failed to delete from S3: {e}")
             return False
+
+    def get_signed_url(self, file_uri: str, expiration_seconds: int = 900) -> str:
+        try:
+            key = file_uri.split('/')[-1]
+            url = self.s3_client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': self.bucket_name, 'Key': key},
+                ExpiresIn=expiration_seconds
+            )
+            return url
+        except Exception as e:
+            logger.error(f"Failed to generate presigned URL: {e}")
+            raise
 
 def get_storage_provider() -> StorageProvider:
     """

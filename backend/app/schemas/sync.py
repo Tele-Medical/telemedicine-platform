@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
-from typing import List, Optional, Any
-from pydantic import BaseModel, Field, model_validator
+from typing import List, Optional
+from pydantic import BaseModel, model_validator
 from enum import Enum
 
 class SyncAction(str, Enum):
