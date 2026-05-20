@@ -25,7 +25,7 @@ export const apiClient = async (endpoint: string, options: RequestInit = {}) => 
     let errorMessage = 'API request failed';
     if (errorData.detail) {
       if (Array.isArray(errorData.detail)) {
-        errorMessage = errorData.detail.map((err: any) => `${err.loc.join('.')} - ${err.msg}`).join(', ');
+        errorMessage = errorData.detail.map((err: { loc: string[]; msg: string }) => `${err.loc.join('.')} - ${err.msg}`).join(', ');
       } else if (typeof errorData.detail === 'string') {
         errorMessage = errorData.detail;
       } else {

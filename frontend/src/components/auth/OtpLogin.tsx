@@ -21,8 +21,12 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
         const fullPhone = `+91${phone}`;
         await authService.requestOtp(fullPhone);
         setStep('otp');
-      } catch (err: any) {
-        setError(err.message || 'Failed to send OTP');
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message || 'Failed to send OTP');
+        } else {
+          setError('Failed to send OTP');
+        }
       } finally {
         setLoading(false);
       }
@@ -64,8 +68,12 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
           localStorage.setItem('token', response.access_token);
           onLogin(otpValue);
         }
-      } catch (err: any) {
-        setError(err.message || 'Invalid OTP');
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message || 'Invalid OTP');
+        } else {
+          setError('Invalid OTP');
+        }
       } finally {
         setLoading(false);
       }

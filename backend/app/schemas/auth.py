@@ -1,12 +1,30 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from uuid import UUID
 
 class OTPRequest(BaseModel):
     phone: str = Field(..., pattern=r"^\+?[1-9]\d{1,14}$", description="The phone number to send the OTP to (E.164 format)")
 
+    @field_validator('phone')
+    @classmethod
+    def format_phone(cls, v: str) -> str:
+        if len(v) == 10 and v.isdigit():
+            return f"+91{v}"
+        if not v.startswith('+'):
+            return f"+{v}"
+        return v
+
 class OTPVerify(BaseModel):
     phone: str = Field(..., pattern=r"^\+?[1-9]\d{1,14}$")
     code: str = Field(..., min_length=6, max_length=6)
+
+    @field_validator('phone')
+    @classmethod
+    def format_phone(cls, v: str) -> str:
+        if len(v) == 10 and v.isdigit():
+            return f"+91{v}"
+        if not v.startswith('+'):
+            return f"+{v}"
+        return v
 
 class StaffLogin(BaseModel):
     username: str = Field(..., min_length=3)

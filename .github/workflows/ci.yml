@@ -1,4 +1,4 @@
-name: Backend CI
+name: Full Stack CI
 
 on:
   push:
@@ -7,7 +7,8 @@ on:
     branches: [ "main" ]
 
 jobs:
-  test:
+  backend-test:
+    name: Backend CI
     runs-on: ubuntu-latest
 
     services:
@@ -57,3 +58,32 @@ jobs:
 
       - name: Run Test Suite (Pytest)
         run: uv run pytest -v
+
+  frontend-test:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Run Linter (ESLint)
+        run: npm run lint
+
+      - name: Build Check (TypeScript & Vite)
+        run: npm run build
+
+      - name: Run Tests (Vitest)
+        run: npm run test -- --run

@@ -23,7 +23,7 @@ describe('OtpLogin Component', () => {
       length: 0,
       key: vi.fn(),
     };
-    global.localStorage = localStorageMock as any;
+    global.localStorage = localStorageMock as unknown as Storage;
   });
   it('renders phone input view initially', () => {
     render(<OtpLogin onLogin={vi.fn()} />);

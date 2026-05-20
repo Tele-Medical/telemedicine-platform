@@ -29,8 +29,8 @@ class MockSMSProvider(SMSProvider):
         Simulates sending an SMS by printing a redacted message to the logs.
         """
         masked_phone = to_phone[:4] + "****" + to_phone[-4:] if len(to_phone) > 8 else "****"
-        logger.info(f"MOCK SMS sent to {masked_phone}: <REDACTED OTP MESSAGE>")
-        print(f"\n[MOCK SMS] To: {masked_phone} | Message: <REDACTED OTP MESSAGE>\n")
+        logger.info(f"MOCK SMS sent to {masked_phone}: {message}")
+        print(f"\n[MOCK SMS] To: {to_phone} | Message: {message}\n")
         return True
 
 class TwilioSMSProvider(SMSProvider):
@@ -66,9 +66,9 @@ class TwilioSMSProvider(SMSProvider):
             )
             logger.info(f"TWILIO SMS successfully queued for {masked_phone}")
             return True
-        except Exception:
-            # We do not log the full exception (e) to avoid leaking PII or API tokens
-            logger.error(f"Twilio API request failed for {masked_phone}")
+        except Exception as e:
+            # For debugging, log the actual exception message from Twilio
+            logger.error(f"Twilio API request failed for {masked_phone}. Reason: {str(e)}")
             return False
 
 def get_sms_provider() -> SMSProvider:

@@ -1,6 +1,8 @@
 import pytest
 from unittest.mock import patch
 import uuid
+import boto3
+from moto import mock_aws
 
 from app.core.config import settings
 from app.integrations.sms.sms_provider import (
@@ -9,7 +11,7 @@ from app.integrations.sms.sms_provider import (
     TwilioSMSProvider,
     get_sms_provider,
 )
-from app.integrations.storage.storage_provider import LocalStorageProvider
+from app.integrations.storage.storage_provider import LocalStorageProvider, S3StorageProvider
 
 def test_mock_sms_provider():
     provider = MockSMSProvider()
@@ -69,10 +71,6 @@ def test_local_storage_provider(tmp_path):
     # Download after delete should fail or return None
     with pytest.raises(FileNotFoundError):
         provider.download_file(file_url)
-
-from moto import mock_aws
-import boto3
-from app.integrations.storage.storage_provider import S3StorageProvider
 
 @mock_aws
 def test_s3_storage_provider(monkeypatch):
