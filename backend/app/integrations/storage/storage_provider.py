@@ -27,6 +27,11 @@ class StorageProvider(ABC):
         """Deletes the file and returns success status."""
         pass
 
+    @abstractmethod
+    def get_signed_url(self, file_uri: str, expiration_seconds: int = 900) -> str:
+        """Generates a secure, temporary signed URL to access the file."""
+        pass
+
 class LocalStorageProvider(StorageProvider):
     """
     Local file system storage for development and testing.
@@ -79,39 +84,46 @@ class LocalStorageProvider(StorageProvider):
             return True
         return False
 
+    def get_signed_url(self, file_uri: str, expiration_seconds: int = 900) -> str:
+        """
+        For Local storage, there are no actual signed URLs. 
+        We just return a mock URL or a specific local serving endpoint.
+        In a real app with local storage, we'd have a FastAPI route that validates a JWT and serves the file.
+        Here we just return a recognizable 'local://' path for now.
+        """
+        file_name = os.path.basename(file_uri)
+        # Assuming we would have an endpoint like /api/v1/storage/download/{file_name}
+        return f"/api/v1/storage/local/{file_name}?expires_in={expiration_seconds}"
+
 class S3StorageProvider(StorageProvider):
     """
-    Real AWS S3 Storage implementation.
+    Real AWS S3 Storage implementation using boto3.
     """
     def __init__(self):
-        # In a real setup, you would install boto3: `uv add boto3`
-        # import boto3
+        import boto3
         self.bucket_name = settings.s3_bucket_name
         
         if not settings.aws_access_key_id or not settings.aws_secret_access_key or not self.bucket_name:
             logger.warning("AWS S3 credentials or bucket name missing. Storage operations will fail.")
             raise ValueError("AWS S3 credentials missing")
-        else:
-            # self.s3_client = boto3.client(
-            #     's3',
-            #     aws_access_key_id=settings.aws_access_key_id,
-            #     aws_secret_access_key=settings.aws_secret_access_key,
-            #     region_name=settings.aws_region_name
-            # )
-            pass
+            
+        self.s3_client = boto3.client(
+            's3',
+            aws_access_key_id=settings.aws_access_key_id,
+            aws_secret_access_key=settings.aws_secret_access_key,
+            region_name=settings.aws_region_name
+        )
 
     def upload_file(self, file_name: str, file_data: bytes, content_type: str) -> str:
         unique_name = f"{uuid.uuid4()}_{file_name}"
         try:
-            # if self.s3_client:
-            #     self.s3_client.put_object(
-            #         Bucket=self.bucket_name,
-            #         Key=unique_name,
-            #         Body=file_data,
-            #         ContentType=content_type
-            #     )
-            #     return f"s3://{self.bucket_name}/{unique_name}"
-            logger.info(f"Simulated S3 Upload: {unique_name}")
+            self.s3_client.put_object(
+                Bucket=self.bucket_name,
+                Key=unique_name,
+                Body=file_data,
+                ContentType=content_type
+            )
+            logger.info(f"Uploaded to S3: {unique_name}")
             return f"s3://{self.bucket_name}/{unique_name}"
         except Exception as e:
             logger.error(f"Failed to upload to S3: {e}")
@@ -119,27 +131,39 @@ class S3StorageProvider(StorageProvider):
 
     def download_file(self, file_uri: str) -> bytes:
         try:
-            # if self.s3_client:
-            #     key = file_uri.split('/')[-1]
-            #     response = self.s3_client.get_object(Bucket=self.bucket_name, Key=key)
-            #     return response['Body'].read()
-            logger.info(f"Simulated S3 Download: {file_uri}")
-            return b"simulated_data"
+            key = file_uri.replace(f"s3://{self.bucket_name}/", "")
+            response = self.s3_client.get_object(Bucket=self.bucket_name, Key=key)
+            return response['Body'].read()
         except Exception as e:
             logger.error(f"Failed to download from S3: {e}")
             raise
 
     def delete_file(self, file_uri: str) -> bool:
         try:
-            # if self.s3_client:
-            #     key = file_uri.split('/')[-1]
-            #     self.s3_client.delete_object(Bucket=self.bucket_name, Key=key)
-            #     return True
-            logger.info(f"Simulated S3 Delete: {file_uri}")
+            key = file_uri.replace(f"s3://{self.bucket_name}/", "")
+            self.s3_client.delete_object(Bucket=self.bucket_name, Key=key)
+            logger.info(f"Deleted from S3: {key}")
             return True
         except Exception as e:
             logger.error(f"Failed to delete from S3: {e}")
             return False
+
+    def get_signed_url(self, file_uri: str, expiration_seconds: int = 900) -> str:
+        """Generates a pre-signed URL for secure access."""
+        try:
+            key = file_uri.replace(f"s3://{self.bucket_name}/", "")
+            url = self.s3_client.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': self.bucket_name,
+                    'Key': key
+                },
+                ExpiresIn=expiration_seconds
+            )
+            return url
+        except Exception as e:
+            logger.error(f"Failed to generate signed URL: {e}")
+            raise
 
 def get_storage_provider() -> StorageProvider:
     """
