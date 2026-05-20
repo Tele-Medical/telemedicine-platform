@@ -19,7 +19,7 @@ const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = ({ appoi
       <div className="flex justify-between items-start">
         <div>
           <h2 className="text-lg font-semibold text-text-primary">Upcoming Consultation</h2>
-          <p className="text-sm text-text-secondary">{appointment ? new Date(appointment.scheduled_for).toLocaleString() : 'Today, 2:30 PM'}</p>
+          <p className="text-sm text-text-secondary">{appointment?.scheduled_for ? new Date(appointment.scheduled_for).toLocaleString() : 'Today, 2:30 PM'}</p>
         </div>
         <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold">
           Confirmed
