@@ -47,9 +47,9 @@ describe('OtpLogin Component', () => {
       expect(screen.getByText(/Enter OTP/i)).toBeInTheDocument();
     });
     
-    // There should be 4 inputs for a 4-digit OTP
+    // There should be 6 inputs for a 6-digit OTP
     const otpInputs = screen.getAllByRole('textbox');
-    expect(otpInputs).toHaveLength(4);
+    expect(otpInputs).toHaveLength(6);
     expect(screen.getByRole('button', { name: /Verify & Login/i })).toBeInTheDocument();
   });
 
@@ -71,12 +71,14 @@ describe('OtpLogin Component', () => {
     fireEvent.change(otpInputs[1], { target: { value: '2' } });
     fireEvent.change(otpInputs[2], { target: { value: '3' } });
     fireEvent.change(otpInputs[3], { target: { value: '4' } });
+    fireEvent.change(otpInputs[4], { target: { value: '5' } });
+    fireEvent.change(otpInputs[5], { target: { value: '6' } });
 
     // Submit
     fireEvent.click(screen.getByRole('button', { name: /Verify & Login/i }));
 
     await waitFor(() => {
-      expect(handleLogin).toHaveBeenCalledWith('1234');
+      expect(handleLogin).toHaveBeenCalledWith('123456');
     });
   });
 });
