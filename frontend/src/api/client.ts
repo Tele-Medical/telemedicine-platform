@@ -3,9 +3,9 @@ const BASE_URL = '/api/v1';
 export const apiClient = async (endpoint: string, options: RequestInit = {}) => {
   const token = localStorage.getItem('token');
   
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers as Record<string, string>),
   };
 
   if (token) {
@@ -19,7 +19,20 @@ export const apiClient = async (endpoint: string, options: RequestInit = {}) => 
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || 'API request failed');
+    
+    // FastAPI Validation Errors (422) return an array in the 'detail' field.
+    // We need to parse it to a string so it doesn't show as [object Object].
+    let errorMessage = 'API request failed';
+    if (errorData.detail) {
+      if (Array.isArray(errorData.detail)) {
+        errorMessage = errorData.detail.map((err: any) => `${err.loc.join('.')} - ${err.msg}`).join(', ');
+      } else if (typeof errorData.detail === 'string') {
+        errorMessage = errorData.detail;
+      } else {
+        errorMessage = JSON.stringify(errorData.detail);
+      }
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();
