@@ -195,21 +195,11 @@ class SyncService:
             record_patient_id = record.patient_id
 
         if not record_patient_id:
-            # Fallback: If no direct patient_id, check if user was the creator
-            if hasattr(record, 'created_by_user_id') and record.created_by_user_id == user.id:
-                return True
             return False
 
         # Check if user owns this patient record
         # In our system, for patients who log in themselves, User.id matches Patient.id
-        if user.id == record_patient_id:
-            return True
-            
-        # Provenance fallback: check if user was the creator
-        if hasattr(record, 'created_by_user_id') and record.created_by_user_id == user.id:
-            return True
-
-        return False
+        return user.id == record_patient_id
 
     @staticmethod
     def _create_conflict(db: Session, op: SyncOperation, existing_record: Any, reason: str):

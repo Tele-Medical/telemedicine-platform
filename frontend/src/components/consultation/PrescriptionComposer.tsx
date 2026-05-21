@@ -9,8 +9,9 @@ const PrescriptionComposer: React.FC = () => {
         
         <div className="flex flex-col gap-3">
           <div>
-            <label className="block text-xs font-semibold text-text-secondary mb-1">Medicine Name</label>
+            <label htmlFor="medicine-name" className="block text-xs font-semibold text-text-secondary mb-1">Medicine Name</label>
             <input 
+              id="medicine-name"
               type="text" 
               placeholder="e.g. Paracetamol 500mg" 
               className="w-full bg-background border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/50 text-text-primary"
@@ -19,8 +20,8 @@ const PrescriptionComposer: React.FC = () => {
           
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">Dosage</label>
-              <select className="w-full bg-background border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/50 text-text-primary appearance-none">
+              <label htmlFor="dosage" className="block text-xs font-semibold text-text-secondary mb-1">Dosage</label>
+              <select id="dosage" className="w-full bg-background border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/50 text-text-primary appearance-none">
                 <option>1-0-1 (Morning & Night)</option>
                 <option>1-1-1 (Three times)</option>
                 <option>1-0-0 (Morning only)</option>
@@ -29,9 +30,10 @@ const PrescriptionComposer: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-text-secondary mb-1">Duration</label>
+              <label htmlFor="duration" className="block text-xs font-semibold text-text-secondary mb-1">Duration</label>
               <div className="flex bg-background rounded-xl items-center pr-4">
                 <input 
+                  id="duration"
                   type="number" 
                   placeholder="5" 
                   className="w-full bg-transparent border-none px-4 py-3 focus:outline-none text-text-primary"
@@ -49,8 +51,9 @@ const PrescriptionComposer: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-black/5">
-        <label className="block text-xs font-semibold text-text-secondary mb-2">Doctor Notes / Instructions</label>
+        <label htmlFor="doctor-notes" className="block text-xs font-semibold text-text-secondary mb-2">Doctor Notes / Instructions</label>
         <textarea 
+          id="doctor-notes"
           rows={3} 
           placeholder="Rest, drink plenty of fluids..." 
           className="w-full bg-background border-none rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/50 text-text-primary resize-none"

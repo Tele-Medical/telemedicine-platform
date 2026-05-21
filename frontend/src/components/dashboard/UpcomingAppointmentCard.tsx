@@ -4,7 +4,9 @@ import { useNavigate } from 'react-router-dom';
 interface Appointment {
   scheduled_for?: string;
   practitioner_name?: string;
+  practitioner_role?: string;
   id?: string;
+  status?: string;
 }
 
 interface UpcomingAppointmentCardProps {
@@ -43,7 +45,7 @@ const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = ({ appoi
         </div>
         <div>
           <h3 className="font-medium text-text-primary">{appointment?.practitioner_name || 'Dr. Sharma'}</h3>
-          <p className="text-sm text-text-secondary">General Physician</p>
+          <p className="text-sm text-text-secondary">{appointment?.practitioner_role || 'General Physician'}</p>
         </div>
       </div>
       

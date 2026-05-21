@@ -1,3 +1,7 @@
+"""
+Abstraction layer for object storage.
+Supports multiple providers (Local, S3) to allow for easy environment swapping.
+"""
 from abc import ABC, abstractmethod
 import os
 import uuid
@@ -14,27 +18,36 @@ class StorageProvider(ABC):
 
     @abstractmethod
     def upload_file(self, file_name: str, file_data: bytes, content_type: str) -> str:
-        """Returns the public or internal URI of the uploaded file."""
+        """
+        Uploads a file and returns its unique URI.
+        """
         pass
 
     @abstractmethod
     def download_file(self, file_uri: str) -> bytes:
-        """Returns the raw file data."""
+        """
+        Retrieves the raw bytes of a file.
+        """
         pass
 
     @abstractmethod
     def delete_file(self, file_uri: str) -> bool:
-        """Deletes the file and returns success status."""
+        """
+        Removes a file from the storage provider.
+        """
         pass
 
     @abstractmethod
     def get_signed_url(self, file_uri: str, expiration_seconds: int = 900) -> str:
-        """Generates a secure, temporary signed URL to access the file."""
+        """
+        Generates a temporary, secure URL for accessing a protected file.
+        """
         pass
 
 class LocalStorageProvider(StorageProvider):
     """
     Local file system storage for development and testing.
+    Stores files in a configurable local directory.
     """
     
     def __init__(self, base_path: str = "./local_storage"):
@@ -42,13 +55,18 @@ class LocalStorageProvider(StorageProvider):
         os.makedirs(self.base_path, exist_ok=True)
 
     def _get_safe_path(self, file_name: str) -> str:
-        # Prevent path traversal
+        """
+        Ensures the generated path is within the base_path to prevent traversal attacks.
+        """
         file_path = os.path.abspath(os.path.join(self.base_path, file_name))
         if not file_path.startswith(self.base_path):
             raise ValueError("Path traversal attack detected")
         return file_path
 
     def upload_file(self, file_name: str, file_data: bytes, content_type: str) -> str:
+        """
+        Saves file to the local disk with a unique UUID prefix.
+        """
         unique_name = f"{uuid.uuid4()}_{os.path.basename(file_name)}"
         file_path = self._get_safe_path(unique_name)
         
@@ -59,6 +77,9 @@ class LocalStorageProvider(StorageProvider):
         return file_path
 
     def download_file(self, file_uri: str) -> bytes:
+        """
+        Reads file content from the local disk.
+        """
         # Re-verify safe path for download in case file_uri was manipulated
         if not os.path.isabs(file_uri):
             file_uri = os.path.abspath(os.path.join(self.base_path, os.path.basename(file_uri)))
@@ -73,6 +94,9 @@ class LocalStorageProvider(StorageProvider):
             return f.read()
 
     def delete_file(self, file_uri: str) -> bool:
+        """
+        Deletes the file from the local disk.
+        """
         if not os.path.isabs(file_uri):
             file_uri = os.path.abspath(os.path.join(self.base_path, os.path.basename(file_uri)))
             
@@ -86,10 +110,7 @@ class LocalStorageProvider(StorageProvider):
 
     def get_signed_url(self, file_uri: str, expiration_seconds: int = 900) -> str:
         """
-        For Local storage, there are no actual signed URLs. 
-        We just return a mock URL or a specific local serving endpoint.
-        In a real app with local storage, we'd have a FastAPI route that validates a JWT and serves the file.
-        Here we just return a recognizable 'local://' path for now.
+        Simulates a signed URL for local storage.
         """
         file_name = os.path.basename(file_uri)
         # Assuming we would have an endpoint like /api/v1/storage/download/{file_name}
@@ -97,7 +118,8 @@ class LocalStorageProvider(StorageProvider):
 
 class S3StorageProvider(StorageProvider):
     """
-    Real AWS S3 Storage implementation using boto3.
+    Production-grade AWS S3 Storage implementation using boto3.
+    Requires AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
     """
     def __init__(self):
         import boto3
@@ -115,6 +137,9 @@ class S3StorageProvider(StorageProvider):
         )
 
     def upload_file(self, file_name: str, file_data: bytes, content_type: str) -> str:
+        """
+        Uploads file to the configured S3 bucket.
+        """
         unique_name = f"{uuid.uuid4()}_{file_name}"
         try:
             self.s3_client.put_object(
@@ -130,6 +155,9 @@ class S3StorageProvider(StorageProvider):
             raise
 
     def download_file(self, file_uri: str) -> bytes:
+        """
+        Downloads the file body from S3.
+        """
         try:
             key = file_uri.replace(f"s3://{self.bucket_name}/", "")
             response = self.s3_client.get_object(Bucket=self.bucket_name, Key=key)
@@ -139,6 +167,9 @@ class S3StorageProvider(StorageProvider):
             raise
 
     def delete_file(self, file_uri: str) -> bool:
+        """
+        Performs a delete operation on the S3 object.
+        """
         try:
             key = file_uri.replace(f"s3://{self.bucket_name}/", "")
             self.s3_client.delete_object(Bucket=self.bucket_name, Key=key)
@@ -149,7 +180,9 @@ class S3StorageProvider(StorageProvider):
             return False
 
     def get_signed_url(self, file_uri: str, expiration_seconds: int = 900) -> str:
-        """Generates a pre-signed URL for secure access."""
+        """
+        Generates an authentic AWS S3 Pre-signed URL.
+        """
         try:
             key = file_uri.replace(f"s3://{self.bucket_name}/", "")
             url = self.s3_client.generate_presigned_url(
@@ -167,7 +200,7 @@ class S3StorageProvider(StorageProvider):
 
 def get_storage_provider() -> StorageProvider:
     """
-    Returns the appropriate Storage provider based on environment configuration.
+    Factory function to return the correct storage implementation based on settings.
     """
     provider_type = settings.storage_provider.lower()
     

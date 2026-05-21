@@ -11,6 +11,7 @@ interface User {
 interface Appointment {
   id: string;
   practitioner_name?: string;
+  practitioner_role?: string;
   scheduled_for?: string;
   status: string;
 }

@@ -18,8 +18,12 @@ COPY pyproject.toml .python-version ./
 # Install dependencies
 RUN uv sync --frozen --no-cache
 
-# Copy the rest of the application
-COPY . .
+# Create a non-root user for security
+RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
+USER appuser
+
+# Copy the rest of the application with correct ownership
+COPY --chown=appuser:appgroup . .
 
 # Run the application
 CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

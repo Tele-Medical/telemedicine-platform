@@ -1,3 +1,8 @@
+"""
+API router for clinical data operations.
+Handles the creation and updating of Observations, Allergies, Conditions, and Medication Requests.
+Ensures strict provenance tracking and role-based access control.
+"""
 import uuid
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
@@ -19,6 +24,9 @@ from app.schemas.clinical import (
 router = APIRouter()
 
 def create_provenance_event(db: Session, target_table: str, target_id: uuid.UUID, action: str, user_id: uuid.UUID):
+    """
+    Creates a record in the provenance_events table to track who did what and when.
+    """
     prov = ProvenanceEvent(
         target_entity_table=target_table,
         target_entity_id=target_id,
@@ -28,10 +36,16 @@ def create_provenance_event(db: Session, target_table: str, target_id: uuid.UUID
     db.add(prov)
 
 def enforce_clinical_permissions(current_user: User):
+    """
+    Ensures that only staff users can modify clinical data.
+    """
     if current_user.default_role == "patient":
         raise HTTPException(status_code=403, detail="Patients cannot write clinical records")
 
 def validate_patient_encounter(db: Session, patient_id: uuid.UUID, encounter_id: uuid.UUID | None):
+    """
+    Validates that the patient exists and that the encounter (if provided) belongs to that patient.
+    """
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -51,6 +65,9 @@ def create_observation(
     obs_in: ObservationCreate,
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
+    """
+    Records a new observation (e.g. Vitals) for a patient.
+    """
     enforce_clinical_permissions(current_user)
     validate_patient_encounter(db, obs_in.patient_id, obs_in.encounter_id)
     
@@ -79,6 +96,9 @@ def create_allergy(
     allergy_in: AllergyCreate,
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
+    """
+    Records a new allergy for a patient.
+    """
     enforce_clinical_permissions(current_user)
     validate_patient_encounter(db, allergy_in.patient_id, None)
     
@@ -105,6 +125,10 @@ def update_allergy(
     allergy_in: AllergyUpdate,
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
+    """
+    Updates an existing allergy record.
+    Uses version-based concurrency control to prevent sync conflicts.
+    """
     from sqlalchemy import update
     import typing
     from sqlalchemy import CursorResult
@@ -143,6 +167,9 @@ def create_condition(
     condition_in: ConditionCreate,
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
+    """
+    Records a new condition or diagnosis for a patient.
+    """
     enforce_clinical_permissions(current_user)
     validate_patient_encounter(db, condition_in.patient_id, condition_in.encounter_id)
     
@@ -171,6 +198,9 @@ def create_medication_request(
     med_req_in: MedicationRequestCreate,
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
+    """
+    Creates a new medication request (prescription item) for a patient.
+    """
     enforce_clinical_permissions(current_user)
     validate_patient_encounter(db, med_req_in.patient_id, med_req_in.encounter_id)
     

@@ -106,6 +106,7 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
                   <input
                     id="phone"
                     type="tel"
+                    aria-label="Mobile phone number"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
                     placeholder="Enter your mobile number"
@@ -142,6 +143,7 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
                     id={`otp-input-${index}`}
                     type="text"
                     inputMode="numeric"
+                    aria-label={`Digit ${index + 1} of 6`}
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value.replace(/[^0-9]/g, ''))}
                     onKeyDown={(e) => handleKeyDown(index, e)}
@@ -164,6 +166,7 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
                 <button 
                   type="button" 
                   onClick={() => setStep('phone')}
+                  aria-label="Edit your mobile number"
                   className="text-sm text-gray-500 hover:text-[#6B8E7B] transition-colors"
                 >
                   Edit phone number

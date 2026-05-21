@@ -28,7 +28,7 @@ class MockSMSProvider(SMSProvider):
         """
         Simulates sending an SMS by logging the event with a masked phone number.
         """
-        masked_phone = to_phone[:4] + "****" + to_phone[-4:] if len(to_phone) > 8 else "****"
+        masked_phone = "****" + to_phone[-2:] if len(to_phone) > 2 else "**"
         logger.info(f"MOCK SMS sent to {masked_phone} (content hidden for privacy)")
         # For local development only, developers can check the challenge table in the DB
         return True
@@ -57,7 +57,7 @@ class TwilioSMSProvider(SMSProvider):
         Sends an SMS using the Twilio REST API.
         Masks the phone number in logs and handles exceptions securely.
         """
-        masked_phone = to_phone[:4] + "****" + to_phone[-4:] if len(to_phone) > 8 else "****"
+        masked_phone = "****" + to_phone[-2:] if len(to_phone) > 2 else "**"
         try:
             self.client.messages.create(
                 body=message,
