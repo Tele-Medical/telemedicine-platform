@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     sms_provider: str = "mock"
     ai_provider: str = "mock"
     storage_provider: str = "local"
+    abdm_provider: str = "mock"
     
     # Twilio specific settings (only required if sms_provider == 'twilio')
     twilio_account_sid: Optional[str] = None
@@ -25,6 +26,12 @@ class Settings(BaseSettings):
     aws_secret_access_key: Optional[str] = None
     aws_region_name: Optional[str] = None
     s3_bucket_name: Optional[str] = None
+
+    # ABDM / ABHA Sandbox settings
+    abdm_client_id: Optional[str] = None
+    abdm_client_secret: Optional[str] = None
+    abdm_gateway_url: str = "https://dev.abdm.gov.in/gateway"
+    abdm_healthid_url: str = "https://healthidsbx.abdm.gov.in"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
