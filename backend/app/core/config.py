@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
+from pydantic import model_validator
 
 class Settings(BaseSettings):
     app_env: str = "development"
@@ -32,6 +33,13 @@ class Settings(BaseSettings):
     abdm_client_secret: Optional[str] = None
     abdm_gateway_url: str = "https://dev.abdm.gov.in/gateway"
     abdm_healthid_url: str = "https://healthidsbx.abdm.gov.in"
+
+    @model_validator(mode="after")
+    def validate_abdm_credentials(self) -> "Settings":
+        if self.abdm_provider.lower() == "real":
+            if not self.abdm_client_id or not self.abdm_client_secret:
+                raise ValueError("ABDM client ID and secret are required for 'real' provider")
+        return self
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
