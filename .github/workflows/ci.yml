@@ -51,17 +51,16 @@ jobs:
       APP_ENV: testing
 
     steps:
-      # Security Hardening: Use commit SHAs for actions
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v4
 
       - name: Install uv (Python Package Manager)
-        uses: astral-sh/setup-uv@883057155b1d409e5a19001438967b9aa2c80333 # v5.1.0
+        uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fbbbd813 # v5.3.0
+        uses: actions/setup-python@v5
         with:
           python-version-file: "backend/.python-version"
 
@@ -84,10 +83,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@39225d34a36a529600392812c6a3ec51af0a9d0a # v4.1.0
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
