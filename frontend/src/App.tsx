@@ -17,8 +17,7 @@ function App() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const handleLogin = (otp: string) => {
-    console.log('Logged in with OTP:', otp);
+  const handleLogin = () => {
     setIsAuthenticated(true);
   };
 

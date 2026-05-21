@@ -21,16 +21,16 @@ class SMSProvider(ABC):
 class MockSMSProvider(SMSProvider):
     """
     Mock provider for local development and testing.
-    Just prints the message to the console/logs instead of sending a real SMS.
+    Logs that an SMS was sent without exposing the actual message content.
     """
 
     def send_sms(self, to_phone: str, message: str) -> bool:
         """
-        Simulates sending an SMS by printing a redacted message to the logs.
+        Simulates sending an SMS by logging the event with a masked phone number.
         """
         masked_phone = to_phone[:4] + "****" + to_phone[-4:] if len(to_phone) > 8 else "****"
-        logger.info(f"MOCK SMS sent to {masked_phone}: {message}")
-        print(f"\n[MOCK SMS] To: {to_phone} | Message: {message}\n")
+        logger.info(f"MOCK SMS sent to {masked_phone} (content hidden for privacy)")
+        # For local development only, developers can check the challenge table in the DB
         return True
 
 class TwilioSMSProvider(SMSProvider):
@@ -55,7 +55,7 @@ class TwilioSMSProvider(SMSProvider):
     def send_sms(self, to_phone: str, message: str) -> bool:
         """
         Sends an SMS using the Twilio REST API.
-        Masks the phone number in the logs and catches exceptions securely.
+        Masks the phone number in logs and handles exceptions securely.
         """
         masked_phone = to_phone[:4] + "****" + to_phone[-4:] if len(to_phone) > 8 else "****"
         try:
@@ -66,9 +66,9 @@ class TwilioSMSProvider(SMSProvider):
             )
             logger.info(f"TWILIO SMS successfully queued for {masked_phone}")
             return True
-        except Exception as e:
-            # For debugging, log the actual exception message from Twilio
-            logger.error(f"Twilio API request failed for {masked_phone}. Reason: {str(e)}")
+        except Exception:
+            # Mask error details to prevent PII/API key leakage in logs
+            logger.error(f"Twilio API request failed for {masked_phone}")
             return False
 
 def get_sms_provider() -> SMSProvider:

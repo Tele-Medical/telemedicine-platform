@@ -29,6 +29,36 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql+psycopg://postgres:localpassword@db:5432/telemedicine
+      - REDIS_URL=redis://redis:6379/0
+      - APP_ENV=development
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  migration:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql+psycopg://postgres:localpassword@db:5432/telemedicine
+    volumes:
+      - ./backend:/app
+    command: uv run alembic upgrade head
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   redis_data:

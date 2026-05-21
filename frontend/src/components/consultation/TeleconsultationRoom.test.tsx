@@ -24,8 +24,8 @@ describe('TeleconsultationRoom Component', () => {
     );
 
     expect(screen.getByTestId('video-feed')).toBeInTheDocument();
-    expect(screen.getByTestId('patient-records')).toBeInTheDocument();
-    expect(screen.queryByTestId('prescription-composer')).not.toBeInTheDocument();
+    expect(screen.getByTestId('patient-records')).toBeVisible();
+    expect(screen.getByTestId('prescription-composer')).not.toBeVisible();
   });
 
   it('switches to Prescription tab when clicked', () => {
@@ -38,7 +38,7 @@ describe('TeleconsultationRoom Component', () => {
     const prescriptionTab = screen.getByText('Prescription');
     fireEvent.click(prescriptionTab);
 
-    expect(screen.queryByTestId('patient-records')).not.toBeInTheDocument();
-    expect(screen.getByTestId('prescription-composer')).toBeInTheDocument();
+    expect(screen.getByTestId('patient-records')).not.toBeVisible();
+    expect(screen.getByTestId('prescription-composer')).toBeVisible();
   });
 });
