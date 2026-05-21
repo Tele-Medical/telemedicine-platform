@@ -21,16 +21,16 @@ class SMSProvider(ABC):
 class MockSMSProvider(SMSProvider):
     """
     Mock provider for local development and testing.
-    Just prints the message to the console/logs instead of sending a real SMS.
+    Logs that an SMS was sent without exposing the actual message content.
     """
 
     def send_sms(self, to_phone: str, message: str) -> bool:
         """
-        Simulates sending an SMS by printing a redacted message to the logs.
+        Simulates sending an SMS by logging the event with a masked phone number.
         """
-        masked_phone = to_phone[:4] + "****" + to_phone[-4:] if len(to_phone) > 8 else "****"
-        logger.info(f"MOCK SMS sent to {masked_phone}: <REDACTED OTP MESSAGE>")
-        print(f"\n[MOCK SMS] To: {masked_phone} | Message: <REDACTED OTP MESSAGE>\n")
+        masked_phone = "****" + to_phone[-2:] if len(to_phone) > 2 else "**"
+        logger.info(f"MOCK SMS sent to {masked_phone} (content hidden for privacy)")
+        # For local development only, developers can check the challenge table in the DB
         return True
 
 class TwilioSMSProvider(SMSProvider):
@@ -55,9 +55,9 @@ class TwilioSMSProvider(SMSProvider):
     def send_sms(self, to_phone: str, message: str) -> bool:
         """
         Sends an SMS using the Twilio REST API.
-        Masks the phone number in the logs and catches exceptions securely.
+        Masks the phone number in logs and handles exceptions securely.
         """
-        masked_phone = to_phone[:4] + "****" + to_phone[-4:] if len(to_phone) > 8 else "****"
+        masked_phone = "****" + to_phone[-2:] if len(to_phone) > 2 else "**"
         try:
             self.client.messages.create(
                 body=message,
@@ -67,7 +67,7 @@ class TwilioSMSProvider(SMSProvider):
             logger.info(f"TWILIO SMS successfully queued for {masked_phone}")
             return True
         except Exception:
-            # We do not log the full exception (e) to avoid leaking PII or API tokens
+            # Mask error details to prevent PII/API key leakage in logs
             logger.error(f"Twilio API request failed for {masked_phone}")
             return False
 

@@ -1,0 +1,103 @@
+name: Full Stack CI
+
+on:
+  push:
+    branches: [ "main", "feat/*" ]
+  pull_request:
+    branches: [ "main" ]
+
+# Security Hardening: Least-privilege permissions
+permissions:
+  contents: read
+
+jobs:
+  backend-test:
+    name: Backend CI
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: telemedicine_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      # CI Hardening: Provision Redis for integration tests
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:password@localhost:5432/telemedicine_test
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET: "super-secret-ci-key-do-not-use-in-prod"
+      APP_ENV: testing
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install uv (Python Package Manager)
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "backend/.python-version"
+
+      - name: Install Dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Run Linter (Ruff)
+        run: uv run ruff check .
+
+      - name: Run Test Suite (Pytest)
+        run: uv run pytest -v
+
+  frontend-test:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Run Linter (ESLint)
+        run: npm run lint
+
+      - name: Build Check (TypeScript & Vite)
+        run: npm run build
+
+      - name: Run Tests (Vitest)
+        run: npm run test -- --run

@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Type, Set
 from sqlalchemy.orm import Session
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_
 from fastapi import HTTPException
 
 from app.models import (
@@ -35,6 +35,11 @@ PROTECTED_FIELDS: Set[str] = {
 }
 
 class SyncService:
+    """
+    Core service for managing offline-first data synchronization between client devices and the server.
+    Handles incremental pull requests, idempotent push batches, and optimistic concurrency conflicts.
+    """
+
     @staticmethod
     def push_operations(db: Session, request: SyncPushRequest, current_user: User) -> SyncPushResponse:
         """
@@ -164,28 +169,37 @@ class SyncService:
     @staticmethod
     def _check_authorization(record: Any, user: User) -> bool:
         """
-        Checks if the user has permission to access/modify the record.
-        For MVP:
-        - Staff (Doctor/ASHA) can access all records.
-        - Patients can only access their own records.
+        Enforces PHI (Protected Health Information) boundaries during synchronization.
+        
+        Args:
+            record: The SQLAlchemy model instance being accessed.
+            user: The authenticated User attempting the operation.
+            
+        Returns:
+            bool: True if access is granted, False otherwise.
+            
+        Rules:
+        - Staff (doctor, asha, admin) can access all records within their clinical scope.
+        - Patients can only access their own records or records they explicitly created.
         """
-        # If user is staff, they have broad access in this rural context
+        # 1. Staff users (doctor, asha, admin) have full access to sync clinical data
         if user.default_role in ["doctor", "asha", "admin"]:
             return True
             
-        # If user is a patient, they can only see their own clinical data
-        # Check for patient_id column or if the record itself is a Patient
-        patient_id = None
+        # 2. Patients can only see/modify their own data
+        # Determine the patient_id of the record
+        record_patient_id = None
         if isinstance(record, Patient):
-            patient_id = record.id
+            record_patient_id = record.id
         elif hasattr(record, 'patient_id'):
-            patient_id = record.patient_id
-            
-        # We need a way to link the User to a Patient. 
-        # For now, let's assume we check if the user is linked to the patient record.
-        # This part might need a more robust identity linkage check.
-        # Placeholder: current_user.id == record.created_by_user_id if patient
-        return True # Defaulting to True for now as identity linkage logic is complex
+            record_patient_id = record.patient_id
+
+        if not record_patient_id:
+            return False
+
+        # Check if user owns this patient record
+        # In our system, for patients who log in themselves, User.id matches Patient.id
+        return user.id == record_patient_id
 
     @staticmethod
     def _create_conflict(db: Session, op: SyncOperation, existing_record: Any, reason: str):

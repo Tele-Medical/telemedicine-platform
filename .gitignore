@@ -38,3 +38,6 @@ pnpm-debug.log*
 
 # Signaling (Node/Python)
 # Uses the same ignore rules as Backend/Frontend above.
+
+# Editor/Office lock files
+.~lock.*#

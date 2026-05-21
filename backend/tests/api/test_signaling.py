@@ -1,10 +1,7 @@
 import pytest
-from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from starlette.websockets import WebSocketDisconnect
-import uuid
 
-from app.main import app
 from app.models import User, Appointment, Patient, Practitioner
 from app.core.security import create_access_token
 
