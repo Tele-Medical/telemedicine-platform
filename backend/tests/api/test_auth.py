@@ -300,3 +300,54 @@ def test_request_otp_missing_phone_returns_422(client: TestClient):
     """Phone field is required; missing it should fail validation."""
     response = client.post("/api/v1/auth/request-otp", json={})
     assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# PATCH /me profile registration – new onboarding flow tests
+# ---------------------------------------------------------------------------
+
+def test_patch_me_profile_success(client: TestClient, db_session: Session):
+    from app.models.patient import Patient
+    
+    # 1. Log in via OTP
+    client.post("/api/v1/auth/request-otp", json={"phone": "+1234567890"})
+    login_response = client.post("/api/v1/auth/verify-otp", json={
+        "phone": "+1234567890",
+        "code": "123456"
+    })
+    token = login_response.json()["access_token"]
+
+    # 2. PATCH profile name
+    patch_response = client.patch(
+        "/api/v1/auth/me",
+        json={"full_name": "Test Aditya", "preferred_language": "pa"},
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert patch_response.status_code == 200
+    data = patch_response.json()
+    assert data["full_name"] == "Test Aditya"
+    
+    # 3. Verify Patient clinical record was automatically spawned and linked
+    patient = db_session.query(Patient).filter_by(phone="+1234567890").first()
+    assert patient is not None
+    assert patient.full_name == "Test Aditya"
+    assert patient.preferred_language == "pa"
+
+
+def test_patch_me_profile_invalid_name_422(client: TestClient):
+    # Log in via OTP
+    client.post("/api/v1/auth/request-otp", json={"phone": "+1234567890"})
+    login_response = client.post("/api/v1/auth/verify-otp", json={
+        "phone": "+1234567890",
+        "code": "123456"
+    })
+    token = login_response.json()["access_token"]
+
+    # PATCH with a name that is too short
+    patch_response = client.patch(
+        "/api/v1/auth/me",
+        json={"full_name": "A", "preferred_language": "en"},
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert patch_response.status_code == 422

@@ -1,36 +1,69 @@
 import React from 'react';
+import { Heart, Activity } from 'lucide-react';
 
-const VitalsWidget: React.FC = () => {
+interface VitalsWidgetProps {
+  isDemo?: boolean;
+}
+
+const VitalsWidget: React.FC<VitalsWidgetProps> = ({ isDemo = false }) => {
+  if (!isDemo) {
+    return (
+      <div className="mt-6 bg-white rounded-2xl p-6 shadow-[0_1px_2px_rgba(15,23,42,.08)] border border-neutral-200/60 text-center flex flex-col items-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-neutral-50 text-neutral-400 border border-neutral-100 flex items-center justify-center">
+          <Activity size={22} className="stroke-[2]" />
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-neutral-900">No Vitals Recorded</h3>
+          <p className="text-xs text-neutral-500 mt-1 max-w-xs mx-auto">
+            Vitals captured during teleconsultations or community health drives will appear here.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="mt-6">
-      <h2 className="text-lg font-semibold text-text-primary mb-3">Recent Vitals</h2>
+    <div className="mt-6 animate-fade-in">
+      <h2 className="text-lg font-bold text-neutral-900 mb-3 tracking-tight">Recent Vitals</h2>
       <div className="grid grid-cols-2 gap-4">
         
-        {/* BP Widget */}
-        <div className="bg-white rounded-2xl p-4 shadow-soft border border-black/5 flex flex-col justify-between">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-500">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        {/* BP Widget with High BP Alert */}
+        <div className="bg-white rounded-2xl p-4 shadow-[0_1px_2px_rgba(15,23,42,.08)] border border-neutral-200/60 flex flex-col justify-between gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-danger/10 border border-danger/20 flex items-center justify-center text-danger">
+                <Heart size={16} className="stroke-[2]" />
+              </div>
+              <span className="text-xs font-bold text-neutral-500 tracking-wide uppercase">Blood Pressure</span>
             </div>
-            <span className="text-sm font-medium text-text-secondary">Blood Pressure</span>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-danger/10 text-danger border border-danger/20">
+              High BP
+            </span>
           </div>
           <div>
-            <div className="text-2xl font-bold text-text-primary">120/80</div>
-            <div className="text-xs text-text-secondary mt-1">mmHg • Normal</div>
+            <div className="text-2xl font-black text-neutral-900 tracking-tight">142/94</div>
+            <div className="text-xs text-neutral-500 mt-0.5">mmHg • Elevated systolic</div>
           </div>
         </div>
 
         {/* Pulse Widget */}
-        <div className="bg-white rounded-2xl p-4 shadow-soft border border-black/5 flex flex-col justify-between">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <div className="bg-white rounded-2xl p-4 shadow-[0_1px_2px_rgba(15,23,42,.08)] border border-neutral-200/60 flex flex-col justify-between gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-success/10 border border-success/20 flex items-center justify-center text-success">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+              </div>
+              <span className="text-xs font-bold text-neutral-500 tracking-wide uppercase">Pulse</span>
             </div>
-            <span className="text-sm font-medium text-text-secondary">Pulse</span>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-success/10 text-success border border-success/20">
+              Normal
+            </span>
           </div>
           <div>
-            <div className="text-2xl font-bold text-text-primary">72</div>
-            <div className="text-xs text-text-secondary mt-1">bpm • Normal</div>
+            <div className="text-2xl font-black text-neutral-900 tracking-tight">72</div>
+            <div className="text-xs text-neutral-500 mt-0.5">bpm • Stable rhythm</div>
           </div>
         </div>
 

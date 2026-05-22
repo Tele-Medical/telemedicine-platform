@@ -5,7 +5,7 @@ Supports OTP-based login for patients and password-based login for staff.
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user
-from app.schemas.auth import OTPRequest, OTPVerify, StaffLogin, TokenResponse, UserResponse
+from app.schemas.auth import OTPRequest, OTPVerify, StaffLogin, TokenResponse, UserResponse, UserUpdate
 from app.services import auth_service
 from app.models.auth import User
 
@@ -39,3 +39,15 @@ def read_users_me(current_user: User = Depends(get_current_user)):
     Returns the profile of the currently authenticated user based on the JWT token.
     """
     return current_user
+
+@router.patch("/me", response_model=UserResponse)
+def update_users_me(
+    payload: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Updates the authenticated user's profile details.
+    """
+    return auth_service.update_me(db, current_user, payload)
+

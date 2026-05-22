@@ -27,11 +27,18 @@ export const authService = {
       method: 'GET',
     });
   },
+
+  updateProfile: async (fullName: string, preferredLanguage: string = 'pa') => {
+    return apiClient('/auth/me', {
+      method: 'PATCH',
+      body: JSON.stringify({ full_name: fullName, preferred_language: preferredLanguage }),
+    });
+  },
 };
 
 export const appointmentService = {
   getAppointments: async () => {
-    return apiClient('/appointments', {
+    return apiClient('/appointments/', {
       method: 'GET',
     });
   }

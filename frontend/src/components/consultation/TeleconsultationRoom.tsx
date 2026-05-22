@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import VideoFeed from './VideoFeed';
 import PatientRecordsPanel from './PatientRecordsPanel';
 import PrescriptionComposer from './PrescriptionComposer';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 interface TeleconsultationRoomProps {
   userRole?: string;
@@ -11,6 +11,8 @@ interface TeleconsultationRoomProps {
 const TeleconsultationRoom: React.FC<TeleconsultationRoomProps> = ({ userRole = 'practitioner' }) => {
   const [activeTab, setActiveTab] = useState<'records' | 'prescription'>('records');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const appointmentId = searchParams.get('appointmentId') || '11111111-2222-3333-4444-555555555555';
 
   return (
     <div className="flex flex-col h-[100dvh] bg-background">
@@ -28,7 +30,7 @@ const TeleconsultationRoom: React.FC<TeleconsultationRoomProps> = ({ userRole = 
 
       {/* Top Section - Video */}
       <div className="flex-none">
-        <VideoFeed />
+        <VideoFeed appointmentId={appointmentId} userRole={userRole} />
       </div>
 
       {/* Bottom Section - Interactive Panel */}

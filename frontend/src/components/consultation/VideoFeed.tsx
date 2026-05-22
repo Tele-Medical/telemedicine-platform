@@ -1,73 +1,502 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Video, 
+  VideoOff, 
+  Mic, 
+  MicOff, 
+  PhoneOff, 
+  AlertTriangle, 
+  Wifi, 
+  WifiOff, 
+  Sliders,
+  CheckCircle2,
+  RefreshCw
+} from 'lucide-react';
 
 interface VideoFeedProps {
-  practitionerName?: string;
+  appointmentId?: string;
+  userRole?: string;
 }
 
-const VideoFeed: React.FC<VideoFeedProps> = ({ practitionerName = 'Practitioner' }) => {
+const VideoFeed: React.FC<VideoFeedProps> = ({ 
+  appointmentId = '11111111-2222-3333-4444-555555555555', 
+  userRole = 'patient' 
+}) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'disconnected' | 'failed'>('connecting');
+  const [networkQuality, setNetworkQuality] = useState<'excellent' | 'weak' | 'disconnected'>('excellent');
+  const [isSimHUDOpen, setIsSimHUDOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const navigate = useNavigate();
+
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const remotePeerName = userRole === 'patient' ? 'Dr. Ramesh Sharma' : 'Ravi Kumar (Patient)';
+  const peerInitials = userRole === 'patient' ? 'RS' : 'RK';
+
+  // 1. Capture local audio/video media
+  const startLocalMedia = async () => {
+    try {
+      // Clear old stream if it exists
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: true, 
+        audio: true 
+      });
+      
+      localStreamRef.current = stream;
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+      
+      // Update track mute/disable status based on current buttons
+      stream.getAudioTracks().forEach(track => { track.enabled = !isMuted; });
+      stream.getVideoTracks().forEach(track => { track.enabled = !isVideoOff; });
+      
+      return stream;
+    } catch (err) {
+      console.warn("Could not capture webcam + audio. Trying audio-only fallback...", err);
+      try {
+        const audioStream = await navigator.mediaDevices.getUserMedia({ 
+          video: false, 
+          audio: true 
+        });
+        localStreamRef.current = audioStream;
+        return audioStream;
+      } catch (audioErr) {
+        console.error("Failed to capture microphone stream too.", audioErr);
+        setErrorMessage("Microphone and camera access denied. Please grant permissions.");
+        return null;
+      }
+    }
+  };
+
+  // 2. Setup RTCPeerConnection and WS Signaling
+  const establishConnection = async () => {
+    setConnectionState('connecting');
+    setErrorMessage(null);
+
+    // Ensure local stream is ready
+    const localStream = localStreamRef.current || await startLocalMedia();
+
+    // Set up WebRTC RTCPeerConnection
+    const pc = new RTCPeerConnection({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    });
+    pcRef.current = pc;
+
+    // Attach local stream tracks
+    if (localStream) {
+      localStream.getTracks().forEach(track => {
+        pc.addTrack(track, localStream);
+      });
+    }
+
+    // Monitor WebRTC Connection State changes
+    pc.onconnectionstatechange = () => {
+      console.log("RTCPeerConnection state:", pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        setConnectionState('connected');
+      } else if (pc.connectionState === 'disconnected') {
+        setConnectionState('disconnected');
+      } else if (pc.connectionState === 'failed') {
+        setConnectionState('failed');
+      }
+    };
+
+    // Track remote candidate
+    pc.onicecandidate = (event) => {
+      if (event.candidate && wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'candidate',
+          candidate: event.candidate
+        }));
+      }
+    };
+
+    // Handle remote track addition
+    pc.ontrack = (event) => {
+      console.log("Received remote track:", event.track.kind);
+      if (remoteVideoRef.current && event.streams[0]) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
+    };
+
+    // 3. Connect to WebSocket Signaling Server
+    try {
+      const token = localStorage.getItem('token') || '';
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      // Build dynamic WS signaling path through Vite Proxy
+      const wsUrl = `${protocol}//${host}/api/v1/telemetry/ws/${appointmentId}?token=${encodeURIComponent(token)}`;
+      
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log("Signaling WebSocket connected successfully.");
+      };
+
+      ws.onmessage = async (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          
+          if (msg.type === 'welcome') {
+            console.log("Joined signaling room:", msg.message);
+          } 
+          
+          else if (msg.type === 'peer_joined') {
+            console.log("Remote peer joined. Initiating offer...");
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            
+            ws.send(JSON.stringify({
+              type: 'offer',
+              sdp: offer.sdp
+            }));
+          } 
+          
+          else if (msg.type === 'offer') {
+            console.log("Received remote offer. Setting remote description & sending answer...");
+            await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: msg.sdp }));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            
+            ws.send(JSON.stringify({
+              type: 'answer',
+              sdp: answer.sdp
+            }));
+          } 
+          
+          else if (msg.type === 'answer') {
+            console.log("Received remote answer. Completing peer handshake...");
+            await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
+            setConnectionState('connected');
+          } 
+          
+          else if (msg.type === 'candidate') {
+            if (msg.candidate) {
+              await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
+            }
+          } 
+          
+          else if (msg.type === 'peer_left') {
+            console.log("Remote peer disconnected.");
+            setConnectionState('disconnected');
+            if (remoteVideoRef.current) {
+              remoteVideoRef.current.srcObject = null;
+            }
+          }
+        } catch (jsonErr) {
+          console.error("Failed to parse signaling message:", jsonErr);
+        }
+      };
+
+      ws.onerror = (err) => {
+        console.error("Signaling WebSocket encountered an error:", err);
+      };
+
+      ws.onclose = () => {
+        console.log("Signaling WebSocket closed.");
+        // Try auto-reconnect if not deliberately unmounted and not in simulated off mode
+        if (connectionState !== 'connected' && networkQuality !== 'disconnected') {
+          scheduleReconnect();
+        }
+      };
+    } catch (wsErr) {
+      console.error("Failed to establish WebSocket connection:", wsErr);
+      scheduleReconnect();
+    }
+  };
+
+  const scheduleReconnect = () => {
+    if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+    retryTimeoutRef.current = setTimeout(() => {
+      console.log("Retrying signaling connection...");
+      establishConnection();
+    }, 4000);
+  };
+
+  // 4. Handle controls & toggles
+  const handleToggleMute = () => {
+    const nextMuted = !isMuted;
+    setIsMuted(nextMuted);
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach(track => {
+        track.enabled = !nextMuted;
+      });
+    }
+  };
+
+  const handleToggleVideo = () => {
+    const nextVideoOff = !isVideoOff;
+    setIsVideoOff(nextVideoOff);
+    if (localStreamRef.current) {
+      localStreamRef.current.getVideoTracks().forEach(track => {
+        track.enabled = !nextVideoOff;
+      });
+    }
+  };
+
+  const handleEndCall = () => {
+    if (window.confirm("Are you sure you want to end this clinical consultation?")) {
+      cleanupStreams();
+      navigate('/');
+    }
+  };
+
+  const cleanupStreams = () => {
+    if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+    
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    
+    if (pcRef.current) {
+      pcRef.current.close();
+      pcRef.current = null;
+    }
+    
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
+  };
+
+  // Network Quality Simulator Handlers (Demonstrating Premium low-bandwidth capability!)
+  const handleSimulateNetwork = (status: 'excellent' | 'weak' | 'disconnected') => {
+    setNetworkQuality(status);
+    setIsSimHUDOpen(false);
+
+    if (status === 'excellent') {
+      setConnectionState('connected');
+      setErrorMessage(null);
+      // Re-enable camera track
+      if (localStreamRef.current) {
+        localStreamRef.current.getVideoTracks().forEach(t => t.enabled = !isVideoOff);
+      }
+    } else if (status === 'weak') {
+      setConnectionState('connected'); // remains connected but degraded
+      setErrorMessage("Weak network connection detected. Down-sampling to audio-only fallback...");
+      // Simulate video freeze/disable
+      if (localStreamRef.current) {
+        localStreamRef.current.getVideoTracks().forEach(t => t.enabled = false);
+      }
+    } else if (status === 'disconnected') {
+      setConnectionState('disconnected');
+      setErrorMessage("No network signal. Reconnection sequence active...");
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(t => t.enabled = false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    establishConnection();
+    return () => {
+      cleanupStreams();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appointmentId]);
 
   return (
-    <div className="relative w-full h-[40vh] bg-surface-dim overflow-hidden rounded-b-3xl shadow-md border-b border-black/10">
-      {/* Remote Video (Doctor placeholder) */}
-      <div className="absolute inset-0 bg-secondary/10 flex flex-col items-center justify-center">
-        {!isVideoOff ? (
-          <div className="text-secondary/50 text-center">
-            <svg className="w-16 h-16 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14v-4z"/><rect x="3" y="6" width="12" height="12" rx="2" ry="2"/></svg>
-            <p className="font-medium text-lg">{practitionerName}</p>
+    <div className="relative w-full h-[45vh] bg-neutral-950 overflow-hidden rounded-b-3xl shadow-lg border-b border-neutral-800 transition-all duration-500">
+      
+      {/* Remote Video Stream */}
+      <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center">
+        {networkQuality === 'excellent' && connectionState === 'connected' ? (
+          <div className="w-full h-full relative">
+            <video 
+              ref={remoteVideoRef}
+              playsInline
+              autoPlay
+              aria-label={`Video feed of ${remotePeerName}`}
+              className="w-full h-full object-cover animate-fade-in"
+            />
+            {/* Overlay Name Tag */}
+            <div className="absolute bottom-20 left-4 bg-black/55 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 text-white text-xs font-semibold tracking-wide">
+              {remotePeerName}
+            </div>
           </div>
         ) : (
-          <div className="w-20 h-20 rounded-full bg-secondary/20 flex items-center justify-center text-secondary text-2xl font-bold">
-            {practitionerName.charAt(0)}
+          /* High-Fidelity Fallback Profile View for Weak/Disconnected states */
+          <div className="flex flex-col items-center justify-center text-center p-6 animate-scale-in">
+            <div className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary text-primary flex items-center justify-center text-3xl font-extrabold shadow-lg mb-4 animate-pulse">
+              {peerInitials}
+            </div>
+            <h3 className="text-white font-bold text-lg">{remotePeerName}</h3>
+            <p className="text-neutral-400 text-xs mt-1">
+              {networkQuality === 'weak' 
+                ? 'Weak signal • Audio fallback active' 
+                : 'Connection dropped • Re-establishing link...'}
+            </p>
           </div>
         )}
       </div>
 
-      {/* Network Status Badge */}
-      <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2">
-        <div className="w-2 h-2 rounded-full bg-warning-offline animate-pulse"></div>
-        <span className="text-xs font-semibold text-white tracking-wide">WEAK NETWORK</span>
+      {/* Network Status Badges (Teal and Orange) */}
+      <div className="absolute top-4 left-4 flex flex-col gap-2 z-20">
+        {networkQuality === 'excellent' && connectionState === 'connected' && (
+          <div className="bg-success/90 backdrop-blur-md px-3.5 py-1.5 rounded-full flex items-center gap-2 border border-success/20 shadow-md animate-fade-in">
+            <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+            <span className="text-[10px] font-black text-white tracking-widest uppercase">EXCELLENT SIGNAL</span>
+          </div>
+        )}
+
+        {networkQuality === 'weak' && (
+          <div className="bg-warning/90 backdrop-blur-md px-3.5 py-1.5 rounded-full flex items-center gap-2 border border-warning/20 shadow-md animate-bounce">
+            <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+            <span className="text-[10px] font-black text-white tracking-widest uppercase">WEAK CONNECTION</span>
+          </div>
+        )}
+
+        {(networkQuality === 'disconnected' || connectionState === 'connecting') && (
+          <div className="bg-danger/90 backdrop-blur-md px-3.5 py-1.5 rounded-full flex items-center gap-2 border border-danger/20 shadow-md animate-pulse">
+            <RefreshCw size={11} className="text-white animate-spin" />
+            <span className="text-[10px] font-black text-white tracking-widest uppercase">RECONNECTING...</span>
+          </div>
+        )}
       </div>
 
-      {/* Local Video (Patient PIP) */}
-      <div className="absolute top-4 right-4 w-24 h-32 bg-primary/20 rounded-xl border-2 border-white shadow-lg overflow-hidden flex items-center justify-center">
-        <div className="text-primary/60 text-xs text-center font-medium">You</div>
+      {/* Local Video Picture-in-Picture (PIP) */}
+      <div className="absolute top-4 right-4 w-28 h-36 bg-neutral-900 rounded-2xl border border-white/20 shadow-2xl overflow-hidden z-20 transition-all duration-300 hover:scale-105">
+        {!isVideoOff && networkQuality !== 'disconnected' ? (
+          <video 
+            ref={localVideoRef}
+            muted
+            playsInline
+            autoPlay
+            aria-label="Your local camera feed"
+            className="w-full h-full object-cover bg-neutral-800"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-neutral-850 text-neutral-400">
+            <VideoOff size={20} className="stroke-[1.5]" />
+            <span className="text-[10px] mt-1.5 font-bold uppercase tracking-wider text-neutral-500">Camera Off</span>
+          </div>
+        )}
+        <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-0.5 rounded-md text-[9px] font-bold text-white uppercase tracking-wider">
+          You
+        </div>
       </div>
 
-      {/* Call Controls */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4">
+      {/* Network Degradation Banner */}
+      {errorMessage && (
+        <div className="absolute top-20 left-4 right-4 bg-danger/95 backdrop-blur-md text-white p-3 rounded-xl flex items-center gap-3 border border-danger/20 z-10 shadow-lg text-xs font-semibold animate-slide-in">
+          <AlertTriangle size={16} className="shrink-0 text-white" />
+          <span className="flex-1">{errorMessage}</span>
+          {networkQuality === 'disconnected' && (
+            <button 
+              onClick={() => establishConnection()}
+              className="px-2.5 py-1 bg-white/20 hover:bg-white/30 rounded-lg font-bold transition-all uppercase text-[9px]"
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Interactive Network Simulator Trigger button (WOW factor for user presentation) */}
+      <div className="absolute bottom-20 right-4 z-20">
         <button 
-          onClick={() => setIsMuted(!isMuted)}
+          onClick={() => setIsSimHUDOpen(!isSimHUDOpen)}
+          aria-expanded={isSimHUDOpen}
+          aria-label="Open Network Simulation Control"
+          className="w-10 h-10 rounded-full bg-black/55 backdrop-blur-md border border-white/10 hover:bg-black/85 text-white flex items-center justify-center transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-primary/40"
+        >
+          <Sliders size={18} className="stroke-[2]" />
+        </button>
+        
+        {isSimHUDOpen && (
+          <div className="absolute right-0 bottom-12 w-64 bg-neutral-900/95 backdrop-blur-lg border border-neutral-800 rounded-2xl p-4 shadow-2xl flex flex-col gap-2.5 z-30 animate-scale-in">
+            <h4 className="text-[11px] font-black text-white/40 tracking-wider uppercase mb-1">Network Quality Simulator</h4>
+            
+            <button 
+              onClick={() => handleSimulateNetwork('excellent')}
+              className={`flex items-center gap-2.5 w-full text-left p-2.5 rounded-xl text-xs font-bold transition-all ${networkQuality === 'excellent' ? 'bg-success/15 border border-success/30 text-success' : 'text-neutral-300 hover:bg-white/5 border border-transparent'}`}
+            >
+              <Wifi size={14} />
+              <div className="flex-1">
+                <div>Excellent Signal</div>
+                <div className="text-[9px] font-normal text-neutral-400 mt-0.5">Full HD WebRTC Stream</div>
+              </div>
+              {networkQuality === 'excellent' && <CheckCircle2 size={12} />}
+            </button>
+
+            <button 
+              onClick={() => handleSimulateNetwork('weak')}
+              className={`flex items-center gap-2.5 w-full text-left p-2.5 rounded-xl text-xs font-bold transition-all ${networkQuality === 'weak' ? 'bg-warning/15 border border-warning/30 text-warning' : 'text-neutral-300 hover:bg-white/5 border border-transparent'}`}
+            >
+              <AlertTriangle size={14} />
+              <div className="flex-1">
+                <div>Weak Connection</div>
+                <div className="text-[9px] font-normal text-neutral-400 mt-0.5">Automatic Audio Fallback</div>
+              </div>
+              {networkQuality === 'weak' && <CheckCircle2 size={12} />}
+            </button>
+
+            <button 
+              onClick={() => handleSimulateNetwork('disconnected')}
+              className={`flex items-center gap-2.5 w-full text-left p-2.5 rounded-xl text-xs font-bold transition-all ${networkQuality === 'disconnected' ? 'bg-danger/15 border border-danger/30 text-danger' : 'text-neutral-300 hover:bg-white/5 border border-transparent'}`}
+            >
+              <WifiOff size={14} />
+              <div className="flex-1">
+                <div>No Signal</div>
+                <div className="text-[9px] font-normal text-neutral-400 mt-0.5">Simulate Network Drop</div>
+              </div>
+              {networkQuality === 'disconnected' && <CheckCircle2 size={12} />}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Main Bottom Call Controls */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4 z-20">
+        {/* Toggle Mute */}
+        <button 
+          onClick={handleToggleMute}
           aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors shadow-lg backdrop-blur-md ${isMuted ? 'bg-white text-error' : 'bg-black/40 text-white hover:bg-black/60'}`}
+          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg backdrop-blur-md border ${isMuted ? 'bg-danger border-danger text-white' : 'bg-black/60 border-white/10 text-white hover:bg-black/80'}`}
         >
-          {isMuted ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="2" y1="2" x2="22" y2="22"></line><path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"></path><path d="M5 10v2a7 7 0 0 0 12 5"></path><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"></path><path d="M9 9v3a3 3 0 0 0 5.12 2.12"></path><line x1="12" y1="19" x2="12" y2="22"></line><line x1="8" y1="22" x2="16" y2="22"></line></svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-          )}
+          {isMuted ? <MicOff size={20} className="stroke-[2]" /> : <Mic size={20} className="stroke-[2]" />}
         </button>
 
+        {/* End Call */}
         <button 
+          onClick={handleEndCall}
           aria-label="End consultation call"
-          className="w-14 h-14 rounded-full bg-error text-white flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
+          className="w-14 h-14 rounded-full bg-danger hover:bg-danger-600 active:scale-95 text-white flex items-center justify-center shadow-xl transition-all border border-white/5"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="22" x2="2" y1="2" y2="22"/></svg>
+          <PhoneOff size={24} className="stroke-[2.5]" />
         </button>
 
+        {/* Toggle Camera */}
         <button 
-          onClick={() => setIsVideoOff(!isVideoOff)}
-          aria-label={isVideoOff ? "Turn on camera" : "Turn off camera"}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors shadow-lg backdrop-blur-md ${isVideoOff ? 'bg-white text-error' : 'bg-black/40 text-white hover:bg-black/60'}`}
+          onClick={handleToggleVideo}
+          aria-label={isVideoOff ? "Turn camera on" : "Turn camera off"}
+          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg backdrop-blur-md border ${isVideoOff ? 'bg-danger border-danger text-white' : 'bg-black/60 border-white/10 text-white hover:bg-black/80'}`}
         >
-          {isVideoOff ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"/><line x1="1" x2="23" y1="1" y2="23"/></svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
-          )}
+          {isVideoOff ? <VideoOff size={20} className="stroke-[2]" /> : <Video size={20} className="stroke-[2]" />}
         </button>
       </div>
+
     </div>
   );
 };

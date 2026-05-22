@@ -47,3 +47,8 @@ class UserResponse(BaseModel):
     is_active: bool
     
     model_config = ConfigDict(from_attributes=True)
+
+class UserUpdate(BaseModel):
+    full_name: str = Field(..., min_length=2, max_length=100)
+    preferred_language: str = "pa"
+

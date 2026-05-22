@@ -68,7 +68,7 @@ describe('AppShell Components', () => {
         </BrowserRouter>
       );
       expect(screen.getByText(/Home/i)).toBeInTheDocument();
-      expect(screen.getByText(/Appointments/i)).toBeInTheDocument();
+      expect(screen.getByText(/Records/i)).toBeInTheDocument();
       expect(screen.getByText(/Profile/i)).toBeInTheDocument();
     });
   });

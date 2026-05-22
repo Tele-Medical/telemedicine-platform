@@ -1,9 +1,10 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from app.models.auth import User, OTPChallenge, Session as DBSession
+from app.models.patient import Patient
 from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token
 from app.core.config import settings
-from app.schemas.auth import OTPVerify, StaffLogin, TokenResponse
+from app.schemas.auth import OTPVerify, StaffLogin, TokenResponse, UserUpdate
 from app.integrations.sms.sms_provider import get_sms_provider
 from datetime import datetime, timedelta, timezone
 import secrets
@@ -106,3 +107,24 @@ def authenticate_staff(db: Session, payload: StaffLogin) -> TokenResponse:
     db.commit()
     
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+def update_me(db: Session, current_user: User, payload: UserUpdate) -> User:
+    current_user.full_name = payload.full_name
+    current_user.preferred_language = payload.preferred_language
+    db.commit()
+    db.refresh(current_user)
+    
+    # Auto-create Clinical Patient profile for patient role to guarantee relational integrity
+    if current_user.default_role == "patient":
+        patient = db.query(Patient).filter(Patient.created_by_user_id == current_user.id).first()
+        if not patient:
+            patient = Patient(
+                full_name=current_user.full_name,
+                phone=current_user.phone,
+                preferred_language=current_user.preferred_language,
+                created_by_user_id=current_user.id
+            )
+            db.add(patient)
+            db.commit()
+    return current_user
+

@@ -3,9 +3,11 @@ import UpcomingAppointmentCard from './UpcomingAppointmentCard';
 import VitalsWidget from './VitalsWidget';
 import RecentRecordsList from './RecentRecordsList';
 import { appointmentService, authService } from '../../api/services';
+import { AlertCircle, Calendar, PlusCircle, RefreshCw } from 'lucide-react';
 
 interface User {
   full_name?: string;
+  phone?: string;
 }
 
 interface Appointment {
@@ -19,40 +21,110 @@ interface Appointment {
 const PatientDashboard: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const userData = await authService.getMe();
+      setUser(userData);
+      
+      const appts = await appointmentService.getAppointments();
+      setAppointments(appts || []);
+    } catch (err) {
+      console.error("Error loading dashboard data:", err);
+      setError("Failed to sync your health records. Please verify your connection.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const userData = await authService.getMe();
-        setUser(userData);
-        
-        const appts = await appointmentService.getAppointments();
-        setAppointments(appts);
-      } catch (err) {
-        console.error("Error loading dashboard data:", err);
-      }
-    };
-    
     loadData();
   }, []);
 
+  const handleRequestCare = () => {
+    // Mock booking flow showing clean toast-like experience or optimistic scheduling
+    const newAppointment: Appointment = {
+      id: `appt-${Date.now()}`,
+      practitioner_name: 'Dr. Sharma',
+      practitioner_role: 'General Physician',
+      scheduled_for: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // in 1 hour
+      status: 'confirmed'
+    };
+    setAppointments([newAppointment]);
+  };
+
+  if (loading) {
+    return (
+      <div className="p-4 max-w-3xl mx-auto space-y-6 pb-24 animate-pulse">
+        <header className="mb-6 mt-2 space-y-2">
+          <div className="h-8 bg-neutral-200 rounded-lg w-48"></div>
+          <div className="h-4 bg-neutral-200 rounded-lg w-32"></div>
+        </header>
+        <div className="h-40 bg-neutral-200 rounded-2xl w-full"></div>
+        <div className="h-32 bg-neutral-200 rounded-2xl w-full"></div>
+        <div className="h-48 bg-neutral-200 rounded-2xl w-full"></div>
+      </div>
+    );
+  }
+
+  const isDemoUser = user?.phone === '+919800000001' || user?.full_name?.toLowerCase().includes('ravi');
+
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto animate-fade-in pb-24">
+    <div className="p-4 max-w-3xl mx-auto animate-fade-in pb-24">
       <header className="mb-6 mt-2">
-        <h1 className="text-2xl font-bold text-text-primary tracking-tight">
-          Good morning{user ? `, ${user.full_name}` : ''}
+        <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
+          Good morning{user?.full_name ? `, ${user.full_name}` : ''}
         </h1>
-        <p className="text-text-secondary mt-1">Here is your health overview.</p>
+        <p className="text-neutral-500 text-sm mt-1">Here is your digital health overview.</p>
       </header>
 
-      <main>
+      {error && (
+        <div className="mb-6 p-4 bg-danger/10 border border-danger/20 text-danger rounded-2xl flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={20} className="shrink-0" />
+            <span className="text-sm font-semibold">{error}</span>
+          </div>
+          <button 
+            onClick={loadData}
+            className="px-3 py-1.5 bg-danger/10 border border-danger/30 hover:bg-danger/20 text-danger rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all outline-none"
+          >
+            <RefreshCw size={12} />
+            <span>Retry</span>
+          </button>
+        </div>
+      )}
+
+      <main className="space-y-6">
         {appointments.length > 0 ? (
           <UpcomingAppointmentCard appointment={appointments[0]} />
         ) : (
-          <UpcomingAppointmentCard />
+          /* Proper design compliant Empty State Card */
+          <div className="bg-white rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,.08)] p-6 border border-neutral-200/60 flex flex-col items-center text-center gap-5">
+            <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+              <Calendar size={28} className="stroke-[2.25]" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold text-neutral-900">No upcoming consultations</h2>
+              <p className="text-neutral-500 text-sm max-w-md">
+                Need to speak with a medical specialist? Book a digital consult or contact your local assisted ASHA care worker.
+              </p>
+            </div>
+            <button 
+              onClick={handleRequestCare}
+              className="px-6 py-3 bg-primary hover:bg-primary-700 active:scale-[0.98] transition-all text-white font-semibold rounded-full shadow-md shadow-primary/20 flex items-center gap-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+            >
+              <PlusCircle size={18} />
+              <span>Book Appointment</span>
+            </button>
+          </div>
         )}
-        <VitalsWidget />
-        <RecentRecordsList />
+        
+        <VitalsWidget isDemo={isDemoUser} />
+        <RecentRecordsList isDemo={isDemoUser} />
       </main>
     </div>
   );
