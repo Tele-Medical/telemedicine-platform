@@ -8,7 +8,6 @@ from alembic import context
 from app.core.config import settings
 from app.core.database import Base
 # Import all models here for autogenerate
-import app.models
 
 
 # this is the Alembic Config object, which provides

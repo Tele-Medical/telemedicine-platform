@@ -10,7 +10,7 @@ const Sync: React.FC = () => {
       // Simulate sync
       await new Promise(resolve => setTimeout(resolve, 2000));
       setSyncStatus('synced');
-    } catch (e) {
+    } catch {
       setSyncStatus('error');
     }
   };
