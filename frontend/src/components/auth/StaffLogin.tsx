@@ -71,6 +71,7 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin }) => {
           <input
             id="username"
             type="text"
+            autoComplete="username"
             value={username}
             onChange={(e) => {
               setUsername(e.target.value);
@@ -96,6 +97,7 @@ const StaffLogin: React.FC<StaffLoginProps> = ({ onLogin }) => {
           <input
             id="password"
             type="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);

@@ -1,7 +1,17 @@
 import React from 'react';
 import { Heart, UserPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Assisted: React.FC = () => {
+  const navigate = useNavigate();
+
+  const handleOpenRegistration = () => {
+    navigate('/asha/register');
+  };
+
+  const handleCollectVitals = () => {
+    navigate('/asha/vitals');
+  };
   return (
     <div className="animate-fade-in pb-12">
       <header className="mb-6 mt-2">
@@ -10,7 +20,7 @@ const Assisted: React.FC = () => {
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <button className="bg-white p-5 rounded-2xl border border-neutral-200/60 shadow-sm hover:shadow-md transition-all text-left flex items-start gap-4">
+        <button onClick={handleOpenRegistration} className="bg-white p-5 rounded-2xl border border-neutral-200/60 shadow-sm hover:shadow-md transition-all text-left flex items-start gap-4">
           <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <UserPlus size={22} className="stroke-[2.25]" />
           </div>
@@ -20,7 +30,7 @@ const Assisted: React.FC = () => {
           </div>
         </button>
 
-        <button className="bg-white p-5 rounded-2xl border border-neutral-200/60 shadow-sm hover:shadow-md transition-all text-left flex items-start gap-4">
+        <button onClick={handleCollectVitals} className="bg-white p-5 rounded-2xl border border-neutral-200/60 shadow-sm hover:shadow-md transition-all text-left flex items-start gap-4">
           <div className="w-12 h-12 rounded-xl bg-success/10 text-success flex items-center justify-center shrink-0">
             <Heart size={22} className="stroke-[2.25]" />
           </div>

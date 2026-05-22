@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import PatientDashboard from './PatientDashboard';
 import { BrowserRouter } from 'react-router-dom';
@@ -73,5 +73,43 @@ describe('PatientDashboard Component', () => {
     expect(screen.getByText('No upcoming consultations')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /book appointment/i })).toBeInTheDocument();
     expect(screen.queryByTestId('upcoming-appointment-card')).not.toBeInTheDocument();
+  });
+
+  it('covers the retryable error flow', async () => {
+    const { appointmentService } = await import('../../api/services');
+    const mockAppointments = [
+      {
+        id: 'appt-123',
+        practitioner_name: 'Dr. Sharma',
+        practitioner_role: 'General Physician',
+        scheduled_for: new Date(Date.now() + 3600000).toISOString(),
+        status: 'confirmed'
+      }
+    ];
+
+    vi.mocked(appointmentService.getAppointments)
+      .mockRejectedValueOnce(new Error('API Error'))
+      .mockResolvedValueOnce(mockAppointments);
+
+    render(
+      <BrowserRouter>
+        <PatientDashboard />
+      </BrowserRouter>
+    );
+
+    // Should show error banner
+    await waitFor(() => {
+      expect(screen.getByText('Failed to sync your health records. Please verify your connection.')).toBeInTheDocument();
+    });
+
+    // Click Retry
+    const retryButton = screen.getByRole('button', { name: /Retry/i });
+    fireEvent.click(retryButton);
+
+    // Error banner should disappear and upcoming appointment should show
+    await waitFor(() => {
+      expect(screen.queryByText('Failed to sync your health records. Please verify your connection.')).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId('upcoming-appointment-card')).toBeInTheDocument();
   });
 });

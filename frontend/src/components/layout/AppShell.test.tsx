@@ -1,6 +1,6 @@
 
 import { render, screen, fireEvent } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import AppShell from './AppShell';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
@@ -100,6 +100,25 @@ describe('AppShell Components', () => {
       expect(logoutButton).toBeInTheDocument();
       fireEvent.click(logoutButton);
       expect(handleLogout).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not render TopBar and BottomNav on /consultation route', () => {
+      render(
+        <MemoryRouter initialEntries={['/consultation']}>
+          <AppShell isOffline={false} syncStatus="synced">
+            <div data-testid="main-content">Consultation Content</div>
+          </AppShell>
+        </MemoryRouter>
+      );
+      
+      expect(screen.queryByText(/Telemedicine/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Home/i)).not.toBeInTheDocument();
+      expect(screen.getByTestId('main-content')).toBeInTheDocument();
+      
+      // Ensure the consultation layout is full-height
+      const content = screen.getByTestId('main-content');
+      // The wrapper has className="flex flex-col min-h-screen bg-neutral-50 text-neutral-900 font-sans"
+      expect(content.parentElement?.parentElement).toHaveClass('min-h-screen');
     });
   });
 });

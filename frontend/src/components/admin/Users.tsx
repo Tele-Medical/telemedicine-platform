@@ -1,7 +1,9 @@
 import React from 'react';
 import { Users as UsersIcon, PlusCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Users: React.FC = () => {
+  const navigate = useNavigate();
   return (
     <div className="animate-fade-in pb-12">
       <header className="mb-6 mt-2 flex justify-between items-center">
@@ -18,7 +20,9 @@ const Users: React.FC = () => {
         <h2 className="text-lg font-bold text-neutral-900">User Management Console</h2>
         <p className="text-neutral-500 text-sm mt-1 max-w-sm">Manage, authorize, and audit credential layers for clinicians, pharmacists, and health assistants.</p>
         
-        <button className="mt-6 flex items-center gap-2 bg-primary hover:bg-primary-700 active:scale-[0.98] transition-all text-white font-bold text-sm px-6 py-3 rounded-full shadow-md shadow-primary/10">
+        <button 
+          onClick={() => navigate('/admin/users/new')}
+          className="mt-6 flex items-center gap-2 bg-primary hover:bg-primary-700 active:scale-[0.98] transition-all text-white font-bold text-sm px-6 py-3 rounded-full shadow-md shadow-primary/10">
           <PlusCircle size={14} />
           <span>Register New Portal User</span>
         </button>

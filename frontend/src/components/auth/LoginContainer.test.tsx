@@ -25,8 +25,8 @@ describe('LoginContainer Component', () => {
   it('renders tab switcher and defaults to Patient Login', () => {
     render(<LoginContainer onLogin={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: /Patient Portal/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Staff Portal/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Patient Portal/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Staff Portal/i })).toBeInTheDocument();
     expect(screen.getByTestId('otp-login')).toBeInTheDocument();
     expect(screen.queryByTestId('staff-login')).not.toBeInTheDocument();
   });
@@ -34,8 +34,8 @@ describe('LoginContainer Component', () => {
   it('switches to Staff Login when tab is clicked and back to Patient Login', () => {
     render(<LoginContainer onLogin={vi.fn()} />);
 
-    const patientTab = screen.getByRole('button', { name: /Patient Portal/i });
-    const staffTab = screen.getByRole('button', { name: /Staff Portal/i });
+    const patientTab = screen.getByRole('tab', { name: /Patient Portal/i });
+    const staffTab = screen.getByRole('tab', { name: /Staff Portal/i });
 
     // Switch to Staff
     fireEvent.click(staffTab);
@@ -57,7 +57,7 @@ describe('LoginContainer Component', () => {
     expect(handleLogin).toHaveBeenCalledTimes(1);
 
     // Switch to Staff and trigger
-    fireEvent.click(screen.getByRole('button', { name: /Staff Portal/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Staff Portal/i }));
     fireEvent.click(screen.getByRole('button', { name: /Trigger Staff Login/i }));
     expect(handleLogin).toHaveBeenCalledTimes(2);
   });
