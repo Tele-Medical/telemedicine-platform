@@ -4,7 +4,11 @@ import PatientRecordsPanel from './PatientRecordsPanel';
 import PrescriptionComposer from './PrescriptionComposer';
 import { useNavigate } from 'react-router-dom';
 
-const TeleconsultationRoom: React.FC = () => {
+interface TeleconsultationRoomProps {
+  userRole?: string;
+}
+
+const TeleconsultationRoom: React.FC<TeleconsultationRoomProps> = ({ userRole = 'practitioner' }) => {
   const [activeTab, setActiveTab] = useState<'records' | 'prescription'>('records');
   const navigate = useNavigate();
 
@@ -46,16 +50,18 @@ const TeleconsultationRoom: React.FC = () => {
           >
             Records
           </button>
-          <button 
-            id="tab-prescription"
-            role="tab"
-            aria-selected={activeTab === 'prescription'}
-            aria-controls="panel-prescription"
-            onClick={() => setActiveTab('prescription')}
-            className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-colors ${activeTab === 'prescription' ? 'bg-primary text-white shadow-md' : 'bg-surface text-text-secondary hover:bg-surface-dim'}`}
-          >
-            Prescription
-          </button>
+          {userRole !== 'patient' && (
+            <button 
+              id="tab-prescription"
+              role="tab"
+              aria-selected={activeTab === 'prescription'}
+              aria-controls="panel-prescription"
+              onClick={() => setActiveTab('prescription')}
+              className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-colors ${activeTab === 'prescription' ? 'bg-primary text-white shadow-md' : 'bg-surface text-text-secondary hover:bg-surface-dim'}`}
+            >
+              Prescription
+            </button>
+          )}
         </div>
 
         {/* Scrollable Content Area */}
@@ -69,15 +75,17 @@ const TeleconsultationRoom: React.FC = () => {
           >
             <PatientRecordsPanel />
           </div>
-          <div 
-            id="panel-prescription"
-            role="tabpanel"
-            aria-labelledby="tab-prescription"
-            hidden={activeTab !== 'prescription'}
-            className={activeTab === 'prescription' ? 'block' : 'hidden'}
-          >
-            <PrescriptionComposer />
-          </div>
+          {userRole !== 'patient' && (
+            <div 
+              id="panel-prescription"
+              role="tabpanel"
+              aria-labelledby="tab-prescription"
+              hidden={activeTab !== 'prescription'}
+              className={activeTab === 'prescription' ? 'block' : 'hidden'}
+            >
+              <PrescriptionComposer />
+            </div>
+          )}
         </div>
       </div>
     </div>

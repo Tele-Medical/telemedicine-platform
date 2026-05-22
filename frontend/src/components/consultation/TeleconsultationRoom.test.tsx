@@ -41,4 +41,19 @@ describe('TeleconsultationRoom Component', () => {
     expect(screen.getByTestId('patient-records')).not.toBeVisible();
     expect(screen.getByTestId('prescription-composer')).toBeVisible();
   });
+
+  it('hides Prescription tab entirely for users with patient role', () => {
+    render(
+      <BrowserRouter>
+        <TeleconsultationRoom userRole="patient" />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByTestId('video-feed')).toBeInTheDocument();
+    expect(screen.getByTestId('patient-records')).toBeVisible();
+    
+    // Prescription tab and composer should not be accessible
+    expect(screen.queryByText('Prescription')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('prescription-composer')).not.toBeInTheDocument();
+  });
 });
