@@ -15,6 +15,13 @@ export const authService = {
     });
   },
 
+  loginStaff: async (username: string, password: string) => {
+    return apiClient('/auth/staff/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+  },
+
   getMe: async () => {
     return apiClient('/auth/me', {
       method: 'GET',

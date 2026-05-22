@@ -1,0 +1,52 @@
+import React, { useState } from 'react';
+import OtpLogin from './OtpLogin';
+import StaffLogin from './StaffLogin';
+
+interface LoginContainerProps {
+  onLogin: (otpOrToken?: string) => void;
+}
+
+const LoginContainer: React.FC<LoginContainerProps> = ({ onLogin }) => {
+  const [activeTab, setActiveTab] = useState<'patient' | 'staff'>('patient');
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 w-full max-w-md mx-auto py-8">
+      {/* Tab Switcher */}
+      <div className="flex w-full bg-gray-100/80 backdrop-blur-sm p-1.5 rounded-2xl mb-8 border border-gray-200/50">
+        <button
+          type="button"
+          onClick={() => setActiveTab('patient')}
+          className={`flex-1 py-3 text-center rounded-xl font-semibold text-sm transition-all duration-300 ${
+            activeTab === 'patient'
+              ? 'bg-white text-gray-800 shadow-sm border-transparent'
+              : 'text-gray-500 hover:text-gray-700 hover:bg-white/30'
+          }`}
+        >
+          Patient Portal
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('staff')}
+          className={`flex-1 py-3 text-center rounded-xl font-semibold text-sm transition-all duration-300 ${
+            activeTab === 'staff'
+              ? 'bg-white text-gray-800 shadow-sm border-transparent'
+              : 'text-gray-500 hover:text-gray-700 hover:bg-white/30'
+          }`}
+        >
+          Staff Portal
+        </button>
+      </div>
+
+      {/* Form Card Container */}
+      <div className="bg-white rounded-2xl shadow-lg p-8 w-full border border-gray-100/80 transition-all duration-300 ease-in-out min-h-[420px] flex flex-col justify-center">
+        {activeTab === 'patient' ? (
+          <OtpLogin onLogin={onLogin} />
+        ) : (
+          <StaffLogin onLogin={() => onLogin()} />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default LoginContainer;
