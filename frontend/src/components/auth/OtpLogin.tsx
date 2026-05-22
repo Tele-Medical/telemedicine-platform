@@ -81,102 +81,99 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 w-full max-w-md mx-auto">
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full border border-gray-100 transition-all duration-300 ease-in-out">
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm text-center">
-            {error}
+    <div className="w-full max-w-sm mx-auto animate-fade-in">
+      {error && (
+        <div className="mb-6 p-3 bg-danger/10 text-danger border border-danger/20 rounded-xl text-sm font-semibold text-center">
+          {error}
+        </div>
+      )}
+      
+      {step === 'phone' ? (
+        <div className="animate-fade-in">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-neutral-900 mb-2">Welcome to Telemedicine</h2>
+            <p className="text-neutral-500 text-sm">Enter your phone number to continue</p>
           </div>
-        )}
-        
-        {step === 'phone' ? (
-          <div className="animate-fade-in">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to Telemedicine</h2>
-              <p className="text-gray-500 text-sm">Enter your phone number to continue</p>
+          
+          <form onSubmit={handleRequestOtp} className="space-y-6">
+            <div>
+              <label htmlFor="phone" className="block text-sm font-semibold text-neutral-700 mb-1.5">Mobile Number</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-neutral-500 font-semibold">
+                  +91
+                </span>
+                <input
+                  id="phone"
+                  type="tel"
+                  aria-label="Mobile phone number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="Enter your mobile number"
+                  className="w-full pl-14 pr-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-lg tracking-wide text-neutral-900 placeholder-neutral-400"
+                  maxLength={10}
+                  required
+                />
+              </div>
             </div>
             
-            <form onSubmit={handleRequestOtp} className="space-y-6">
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 font-medium">
-                    +91
-                  </span>
-                  <input
-                    id="phone"
-                    type="tel"
-                    aria-label="Mobile phone number"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
-                    placeholder="Enter your mobile number"
-                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#6B8E7B] focus:border-transparent outline-none transition-all text-lg tracking-wide"
-                    maxLength={10}
-                    required
-                  />
-                </div>
-              </div>
-              
-              <button 
-                type="submit"
-                disabled={phone.length < 10 || loading}
-                className="w-full bg-[#6B8E7B] text-white py-3.5 rounded-full font-semibold text-lg shadow-md hover:bg-[#5a7a69] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Sending...' : 'Request OTP'}
-              </button>
-            </form>
+            <button 
+              type="submit"
+              disabled={phone.length < 10 || loading}
+              className="w-full bg-primary hover:bg-primary-700 active:scale-[0.98] text-white py-3.5 rounded-full font-semibold text-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+            >
+              {loading ? 'Sending...' : 'Request OTP'}
+            </button>
+          </form>
+        </div>
+      ) : (
+        <div className="animate-fade-in">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-neutral-900 mb-2">Enter OTP</h2>
+            <p className="text-neutral-500 text-sm">
+              We've sent a code to <span className="font-semibold text-neutral-700">+91 {phone}</span>
+            </p>
           </div>
-        ) : (
-          <div className="animate-fade-in">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Enter OTP</h2>
-              <p className="text-gray-500 text-sm">
-                We've sent a code to <span className="font-semibold text-gray-700">+91 {phone}</span>
-              </p>
+          
+          <form onSubmit={handleVerify} className="space-y-8">
+            <div className="flex justify-between gap-1 sm:gap-2 px-1">
+              {otp.map((digit, index) => (
+                <input
+                  key={index}
+                  id={`otp-input-${index}`}
+                  type="text"
+                  inputMode="numeric"
+                  aria-label={`Digit ${index + 1} of 6`}
+                  value={digit}
+                  onChange={(e) => handleOtpChange(index, e.target.value.replace(/[^0-9]/g, ''))}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  className="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-bold bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-neutral-900"
+                  maxLength={1}
+                  required
+                />
+              ))}
             </div>
             
-            <form onSubmit={handleVerify} className="space-y-8">
-              <div className="flex justify-between gap-1 sm:gap-2 px-1">
-                {otp.map((digit, index) => (
-                  <input
-                    key={index}
-                    id={`otp-input-${index}`}
-                    type="text"
-                    inputMode="numeric"
-                    aria-label={`Digit ${index + 1} of 6`}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(index, e.target.value.replace(/[^0-9]/g, ''))}
-                    onKeyDown={(e) => handleKeyDown(index, e)}
-                    className="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-bold bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#6B8E7B] focus:border-transparent outline-none transition-all"
-                    maxLength={1}
-                    required
-                  />
-                ))}
-              </div>
-              
+            <button 
+              type="submit"
+              disabled={otp.join('').length < 6 || loading}
+              className="w-full bg-primary hover:bg-primary-700 active:scale-[0.98] text-white py-3.5 rounded-full font-semibold text-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+            >
+              {loading ? 'Verifying...' : 'Verify & Login'}
+            </button>
+            
+            <div className="text-center mt-4">
               <button 
-                type="submit"
-                disabled={otp.join('').length < 6 || loading}
-                className="w-full bg-[#6B8E7B] text-white py-3.5 rounded-full font-semibold text-lg shadow-md hover:bg-[#5a7a69] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                type="button" 
+                onClick={() => setStep('phone')}
+                aria-label="Edit your mobile number"
+                className="text-sm text-neutral-500 hover:text-primary transition-colors font-medium"
               >
-                {loading ? 'Verifying...' : 'Verify & Login'}
+                Edit phone number
               </button>
-              
-              <div className="text-center mt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setStep('phone')}
-                  aria-label="Edit your mobile number"
-                  className="text-sm text-gray-500 hover:text-[#6B8E7B] transition-colors"
-                >
-                  Edit phone number
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-        
-      </div>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

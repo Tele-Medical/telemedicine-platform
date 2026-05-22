@@ -1,11 +1,11 @@
 
-import { render, screen } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import AppShell from './AppShell';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
 import OfflineBadge from './OfflineBadge';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 describe('AppShell Components', () => {
 
@@ -44,6 +44,20 @@ describe('AppShell Components', () => {
       );
       expect(screen.getByText(/Offline Mode/i)).toBeInTheDocument();
     });
+
+    it('renders logout button and triggers callback on click', () => {
+      const handleLogout = vi.fn();
+      render(
+        <BrowserRouter>
+          <TopBar isOffline={false} syncStatus="synced" onLogout={handleLogout} />
+        </BrowserRouter>
+      );
+      
+      const logoutButton = screen.getByRole('button', { name: /Logout/i });
+      expect(logoutButton).toBeInTheDocument();
+      fireEvent.click(logoutButton);
+      expect(handleLogout).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('BottomNav', () => {
@@ -54,7 +68,7 @@ describe('AppShell Components', () => {
         </BrowserRouter>
       );
       expect(screen.getByText(/Home/i)).toBeInTheDocument();
-      expect(screen.getByText(/Appointments/i)).toBeInTheDocument();
+      expect(screen.getByText(/Records/i)).toBeInTheDocument();
       expect(screen.getByText(/Profile/i)).toBeInTheDocument();
     });
   });
@@ -71,6 +85,40 @@ describe('AppShell Components', () => {
       expect(screen.getByText(/Telemedicine/i)).toBeInTheDocument(); // TopBar
       expect(screen.getByText(/Home/i)).toBeInTheDocument(); // BottomNav
       expect(screen.getByTestId('main-content')).toBeInTheDocument(); // Children
+    });
+
+    it('propagates onLogout to TopBar', () => {
+      const handleLogout = vi.fn();
+      render(
+        <BrowserRouter>
+          <AppShell isOffline={false} syncStatus="synced" onLogout={handleLogout}>
+            <div>Content</div>
+          </AppShell>
+        </BrowserRouter>
+      );
+      const logoutButton = screen.getByRole('button', { name: /Logout/i });
+      expect(logoutButton).toBeInTheDocument();
+      fireEvent.click(logoutButton);
+      expect(handleLogout).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not render TopBar and BottomNav on /consultation route', () => {
+      render(
+        <MemoryRouter initialEntries={['/consultation']}>
+          <AppShell isOffline={false} syncStatus="synced">
+            <div data-testid="main-content">Consultation Content</div>
+          </AppShell>
+        </MemoryRouter>
+      );
+      
+      expect(screen.queryByText(/Telemedicine/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Home/i)).not.toBeInTheDocument();
+      expect(screen.getByTestId('main-content')).toBeInTheDocument();
+      
+      // Ensure the consultation layout is full-height
+      const content = screen.getByTestId('main-content');
+      // The wrapper has className="flex flex-col min-h-screen bg-neutral-50 text-neutral-900 font-sans"
+      expect(content.parentElement?.parentElement).toHaveClass('min-h-screen');
     });
   });
 });

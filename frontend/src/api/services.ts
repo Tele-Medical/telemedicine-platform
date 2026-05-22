@@ -15,16 +15,30 @@ export const authService = {
     });
   },
 
+  loginStaff: async (username: string, password: string) => {
+    return apiClient('/auth/staff/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+  },
+
   getMe: async () => {
     return apiClient('/auth/me', {
       method: 'GET',
+    });
+  },
+
+  updateProfile: async (fullName: string, preferredLanguage: string = 'pa') => {
+    return apiClient('/auth/me', {
+      method: 'PATCH',
+      body: JSON.stringify({ full_name: fullName, preferred_language: preferredLanguage }),
     });
   },
 };
 
 export const appointmentService = {
   getAppointments: async () => {
-    return apiClient('/appointments', {
+    return apiClient('/appointments/', {
       method: 'GET',
     });
   }
