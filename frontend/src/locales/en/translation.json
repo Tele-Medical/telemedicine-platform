@@ -3,7 +3,12 @@
     "title": "Nabha Telemedicine Platform",
     "offline_notice": "Offline Mode Enabled",
     "syncing": "Syncing Data...",
-    "online": "Connected"
+    "online": "Connected",
+    "good_morning": "Good morning",
+    "health_overview": "Here is your digital health overview.",
+    "sync_failed": "Failed to sync your health records. Please verify your connection.",
+    "retry": "Retry",
+    "loading": "Loading secure portal..."
   },
   "nav": {
     "home": "Home",
@@ -26,11 +31,36 @@
   },
   "auth": {
     "staff_portal": "Staff Portal",
+    "patient_portal": "Patient Portal",
+    "welcome_title": "Welcome to Telemedicine",
+    "enter_phone": "Enter your phone number to continue",
+    "phone_label": "Mobile Number",
+    "phone_placeholder": "Enter your mobile number",
+    "request_otp": "Request OTP",
+    "sending": "Sending...",
+    "enter_otp": "Enter OTP",
+    "sent_code": "We've sent a code to",
+    "verifying": "Verifying...",
+    "verify_login": "Verify & Login",
+    "edit_phone": "Edit phone number",
     "username": "Username",
     "password": "Password",
     "login": "Login",
+    "logout": "Log Out of Portal",
+    "saved": "Saved successfully",
     "username_required": "Username is required",
     "password_required": "Password is required"
+  },
+  "profile": {
+    "subtitle": "Manage your identity details, digital health cards, and preferences.",
+    "default_name": "Patient User",
+    "preferences": "Preferences",
+    "primary_language": "Primary Language",
+    "language_desc": "Multilingual translation preference.",
+    "abha_card": "ABHA Health Card",
+    "verified": "NDHM Verified",
+    "health_id": "Health ID Number",
+    "name": "Name"
   },
   "clinical": {
     "vitals": "Vitals",
@@ -42,6 +72,9 @@
     "condition_name": "Condition Name",
     "add_condition": "Add Condition",
     "allergy_substance": "Allergy Substance",
-    "add_allergy": "Add Allergy"
+    "add_allergy": "Add Allergy",
+    "no_appointments": "No upcoming consultations",
+    "book_appointment": "Book Appointment",
+    "need_specialist": "Need to speak with a medical specialist? Book a digital consult or contact your local assisted ASHA care worker."
   }
 }

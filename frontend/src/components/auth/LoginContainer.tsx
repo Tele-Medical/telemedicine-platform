@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import OtpLogin from './OtpLogin';
 import StaffLogin from './StaffLogin';
 
@@ -7,6 +8,7 @@ interface LoginContainerProps {
 }
 
 const LoginContainer: React.FC<LoginContainerProps> = ({ onLogin }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'patient' | 'staff'>('patient');
 
   return (
@@ -27,7 +29,7 @@ const LoginContainer: React.FC<LoginContainerProps> = ({ onLogin }) => {
               : 'text-gray-500 hover:text-gray-700 hover:bg-white/30'
           }`}
         >
-          Patient Portal
+          {t('auth.patient_portal')}
         </button>
         <button
           type="button"
@@ -43,7 +45,7 @@ const LoginContainer: React.FC<LoginContainerProps> = ({ onLogin }) => {
               : 'text-gray-500 hover:text-gray-700 hover:bg-white/30'
           }`}
         >
-          Staff Portal
+          {t('auth.staff_portal')}
         </button>
       </div>
 
