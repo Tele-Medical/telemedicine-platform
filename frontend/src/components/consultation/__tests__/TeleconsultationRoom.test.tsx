@@ -9,7 +9,6 @@ global.WebSocket = vi.fn().mockImplementation(() => ({
   close: vi.fn(),
   addEventListener: vi.fn(),
   removeEventListener: vi.fn(),
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 })) as unknown as any;
 
 global.RTCPeerConnection = vi.fn().mockImplementation(() => ({
@@ -19,7 +18,6 @@ global.RTCPeerConnection = vi.fn().mockImplementation(() => ({
   close: vi.fn(),
   addTrack: vi.fn(),
   getStats: vi.fn().mockResolvedValue(new Map()),
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 })) as unknown as any;
 
 describe('TeleconsultationRoom Component', () => {
