@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { apiClient } from '../../api/client';
 
 interface Appointment {
   id: string;
@@ -8,19 +11,18 @@ interface Appointment {
 }
 
 const PatientQueue: React.FC = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
   const [queue, setQueue] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchQueue = async () => {
       try {
-        const response = await fetch('/api/v1/doctor/queue');
-        if (response.ok) {
-          const data = await response.json();
-          setQueue(data);
-        }
-      } catch (e) {
-        console.error('Failed to load queue', e);
+        const data = await apiClient('/doctor/queue');
+        setQueue(data || []);
+      } catch {
+        console.error('Failed to load queue');
       } finally {
         setLoading(false);
       }
@@ -31,17 +33,17 @@ const PatientQueue: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-32 bg-white rounded-lg border border-gray-200">
-        <p className="text-gray-500 font-medium">Loading queue...</p>
+        <p className="text-gray-500 font-medium">{t('app.loading')}</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-neutral-900 font-sans">
       <div className="flex justify-between items-center mb-6 border-b pb-3">
-        <h3 className="text-xl font-bold text-gray-800">Today's Patient Queue</h3>
+        <h3 className="text-xl font-bold text-gray-800">{t('clinical.patient_queue')}</h3>
         <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-          {queue.length} Waiting
+          {queue.length} {t('clinical.waiting')}
         </span>
       </div>
       
@@ -50,7 +52,7 @@ const PatientQueue: React.FC = () => {
           <svg className="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
-          <p className="text-gray-500 font-medium">No patients in queue at the moment.</p>
+          <p className="text-gray-500 font-medium">{t('clinical.no_patients_queue')}</p>
         </div>
       ) : (
         <ul className="divide-y divide-gray-100">
@@ -65,8 +67,11 @@ const PatientQueue: React.FC = () => {
                   <span className="capitalize font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded text-xs">{apt.status}</span>
                 </div>
               </div>
-              <button className="bg-white text-blue-600 border border-blue-200 px-4 py-2 rounded-md font-medium hover:bg-blue-50 transition-colors shadow-sm">
-                Start Call
+              <button 
+                onClick={() => navigate(`/consultation?appointmentId=${apt.id}`)}
+                className="bg-white text-blue-600 border border-blue-200 px-4 py-2 rounded-md font-medium hover:bg-blue-50 transition-colors shadow-sm active:scale-95"
+              >
+                {t('clinical.join_call')}
               </button>
             </li>
           ))}

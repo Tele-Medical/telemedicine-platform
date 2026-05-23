@@ -22,19 +22,19 @@ const TopBar: React.FC<TopBarProps> = ({ isOffline, syncStatus, onLogout }) => {
   return (
     <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/80 border-b border-neutral-200 px-4 py-3 flex justify-between items-center shadow-sm">
       <div className="flex items-center gap-2">
-        <img src={logo} alt="Sanjeevani Logo" className="w-8 h-8 object-contain" />
+        <img src={logo} alt={`${t('app.title')} Logo`} className="w-8 h-8 object-contain" />
         <h1 className="text-xl font-bold text-neutral-900 tracking-tight">{t('app.title')}</h1>
       </div>
       <div className="flex items-center gap-3">
         <select
           value={currentLanguage}
           onChange={handleLangChange}
-          className="px-3 py-1.5 border border-neutral-200 rounded-xl text-sm font-semibold bg-neutral-50 hover:bg-neutral-100 transition-all outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30"
+          className="px-3 py-1.5 border border-neutral-200 rounded-xl text-sm font-bold bg-neutral-50 hover:bg-neutral-100 transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
           aria-label="Select Language"
         >
-          <option value="en">English</option>
-          <option value="hi">हिंदी</option>
-          <option value="pa">ਪੰਜਾਬੀ</option>
+          <option value="pa">{t('profile.lang_pa')}</option>
+          <option value="hi">{t('profile.lang_hi')}</option>
+          <option value="en">{t('profile.lang_en')}</option>
         </select>
 
         <OfflineBadge isOffline={isOffline} syncStatus={syncStatus} />

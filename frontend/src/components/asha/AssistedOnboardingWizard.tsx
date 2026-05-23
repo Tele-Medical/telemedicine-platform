@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import { PatientRepository } from '../../repositories/PatientRepository';
 
 const schema = z.object({
@@ -31,6 +32,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const AssistedOnboardingWizard: React.FC = () => {
+  const { t } = useTranslation();
   const [step, setStep] = useState(1);
 
   const {
@@ -64,11 +66,11 @@ const AssistedOnboardingWizard: React.FC = () => {
 
   return (
     <div className="max-w-xl mx-auto mt-8 bg-white p-6 rounded shadow border border-gray-100">
-      <h2 className="text-xl font-bold mb-6 text-gray-800">Patient Registration</h2>
+      <h2 className="text-xl font-bold mb-6 text-gray-800">{t('asha.patient_registration')}</h2>
       {step === 1 && (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
-            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">{t('auth.full_name')}</label>
             <input
               id="fullName"
               type="text"
@@ -87,15 +89,15 @@ const AssistedOnboardingWizard: React.FC = () => {
               className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
             />
             <label htmlFor="noPhone" className="ml-2 block text-sm font-medium text-gray-700 cursor-pointer">
-              Patient does not have a personal phone
+              {t('asha.no_phone_notice')}
             </label>
           </div>
 
           {noPhone && (
             <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-md space-y-4">
-              <p className="text-xs text-yellow-800 mb-2 font-medium uppercase tracking-wide">Guardian Details Required</p>
+              <p className="text-xs text-yellow-800 mb-2 font-medium uppercase tracking-wide">{t('asha.guardian_required')}</p>
               <div>
-                <label htmlFor="guardianName" className="block text-sm font-medium text-gray-700 mb-1">Guardian Name</label>
+                <label htmlFor="guardianName" className="block text-sm font-medium text-gray-700 mb-1">{t('asha.guardian_name')}</label>
                 <input
                   id="guardianName"
                   type="text"
@@ -105,7 +107,7 @@ const AssistedOnboardingWizard: React.FC = () => {
                 {errors.guardianName && <p className="text-red-500 text-xs mt-1">{errors.guardianName.message}</p>}
               </div>
               <div>
-                <label htmlFor="guardianPhone" className="block text-sm font-medium text-gray-700 mb-1">Guardian Phone Number</label>
+                <label htmlFor="guardianPhone" className="block text-sm font-medium text-gray-700 mb-1">{t('asha.guardian_phone')}</label>
                 <input
                   id="guardianPhone"
                   type="tel"
@@ -122,7 +124,7 @@ const AssistedOnboardingWizard: React.FC = () => {
               type="submit"
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
             >
-              Next
+              {t('nav.next', 'Next')}
             </button>
           </div>
         </form>
@@ -135,13 +137,13 @@ const AssistedOnboardingWizard: React.FC = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Registration Complete!</h3>
-          <p className="text-sm text-gray-500 mb-6">The patient has been added to the system.</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('asha.reg_complete')}</h3>
+          <p className="text-sm text-gray-500 mb-6">{t('asha.reg_success')}</p>
           <button
             onClick={() => { setStep(1); reset(); }}
             className="text-blue-600 hover:text-blue-800 font-medium text-sm underline transition-colors"
           >
-            Register another patient
+            {t('asha.register_another', 'Register another patient')}
           </button>
         </div>
       )}

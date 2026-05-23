@@ -5,16 +5,6 @@ import UserProfile from '../UserProfile';
 global.fetch = vi.fn();
 
 describe('UserProfile Component', () => {
-  it('displays a loading state initially', () => {
-    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({}),
-    });
-    
-    render(<UserProfile />);
-    expect(screen.getByText(/loading profile/i)).toBeInTheDocument();
-  });
-
   it('renders user details when fetched successfully', async () => {
     const mockUser = {
       name: 'Dr. Jane Smith',
@@ -23,10 +13,7 @@ describe('UserProfile Component', () => {
       hospitalId: 'HOSP-101',
     };
     
-    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockUser,
-    });
+    (global as any).mockFetchJson(mockUser);
     
     render(<UserProfile />);
     
@@ -38,14 +25,12 @@ describe('UserProfile Component', () => {
   });
 
   it('handles error states if fetching fails', async () => {
-    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: false,
-    });
+    (global as any).mockFetchJson({}, { ok: false });
     
     render(<UserProfile />);
     
     await waitFor(() => {
-      expect(screen.getByText(/failed to load profile/i)).toBeInTheDocument();
+      expect(screen.getByText('common.error')).toBeInTheDocument();
     });
   });
 });

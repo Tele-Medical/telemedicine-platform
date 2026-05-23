@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface User {
   name: string;
@@ -8,6 +9,7 @@ interface User {
 }
 
 const UserProfile: React.FC = () => {
+  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -33,39 +35,39 @@ const UserProfile: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <p className="text-lg text-gray-600">Loading profile...</p>
+      <div className="flex justify-center items-center h-64 text-neutral-900 font-sans">
+        <p className="text-lg text-neutral-500 font-bold animate-pulse">{t('profile.loading')}</p>
       </div>
     );
   }
 
   if (error || !user) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <p className="text-lg text-red-500">Failed to load profile. Please try again.</p>
+      <div className="flex justify-center items-center h-64 text-neutral-900 font-sans">
+        <p className="text-lg text-danger font-bold">{t('common.error')}</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 bg-white p-8 rounded-lg shadow-md border border-gray-100">
-      <div className="flex items-center mb-8 border-b pb-6">
-        <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-3xl font-bold shadow-sm">
+    <div className="max-w-2xl mx-auto mt-10 bg-white p-8 rounded-2xl shadow-xl border border-neutral-200 text-neutral-900 font-sans">
+      <div className="flex items-center mb-8 border-b border-neutral-100 pb-6">
+        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary text-3xl font-black shadow-inner border border-primary/10">
           {user.name.charAt(0)}
         </div>
         <div className="ml-6">
-          <h2 className="text-2xl font-bold text-gray-800">{user.name}</h2>
-          <p className="text-sm font-medium text-blue-600 uppercase tracking-wider mt-1">{user.role}</p>
+          <h2 className="text-2xl font-black text-neutral-900 tracking-tight">{user.name}</h2>
+          <p className="text-xs font-black text-primary uppercase tracking-widest mt-1">{user.role}</p>
         </div>
       </div>
       <div className="space-y-6">
-        <div className="bg-gray-50 p-4 rounded-md">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email Address</h3>
-          <p className="mt-1 text-gray-900 font-medium">{user.email}</p>
+        <div className="bg-neutral-50 p-5 rounded-xl border border-neutral-100 shadow-sm">
+          <h3 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{t('auth.email')}</h3>
+          <p className="mt-1 text-neutral-900 font-bold">{user.email}</p>
         </div>
-        <div className="bg-gray-50 p-4 rounded-md">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Hospital ID</h3>
-          <p className="mt-1 text-gray-900 font-medium">{user.hospitalId}</p>
+        <div className="bg-neutral-50 p-5 rounded-xl border border-neutral-100 shadow-sm">
+          <h3 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{t('profile.hospital_id')}</h3>
+          <p className="mt-1 text-neutral-900 font-bold">{user.hospitalId}</p>
         </div>
       </div>
     </div>

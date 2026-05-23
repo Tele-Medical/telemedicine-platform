@@ -10,6 +10,10 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
+    permissions: ['microphone', 'camera'],
+    launchOptions: {
+      args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
+    },
   },
   projects: [
     {

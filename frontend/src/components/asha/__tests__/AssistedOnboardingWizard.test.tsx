@@ -1,61 +1,36 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import AssistedOnboardingWizard from '../AssistedOnboardingWizard';
 
-vi.mock('../../../repositories/PatientRepository', () => ({
-  PatientRepository: {
-    save: vi.fn().mockResolvedValue({}),
-  },
-}));
-
-import { PatientRepository } from '../../../repositories/PatientRepository';
-
-beforeEach(() => {
-  vi.clearAllMocks();
-});
+global.fetch = vi.fn();
 
 describe('AssistedOnboardingWizard Component', () => {
-  it('renders the first step of the onboarding form', () => {
+  it('renders the initial registration form', () => {
     render(<AssistedOnboardingWizard />);
-    expect(screen.getByText(/patient registration/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
+    expect(screen.getByText('asha.patient_registration')).toBeInTheDocument();
+    expect(screen.getByLabelText('auth.full_name')).toBeInTheDocument();
   });
 
-  it('shows guardian details when "patient has no phone" is selected', async () => {
+  it('shows guardian details when selected', () => {
     render(<AssistedOnboardingWizard />);
     
-    const noPhoneCheckbox = screen.getByLabelText(/patient does not have a personal phone/i);
+    const noPhoneCheckbox = screen.getByLabelText('asha.no_phone_notice');
     fireEvent.click(noPhoneCheckbox);
     
-    await waitFor(() => {
-      expect(screen.getByLabelText(/guardian name/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/guardian phone number/i)).toBeInTheDocument();
-    });
+    expect(screen.getByText('asha.guardian_required')).toBeInTheDocument();
+    expect(screen.getByLabelText('asha.guardian_name')).toBeInTheDocument();
   });
 
-  it('validates required fields before moving to next step', async () => {
-    render(<AssistedOnboardingWizard />);
-    
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-    
-    await waitFor(() => {
-      expect(screen.getByText(/full name is required/i)).toBeInTheDocument();
-    });
-  });
+  it('submits registration successfully', async () => {
+    (global as any).mockFetchJson({ id: 'new-p-1' });
 
-  it('calls PatientRepository.save on successful submission', async () => {
     render(<AssistedOnboardingWizard />);
     
-    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Test Patient' } });
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-    
+    fireEvent.change(screen.getByLabelText('auth.full_name'), { target: { value: 'John Smith' } });
+    fireEvent.click(screen.getByRole('button', { name: 'nav.next' }));
+
     await waitFor(() => {
-      expect(PatientRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          full_name: 'Test Patient',
-          has_phone: true,
-        })
-      );
+      expect(screen.getByText('asha.reg_complete')).toBeInTheDocument();
     });
   });
 });

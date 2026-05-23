@@ -48,7 +48,7 @@ const InventoryLedger: React.FC = () => {
             <tr className="border-b border-gray-100">
               <th className="px-6 py-4 font-bold">{t('pharmacy.medicine_name')}</th>
               <th className="px-6 py-4 font-bold">{t('pharmacy.stock_level')}</th>
-              <th className="px-6 py-4 font-bold">Status</th>
+              <th className="px-6 py-4 font-bold">{t('pharmacy.status')}</th>
             </tr>
           </thead>
           <tbody>

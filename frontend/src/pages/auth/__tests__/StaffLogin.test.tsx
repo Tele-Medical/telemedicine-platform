@@ -1,7 +1,15 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import StaffLogin from '../StaffLogin';
+import { describe, it, expect, vi } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
+import StaffLogin from '../StaffLogin';
+import { authService } from '../../../api/services';
+
+// Mock the authService
+vi.mock('../../../api/services', () => ({
+  authService: {
+    loginStaff: vi.fn(),
+  },
+}));
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -12,49 +20,37 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../../api/services', () => ({
-  authService: {
-    loginStaff: vi.fn(),
-  },
-}));
-
-import { authService } from '../../../api/services';
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  localStorage.clear();
-});
-
-describe('StaffLogin Component', () => {
-  it('renders username and password input fields', () => {
+describe('StaffLogin Page', () => {
+  it('renders the staff login form', () => {
     render(
       <BrowserRouter>
         <StaffLogin />
       </BrowserRouter>
     );
-    expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByText(/auth.staff_portal/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/auth.username/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/auth.password/i)).toBeInTheDocument();
   });
 
-  it('shows validation errors for empty fields on submit', async () => {
+  it('validates required fields', async () => {
     render(
       <BrowserRouter>
         <StaffLogin />
       </BrowserRouter>
     );
-    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+    
+    const submitButton = screen.getByRole('button', { name: /auth.login/i });
+    fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/username is required/i)).toBeInTheDocument();
-      expect(screen.getByText(/password is required/i)).toBeInTheDocument();
+      expect(screen.getByText(/auth.username_required/i)).toBeInTheDocument();
+      expect(screen.getByText(/auth.password_required/i)).toBeInTheDocument();
     });
   });
 
-  it('submits valid data, stores JWT, and redirects on success', async () => {
-    (authService.loginStaff as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-      access_token: 'mock-jwt-token',
-      role: 'doctor',
-    });
+  it('successfully logs in a doctor and redirects to root', async () => {
+    const mockResponse = { access_token: 'mock-jwt-token', role: 'doctor' };
+    (authService.loginStaff as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
 
     render(
       <BrowserRouter>
@@ -62,15 +58,16 @@ describe('StaffLogin Component', () => {
       </BrowserRouter>
     );
 
-    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'doctor1' } });
-    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'securepass123' } });
-    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+    fireEvent.change(screen.getByLabelText(/auth.username/i), { target: { value: 'doctor1' } });
+    fireEvent.change(screen.getByLabelText(/auth.password/i), { target: { value: 'securepass123' } });
+    
+    fireEvent.click(screen.getByRole('button', { name: /auth.login/i }));
 
     await waitFor(() => {
       expect(authService.loginStaff).toHaveBeenCalledWith('doctor1', 'securepass123');
       expect(localStorage.getItem('token')).toBe('mock-jwt-token');
       expect(localStorage.getItem('role')).toBe('doctor');
-      expect(mockNavigate).toHaveBeenCalledWith('/doctor/dashboard');
+      expect(mockNavigate).toHaveBeenCalledWith('/');
     });
   });
 
@@ -83,8 +80,9 @@ describe('StaffLogin Component', () => {
       </BrowserRouter>
     );
 
-    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'baduser' } });
-    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'badpass' } });
+    fireEvent.change(screen.getByLabelText(/username/i), { target: { value: 'wronguser' } });
+    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'wrongpass' } });
+    
     fireEvent.click(screen.getByRole('button', { name: /login/i }));
 
     await waitFor(() => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   Video, 
   VideoOff, 
@@ -23,6 +24,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   appointmentId = '11111111-2222-3333-4444-555555555555', 
   userRole = 'patient' 
 }) => {
+  const { t } = useTranslation();
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'disconnected' | 'failed'>('connecting');
@@ -40,6 +42,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const pcRef = useRef<RTCPeerConnection | null>(null);
 
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isCleaningUpRef = useRef(false);
 
   const remotePeerName = userRole === 'patient' ? 'Dr. Ramesh Sharma' : 'Ravi Kumar (Patient)';
   const peerInitials = userRole === 'patient' ? 'RS' : 'RK';
@@ -86,8 +89,27 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
 
   // 2. Setup RTCPeerConnection and WS Signaling
   const establishConnection = async () => {
+    isCleaningUpRef.current = false;
     setConnectionState('connecting');
     setErrorMessage(null);
+
+    // Clean up any existing connection first to avoid resource leaks
+    if (pcRef.current) {
+      try {
+        pcRef.current.close();
+      } catch (e) {
+        console.warn('Error closing prior peer connection:', e);
+      }
+      pcRef.current = null;
+    }
+    if (wsRef.current) {
+      try {
+        wsRef.current.close();
+      } catch (e) {
+        console.warn('Error closing prior websocket:', e);
+      }
+      wsRef.current = null;
+    }
 
     // Ensure local stream is ready
     const localStream = localStreamRef.current || await startLocalMedia();
@@ -215,7 +237,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       ws.onclose = () => {
         console.log("Signaling WebSocket closed.");
         // Try auto-reconnect if not deliberately unmounted and not in simulated off mode
-        if (connectionState !== 'connected' && networkQuality !== 'disconnected') {
+        if (!isCleaningUpRef.current && connectionState !== 'connected' && networkQuality !== 'disconnected') {
           scheduleReconnect();
         }
       };
@@ -262,6 +284,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   };
 
   const cleanupStreams = () => {
+    isCleaningUpRef.current = true;
     if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
     
     if (wsRef.current) {
@@ -294,14 +317,14 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       }
     } else if (status === 'weak') {
       setConnectionState('connected'); // remains connected but degraded
-      setErrorMessage("Weak network connection detected. Down-sampling to audio-only fallback...");
+      setErrorMessage(t('clinical.weak_connection_desc'));
       // Simulate video freeze/disable
       if (localStreamRef.current) {
         localStreamRef.current.getVideoTracks().forEach(t => t.enabled = false);
       }
     } else if (status === 'disconnected') {
       setConnectionState('disconnected');
-      setErrorMessage("No network signal. Reconnection sequence active...");
+      setErrorMessage(t('clinical.no_signal_desc'));
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(t => t.enabled = false);
       }
@@ -317,7 +340,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   }, [appointmentId]);
 
   return (
-    <div className="relative w-full h-[45vh] bg-neutral-950 overflow-hidden rounded-b-3xl shadow-lg border-b border-neutral-800 transition-all duration-500">
+    <div className="relative w-full h-[45vh] bg-neutral-950 overflow-hidden rounded-b-3xl shadow-lg border-b border-neutral-800 transition-all duration-500 font-sans">
       
       {/* Remote Video Stream */}
       <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center">
@@ -344,8 +367,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
             <h3 className="text-white font-bold text-lg">{remotePeerName}</h3>
             <p className="text-neutral-400 text-xs mt-1">
               {networkQuality === 'weak' 
-                ? 'Weak signal • Audio fallback active' 
-                : 'Connection dropped • Re-establishing link...'}
+                ? t('clinical.weak_connection_desc') 
+                : t('clinical.no_signal_desc')}
             </p>
           </div>
         )}
@@ -356,21 +379,21 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         {networkQuality === 'excellent' && connectionState === 'connected' && (
           <div className="bg-success/90 backdrop-blur-md px-3.5 py-1.5 rounded-full flex items-center gap-2 border border-success/20 shadow-md animate-fade-in">
             <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
-            <span className="text-[10px] font-black text-white tracking-widest uppercase">EXCELLENT SIGNAL</span>
+            <span className="text-[10px] font-black text-white tracking-widest uppercase">{t('clinical.excellent_signal')}</span>
           </div>
         )}
 
         {networkQuality === 'weak' && (
           <div className="bg-warning/90 backdrop-blur-md px-3.5 py-1.5 rounded-full flex items-center gap-2 border border-warning/20 shadow-md animate-bounce">
             <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
-            <span className="text-[10px] font-black text-white tracking-widest uppercase">WEAK CONNECTION</span>
+            <span className="text-[10px] font-black text-white tracking-widest uppercase">{t('clinical.weak_signal')}</span>
           </div>
         )}
 
         {(networkQuality === 'disconnected' || connectionState === 'connecting') && (
           <div className="bg-danger/90 backdrop-blur-md px-3.5 py-1.5 rounded-full flex items-center gap-2 border border-danger/20 shadow-md animate-pulse">
             <RefreshCw size={11} className="text-white animate-spin" />
-            <span className="text-[10px] font-black text-white tracking-widest uppercase">RECONNECTING...</span>
+            <span className="text-[10px] font-black text-white tracking-widest uppercase">{t('clinical.reconnecting')}</span>
           </div>
         )}
       </div>
@@ -389,11 +412,11 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-neutral-850 text-neutral-400">
             <VideoOff size={20} className="stroke-[1.5]" />
-            <span className="text-[10px] mt-1.5 font-bold uppercase tracking-wider text-neutral-500">Camera Off</span>
+            <span className="text-[10px] mt-1.5 font-bold uppercase tracking-wider text-neutral-500">{t('clinical.camera_off')}</span>
           </div>
         )}
         <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-0.5 rounded-md text-[9px] font-bold text-white uppercase tracking-wider">
-          You
+          {t('profile.name')}
         </div>
       </div>
 
@@ -407,7 +430,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
               onClick={() => establishConnection()}
               className="px-2.5 py-1 bg-white/20 hover:bg-white/30 rounded-lg font-bold transition-all uppercase text-[9px]"
             >
-              Retry
+              {t('app.retry')}
             </button>
           )}
         </div>
@@ -426,7 +449,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         
         {isSimHUDOpen && (
           <div className="absolute right-0 bottom-12 w-64 bg-neutral-900/95 backdrop-blur-lg border border-neutral-800 rounded-2xl p-4 shadow-2xl flex flex-col gap-2.5 z-30 animate-scale-in">
-            <h4 className="text-[11px] font-black text-white/40 tracking-wider uppercase mb-1">Network Quality Simulator</h4>
+            <h4 className="text-[11px] font-black text-white/40 tracking-wider uppercase mb-1">{t('clinical.network_simulator')}</h4>
             
             <button 
               onClick={() => handleSimulateNetwork('excellent')}
@@ -434,8 +457,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
             >
               <Wifi size={14} />
               <div className="flex-1">
-                <div>Excellent Signal</div>
-                <div className="text-[9px] font-normal text-neutral-400 mt-0.5">Full HD WebRTC Stream</div>
+                <div>{t('clinical.excellent_signal')}</div>
+                <div className="text-[9px] font-normal text-neutral-400 mt-0.5">{t('clinical.excellent_signal_desc')}</div>
               </div>
               {networkQuality === 'excellent' && <CheckCircle2 size={12} />}
             </button>
@@ -446,8 +469,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
             >
               <AlertTriangle size={14} />
               <div className="flex-1">
-                <div>Weak Connection</div>
-                <div className="text-[9px] font-normal text-neutral-400 mt-0.5">Automatic Audio Fallback</div>
+                <div>{t('clinical.weak_signal')}</div>
+                <div className="text-[9px] font-normal text-neutral-400 mt-0.5">{t('clinical.weak_connection_desc')}</div>
               </div>
               {networkQuality === 'weak' && <CheckCircle2 size={12} />}
             </button>
@@ -458,8 +481,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
             >
               <WifiOff size={14} />
               <div className="flex-1">
-                <div>No Signal</div>
-                <div className="text-[9px] font-normal text-neutral-400 mt-0.5">Simulate Network Drop</div>
+                <div>{t('clinical.no_signal')}</div>
+                <div className="text-[9px] font-normal text-neutral-400 mt-0.5">{t('clinical.no_signal_desc')}</div>
               </div>
               {networkQuality === 'disconnected' && <CheckCircle2 size={12} />}
             </button>

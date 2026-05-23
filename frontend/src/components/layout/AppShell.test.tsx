@@ -17,12 +17,12 @@ describe('AppShell Components', () => {
 
     it('renders offline warning when offline', () => {
       render(<OfflineBadge isOffline={true} syncStatus="synced" />);
-      expect(screen.getByText(/Offline Mode/i)).toBeInTheDocument();
+      expect(screen.getByText(/app.offline_notice/i)).toBeInTheDocument();
     });
 
     it('renders syncing indicator when pending', () => {
       render(<OfflineBadge isOffline={false} syncStatus="pending" />);
-      expect(screen.getByText(/Syncing/i)).toBeInTheDocument();
+      expect(screen.getByText(/app.syncing/i)).toBeInTheDocument();
     });
   });
 
@@ -33,7 +33,7 @@ describe('AppShell Components', () => {
           <TopBar isOffline={false} syncStatus="synced" />
         </BrowserRouter>
       );
-      expect(screen.getByText(/Telemedicine/i)).toBeInTheDocument();
+      expect(screen.getByText(/app.title/i)).toBeInTheDocument();
     });
 
     it('renders the OfflineBadge within TopBar', () => {
@@ -42,7 +42,7 @@ describe('AppShell Components', () => {
           <TopBar isOffline={true} syncStatus="synced" />
         </BrowserRouter>
       );
-      expect(screen.getByText(/Offline Mode/i)).toBeInTheDocument();
+      expect(screen.getByText(/app.offline_notice/i)).toBeInTheDocument();
     });
 
     it('renders logout button and triggers callback on click', () => {
@@ -53,7 +53,7 @@ describe('AppShell Components', () => {
         </BrowserRouter>
       );
       
-      const logoutButton = screen.getByRole('button', { name: /Logout/i });
+      const logoutButton = screen.getByRole('button', { name: /auth.logout/i });
       expect(logoutButton).toBeInTheDocument();
       fireEvent.click(logoutButton);
       expect(handleLogout).toHaveBeenCalledTimes(1);
@@ -62,14 +62,16 @@ describe('AppShell Components', () => {
 
   describe('BottomNav', () => {
     it('renders navigation links', () => {
+      localStorage.setItem('role', 'patient');
       render(
         <BrowserRouter>
           <BottomNav />
         </BrowserRouter>
       );
-      expect(screen.getByText(/Home/i)).toBeInTheDocument();
-      expect(screen.getByText(/Records/i)).toBeInTheDocument();
-      expect(screen.getByText(/Profile/i)).toBeInTheDocument();
+      expect(screen.getByText(/nav.home/i)).toBeInTheDocument();
+      expect(screen.getByText(/nav.records/i)).toBeInTheDocument();
+      expect(screen.getByText(/nav.profile/i)).toBeInTheDocument();
+      localStorage.removeItem('role');
     });
   });
 
@@ -82,8 +84,8 @@ describe('AppShell Components', () => {
           </AppShell>
         </BrowserRouter>
       );
-      expect(screen.getByText(/Telemedicine/i)).toBeInTheDocument(); // TopBar
-      expect(screen.getByText(/Home/i)).toBeInTheDocument(); // BottomNav
+      expect(screen.getByText(/app.title/i)).toBeInTheDocument(); // TopBar
+      expect(screen.getByText(/nav.home/i)).toBeInTheDocument(); // BottomNav
       expect(screen.getByTestId('main-content')).toBeInTheDocument(); // Children
     });
 
@@ -96,7 +98,7 @@ describe('AppShell Components', () => {
           </AppShell>
         </BrowserRouter>
       );
-      const logoutButton = screen.getByRole('button', { name: /Logout/i });
+      const logoutButton = screen.getByRole('button', { name: /auth.logout/i });
       expect(logoutButton).toBeInTheDocument();
       fireEvent.click(logoutButton);
       expect(handleLogout).toHaveBeenCalledTimes(1);
@@ -111,8 +113,8 @@ describe('AppShell Components', () => {
         </MemoryRouter>
       );
       
-      expect(screen.queryByText(/Telemedicine/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/Home/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/app.title/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/nav.home/i)).not.toBeInTheDocument();
       expect(screen.getByTestId('main-content')).toBeInTheDocument();
       
       // Ensure the consultation layout is full-height

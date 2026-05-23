@@ -25,9 +25,9 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
         setStep('otp');
       } catch (err: unknown) {
         if (err instanceof Error) {
-          setError(err.message || 'Failed to send OTP');
+          setError(err.message || t('common.error'));
         } else {
-          setError('Failed to send OTP');
+          setError(t('common.error'));
         }
       } finally {
         setLoading(false);
@@ -72,9 +72,9 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
         }
       } catch (err: unknown) {
         if (err instanceof Error) {
-          setError(err.message || 'Invalid OTP');
+          setError(err.message || t('common.error'));
         } else {
-          setError('Invalid OTP');
+          setError(t('common.error'));
         }
       } finally {
         setLoading(false);
@@ -167,7 +167,11 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
             <div className="text-center mt-4">
               <button 
                 type="button" 
-                onClick={() => setStep('phone')}
+                onClick={() => {
+                  setStep('phone');
+                  setOtp(['', '', '', '', '', '']);
+                  setError('');
+                }}
                 aria-label={t('auth.edit_phone')}
                 className="text-sm text-neutral-500 hover:text-primary transition-colors font-medium"
               >

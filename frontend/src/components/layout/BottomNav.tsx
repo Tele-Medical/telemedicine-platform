@@ -12,12 +12,24 @@ interface NavItem {
 const BottomNav = () => {
   const { t } = useTranslation();
 
-  const role = React.useMemo(() => {
+  const [role, setRole] = React.useState(() => {
     try {
       return localStorage.getItem('role') || 'patient';
     } catch {
       return 'patient';
     }
+  });
+
+  React.useEffect(() => {
+    const handleStorage = () => {
+      try {
+        setRole(localStorage.getItem('role') || 'patient');
+      } catch {
+        setRole('patient');
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   const getNavItems = (): NavItem[] => {

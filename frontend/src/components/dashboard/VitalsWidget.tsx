@@ -15,7 +15,10 @@ const VitalsWidget: React.FC<VitalsWidgetProps> = ({ isDemo = false }) => {
           <Activity size={22} className="stroke-[2]" />
         </div>
         <div>
-          <h3 className="text-sm font-bold text-neutral-900">{t('clinical.no_vitals', 'No Vitals Recorded')}</h3>
+          <h3 className="text-sm font-bold text-neutral-900">{t('clinical.no_vitals')}</h3>
+          <p className="text-xs text-neutral-500 mt-1 max-w-xs mx-auto">
+            {t('clinical.vitals_desc')}
+          </p>
         </div>
       </div>
     );
@@ -35,10 +38,13 @@ const VitalsWidget: React.FC<VitalsWidgetProps> = ({ isDemo = false }) => {
               </div>
               <span className="text-xs font-bold text-neutral-500 tracking-wide uppercase">{t('clinical.blood_pressure')}</span>
             </div>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-danger/10 text-danger border border-danger/20">
+              {t('clinical.high_bp')}
+            </span>
           </div>
           <div>
             <div className="text-2xl font-black text-neutral-900 tracking-tight">142/94</div>
-            <div className="text-xs text-neutral-500 mt-0.5">mmHg</div>
+            <div className="text-xs text-neutral-500 mt-0.5">{t('clinical.bp_unit')} • {t('clinical.elevated_systolic')}</div>
           </div>
         </div>
 
@@ -53,10 +59,13 @@ const VitalsWidget: React.FC<VitalsWidgetProps> = ({ isDemo = false }) => {
               </div>
               <span className="text-xs font-bold text-neutral-500 tracking-wide uppercase">{t('clinical.pulse')}</span>
             </div>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-success/10 text-success border border-success/20">
+              {t('clinical.normal')}
+            </span>
           </div>
           <div>
             <div className="text-2xl font-black text-neutral-900 tracking-tight">72</div>
-            <div className="text-xs text-neutral-500 mt-0.5">bpm</div>
+            <div className="text-xs text-neutral-500 mt-0.5">{t('clinical.bpm')} • {t('clinical.stable_rhythm')}</div>
           </div>
         </div>
 

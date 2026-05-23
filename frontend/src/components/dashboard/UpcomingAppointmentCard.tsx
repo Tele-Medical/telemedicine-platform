@@ -31,22 +31,22 @@ const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = ({ appoi
 
   if (!appointment) return null;
 
-  const initial = appointment.practitioner_name
-    ? appointment.practitioner_name.trim().charAt(0).toUpperCase()
-    : 'P';
+  const trimmedName = appointment.practitioner_name?.trim() ?? '';
+  const initial = trimmedName ? trimmedName.charAt(0).toUpperCase() : 'P';
 
-  const statusText = appointment.status
-    ? appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1).toLowerCase()
-    : 'Scheduled';
+  const statusKey = appointment.status?.toLowerCase() || 'scheduled';
+  const statusText = t(`clinical.${statusKey}`, statusKey.charAt(0).toUpperCase() + statusKey.slice(1));
 
   return (
-    <div className="bg-surface rounded-2xl shadow-soft p-5 border border-black/5 flex flex-col gap-4 animate-fade-in">
+    <div className="bg-white rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,.08)] p-5 border border-neutral-200/60 flex flex-col gap-4 animate-fade-in text-neutral-900 font-sans">
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-lg font-semibold text-text-primary">{t('clinical.upcoming')}</h2>
-          {formattedDate && <p className="text-sm text-text-secondary">{formattedDate}</p>}
+          <h2 className="text-lg font-bold text-neutral-900 tracking-tight">{t('clinical.upcoming')}</h2>
+          {formattedDate && <p className="text-xs text-neutral-500 font-semibold mt-1">{formattedDate}</p>}
         </div>
-        <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold">
+        <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+          statusKey === 'confirmed' ? 'bg-success/10 text-success border-success/20' : 'bg-primary/10 text-primary border-primary/20'
+        }`}>
           {statusText}
         </div>
       </div>

@@ -1,5 +1,5 @@
 import uuid
-from datetime import date
+from datetime import date, datetime, timezone
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -9,7 +9,8 @@ from app.core.security import get_password_hash
 from app.models.auth import Role, User, UserRole
 from app.models.patient import Patient, PatientIdentifier
 from app.models.practitioner import Practitioner
-from app.models.pharmacy import MedicineCatalog, Pharmacy, StockBatch, StockMovement
+from app.models.pharmacy import MedicineCatalog, Pharmacy, StockBatch, StockMovement, Prescription, PrescriptionItem
+from app.models.appointment import Appointment
 
 def seed_db():
     print("Connecting to database...")
@@ -81,7 +82,7 @@ def seed_db():
                 phone=u["phone"],
                 hashed_password=hashed_pw,
                 default_role=u["role"],
-                preferred_language="pa" if u["role"] == "asha_worker" else "en",
+                preferred_language="en",
                 is_active=True
             )
             session.add(user)
@@ -102,10 +103,11 @@ def seed_db():
     # 3. Seed Practitioner Details
     print("\nSeeding Practitioner details...")
     doctor_user_id = uuid.UUID("e45a29b6-8a7e-4b92-9b2f-2d6c8b9d31f0")
+    practitioner_id = uuid.UUID("d24c53d6-5f4a-4e62-8b0d-3d5c8a7b99d1")
     existing_practitioner = session.query(Practitioner).filter(Practitioner.user_id == doctor_user_id).first()
     if not existing_practitioner:
         practitioner = Practitioner(
-            id=uuid.uuid4(),
+            id=practitioner_id,
             user_id=doctor_user_id,
             full_name="Dr. Ramesh Sharma",
             phone="+919876543210",
@@ -115,6 +117,7 @@ def seed_db():
         session.add(practitioner)
         print("Created Practitioner details for Dr. Ramesh Sharma")
     else:
+        practitioner_id = existing_practitioner.id
         print("Practitioner details already exist.")
     session.commit()
 
@@ -139,25 +142,21 @@ def seed_db():
     print("\nSeeding Medicine Catalog...")
     medicines = [
         {
-            "id": "b35d64e7-6g5b-4f73-9c1e-4e7d9c8b24f4",
             "name": "Dolo 650mg (Paracetamol)",
             "type": "tablet",
             "code": "DOLO650"
         },
         {
-            "id": "d46e75f8-7h6c-4g84-9d2f-5f8e0d9c35g5",
             "name": "Novamox 500mg (Amoxicillin)",
             "type": "capsule",
             "code": "AMOX500"
         },
         {
-            "id": "e57f86g9-8i7d-4h95-9e3g-6g9f1e0d46h6",
             "name": "Zyrtec 10mg (Cetirizine)",
             "type": "tablet",
             "code": "ZYR10"
         },
         {
-            "id": "f68g97h0-9j8e-4i06-9f4h-7h0g2f1e57i7",
             "name": "Benadryl Cough Syrup (100ml)",
             "type": "syrup",
             "code": "BENA100"
@@ -183,7 +182,7 @@ def seed_db():
             print(f"Medicine {m['name']} already exists.")
     session.commit()
 
-    # 6. Seed Stock Batches & Inventory (WOW factor for dispensing demo!)
+    # 6. Seed Stock Batches & Inventory
     print("\nSeeding Inventory Stocks for Nabha Pharmacy...")
     stock_batches = [
         {"med_code": "DOLO650", "batch": "DOLO-B012", "qty": 500, "expiry": date(2028, 12, 31)},
@@ -213,7 +212,6 @@ def seed_db():
             session.add(batch)
             session.flush()
 
-            # Record a stock movement
             movement = StockMovement(
                 id=uuid.uuid4(),
                 batch_id=batch.id,
@@ -228,11 +226,10 @@ def seed_db():
             print(f"Stock batch {s['batch']} already exists.")
     session.commit()
 
-    # 7. Seed Demo Patients (The "ASHA assisted vs direct" patients)
+    # 7. Seed Demo Patients
     print("\nSeeding Patients & Extensible Identifiers...")
-    patients = [
+    patients_data = [
         {
-            "id": "11111111-2222-3333-4444-555555555555",
             "full_name": "Ravi Kumar",
             "phone": "+919800000001",
             "gender": "male",
@@ -244,9 +241,8 @@ def seed_db():
             ]
         },
         {
-            "id": "66666666-7777-8888-9999-000000000000",
             "full_name": "Kaur Kaur",
-            "phone": None,  # No phone, child dependent workflow
+            "phone": None,
             "gender": "female",
             "pref_lang": "pa",
             "village": "Nabha",
@@ -256,11 +252,15 @@ def seed_db():
         }
     ]
 
-    for p in patients:
-        existing_patient = session.query(Patient).filter(Patient.full_name == p["full_name"]).first()
+    for p in patients_data:
+        patient_id = uuid.uuid5(uuid.NAMESPACE_DNS, p["full_name"])
+        existing_patient = session.query(Patient).filter(Patient.id == patient_id).first()
+        if not existing_patient and p["phone"]:
+            existing_patient = session.query(Patient).filter(Patient.phone == p["phone"]).first()
+            
         if not existing_patient:
             patient = Patient(
-                id=uuid.uuid5(uuid.NAMESPACE_DNS, p["full_name"]),
+                id=patient_id,
                 full_name=p["full_name"],
                 phone=p["phone"],
                 preferred_language=p["pref_lang"],
@@ -272,7 +272,6 @@ def seed_db():
             session.add(patient)
             session.flush()
 
-            # Seed Extensible Identifiers
             for ident in p["identifiers"]:
                 identifier = PatientIdentifier(
                     id=uuid.uuid4(),
@@ -283,13 +282,72 @@ def seed_db():
                     is_active=True
                 )
                 session.add(identifier)
-
-            print(f"Created Patient: {p['full_name']} (Seeded with identifiers)")
+            print(f"Created Patient: {p['full_name']}")
         else:
             print(f"Patient {p['full_name']} already exists.")
-            
     session.commit()
-    print("\nDatabase seeding completed successfully! Ready for tomorrow's presentation.")
+
+    # 8. Seed Appointments
+    print("\nSeeding Demo Appointments...")
+    ravi = session.query(Patient).filter(Patient.full_name == "Ravi Kumar").first()
+    if ravi:
+        ravi_id = ravi.id
+        asha_user = session.query(User).filter(User.username == "asha_geeta").first()
+        asha_user_id = asha_user.id if asha_user else uuid.UUID("f82b31c9-7d6a-4c81-8c1e-3f5b7a8e22d1")
+        
+        existing_appt = session.query(Appointment).filter(
+            Appointment.patient_id == ravi_id,
+            Appointment.practitioner_id == practitioner_id
+        ).first()
+        
+        if not existing_appt:
+            appt = Appointment(
+                id=uuid.uuid4(),
+                patient_id=ravi_id,
+                practitioner_id=practitioner_id,
+                status="confirmed",
+                channel="assisted",
+                scheduled_for=datetime.now(timezone.utc),
+                created_by_user_id=asha_user_id
+            )
+            session.add(appt)
+            print("Created appointment for Ravi Kumar with Dr. Sharma")
+        else:
+            print("Appointment for Ravi Kumar already exists.")
+    session.commit()
+
+    # 9. Seed Prescriptions
+    print("\nSeeding Demo Prescriptions...")
+    if ravi:
+        existing_prescription = session.query(Prescription).filter(Prescription.patient_id == ravi.id).first()
+        if not existing_prescription:
+            prescription = Prescription(
+                id=uuid.uuid4(),
+                patient_id=ravi.id,
+                encounter_id=None,
+                notes="Demo prescription",
+                created_by_user_id=doctor_user_id
+            )
+            session.add(prescription)
+            session.flush()
+            
+            dolo = session.query(MedicineCatalog).filter(MedicineCatalog.code == "DOLO650").first()
+            if dolo:
+                item = PrescriptionItem(
+                    id=uuid.uuid4(),
+                    prescription_id=prescription.id,
+                    medicine_id=dolo.id,
+                    dosage="1-0-1 after food",
+                    duration_days=5,
+                    quantity_prescribed=10
+                )
+                session.add(item)
+                print("Created prescription for Ravi Kumar with Dolo 650mg")
+        else:
+            print("Prescription for Ravi Kumar already exists.")
+    session.commit()
+
+    print("\nDatabase seeding completed successfully!")
     session.close()
 
 if __name__ == "__main__":

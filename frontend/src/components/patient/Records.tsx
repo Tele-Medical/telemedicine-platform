@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Search, PlusCircle, X, Check, Calendar } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface HealthRecord {
   id: string;
@@ -10,6 +11,7 @@ interface HealthRecord {
 }
 
 const Records: React.FC = () => {
+  const { t } = useTranslation();
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'lab' | 'prescription' | 'other'>('all');
@@ -22,14 +24,20 @@ const Records: React.FC = () => {
 
   // Initial load
   useEffect(() => {
+    const defaultRecords: HealthRecord[] = [
+      { id: '1', title: 'Lab Report - Blood Test', date: '2026-10-12', type: 'lab', facility: 'Primary Health Centre' },
+      { id: '2', title: 'Prescription - Dr. Sharma', date: '2026-10-05', type: 'prescription', facility: 'Rampur Tele-Clinic' },
+    ];
     const cached = localStorage.getItem('patient_records');
-    if (cached) {
-      setRecords(JSON.parse(cached));
-    } else {
-      const defaultRecords: HealthRecord[] = [
-        { id: '1', title: 'Lab Report - Blood Test', date: '2026-10-12', type: 'lab', facility: 'Primary Health Centre' },
-        { id: '2', title: 'Prescription - Dr. Sharma', date: '2026-10-05', type: 'prescription', facility: 'Rampur Tele-Clinic' },
-      ];
+    if (!cached) {
+      setRecords(defaultRecords);
+      localStorage.setItem('patient_records', JSON.stringify(defaultRecords));
+      return;
+    }
+    try {
+      const parsed = JSON.parse(cached) as HealthRecord[];
+      setRecords(Array.isArray(parsed) ? parsed : defaultRecords);
+    } catch {
       setRecords(defaultRecords);
       localStorage.setItem('patient_records', JSON.stringify(defaultRecords));
     }
@@ -76,15 +84,15 @@ const Records: React.FC = () => {
     <div className="animate-fade-in pb-12">
       <header className="mb-6 mt-2 flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">Care Records</h1>
-          <p className="text-neutral-500 text-sm mt-1">Browse, search, and upload clinical test results or prescriptions.</p>
+          <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">{t('clinical.care_records')}</h1>
+          <p className="text-neutral-500 text-sm mt-1">{t('clinical.records_browse_desc')}</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
           className="px-4 py-2 bg-primary hover:bg-primary-700 active:scale-[0.98] transition-all text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm"
         >
           <PlusCircle size={15} />
-          <span>Upload Record</span>
+          <span>{t('clinical.upload_record')}</span>
         </button>
       </header>
 
@@ -94,7 +102,7 @@ const Records: React.FC = () => {
           <Search size={18} className="absolute left-4.5 top-1/2 -translate-y-1/2 text-neutral-400" />
           <input 
             type="text" 
-            placeholder="Search records by name or facility..."
+            placeholder={t('clinical.search_records_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-11 pr-4 py-3 bg-white border border-neutral-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-primary-600 focus:ring-4 focus:ring-primary-600/5 transition-all shadow-sm"
@@ -113,7 +121,7 @@ const Records: React.FC = () => {
                   : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50'
               }`}
             >
-              {filter === 'all' ? 'All Records' : filter === 'lab' ? 'Lab Reports' : filter === 'prescription' ? 'Prescriptions' : 'Others'}
+              {filter === 'all' ? t('nav.all_records') : filter === 'lab' ? t('nav.lab_reports') : filter === 'prescription' ? t('nav.prescriptions') : t('nav.others')}
             </button>
           ))}
         </div>
@@ -154,6 +162,7 @@ const Records: React.FC = () => {
               </div>
               <button 
                 onClick={() => handleDeleteRecord(record.id)}
+                aria-label="Delete record"
                 className="w-8 h-8 rounded-full bg-neutral-50 hover:bg-danger-50 hover:text-danger flex items-center justify-center transition-colors text-neutral-400 focus:outline-none"
                 title="Delete record"
               >
@@ -168,9 +177,9 @@ const Records: React.FC = () => {
             <FileText size={24} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-neutral-900">No medical records found</h3>
+            <h3 className="text-sm font-bold text-neutral-900">{t('clinical.no_medical_records')}</h3>
             <p className="text-xs text-neutral-500 mt-1 max-w-xs mx-auto">
-              {searchQuery ? 'Try adjusting your search query or filters.' : 'Upload clinical records to keep your doctor informed during consultations.'}
+              {searchQuery ? t('clinical.adjust_search') : t('clinical.upload_clinical_desc')}
             </p>
           </div>
         </div>
@@ -181,9 +190,10 @@ const Records: React.FC = () => {
         <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 border border-neutral-200 shadow-2xl animate-scale-up">
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-lg font-bold text-neutral-900">Upload Health Record</h2>
+              <h2 className="text-lg font-bold text-neutral-900">{t('clinical.upload_health_record')}</h2>
               <button 
                 onClick={() => setIsModalOpen(false)}
+                aria-label="Close upload dialog"
                 className="w-8 h-8 rounded-full hover:bg-neutral-100 text-neutral-500 flex items-center justify-center transition-colors"
               >
                 <X size={18} />
@@ -192,11 +202,11 @@ const Records: React.FC = () => {
             
             <form onSubmit={handleAddRecord} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase">Record Name *</label>
+                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase">{t('clinical.record_name_label')}</label>
                 <input 
                   type="text" 
                   required
-                  placeholder="e.g. Lab Report - Blood Glucose"
+                  placeholder={t('clinical.record_name_placeholder')}
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-medium focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all"
@@ -204,7 +214,7 @@ const Records: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase">Record Type</label>
+                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase">{t('clinical.record_type')}</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(['lab', 'prescription', 'other'] as const).map((type) => (
                     <button
@@ -217,17 +227,17 @@ const Records: React.FC = () => {
                           : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50'
                       }`}
                     >
-                      {type === 'lab' ? 'Lab Report' : type === 'prescription' ? 'Prescription' : 'Other'}
+                      {type === 'lab' ? t('clinical.lab_report') : type === 'prescription' ? t('clinical.prescription') : t('nav.others')}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase">Clinical Facility</label>
+                <label className="block text-xs font-bold text-neutral-600 mb-1.5 uppercase">{t('clinical.clinical_facility')}</label>
                 <input 
                   type="text" 
-                  placeholder="e.g. Primary Health Centre"
+                  placeholder={t('clinical.facility_placeholder')}
                   value={newFacility}
                   onChange={(e) => setNewFacility(e.target.value)}
                   className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-medium focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all"
@@ -240,14 +250,14 @@ const Records: React.FC = () => {
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1 py-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold rounded-xl text-sm transition-colors"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 py-3 bg-primary hover:bg-primary-700 text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-primary/10 flex items-center justify-center gap-1.5"
                 >
                   <Check size={16} />
-                  <span>Save Record</span>
+                  <span>{t('clinical.save_record')}</span>
                 </button>
               </div>
             </form>

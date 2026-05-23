@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import UpcomingAppointmentCard from './UpcomingAppointmentCard';
 import VitalsWidget from './VitalsWidget';
 import RecentRecordsList from './RecentRecordsList';
@@ -26,7 +26,7 @@ const PatientDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -37,15 +37,15 @@ const PatientDashboard: React.FC = () => {
       setAppointments(appts || []);
     } catch (err) {
       console.error("Error loading dashboard data:", err);
-      setError("Failed to sync your health records. Please verify your connection.");
+      setError(t('app.sync_failed'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleRequestCare = () => {
     // Mock booking flow showing clean toast-like experience or optimistic scheduling

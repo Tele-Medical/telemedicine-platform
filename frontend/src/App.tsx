@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import AppShell from './components/layout/AppShell';
 import LoginContainer from './components/auth/LoginContainer';
 import RegisterProfile from './components/auth/RegisterProfile';
@@ -39,6 +40,7 @@ interface UserProfile {
 }
 
 function App() {
+  const { t } = useTranslation();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem('token'));
   const [userRole, setUserRole] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -118,7 +120,7 @@ function App() {
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
           <p className="text-neutral-500 font-semibold text-sm animate-pulse">
-            Sanjeevani: Loading secure portal...
+            {t('app.title')}: {t('app.loading')}
           </p>
         </div>
       </div>
@@ -128,7 +130,7 @@ function App() {
   return (
     <BrowserRouter>
       {isAuthenticated ? (
-        profile && profile.default_role === 'patient' && !profile.full_name ? (
+        profile && userRole === 'patient' && !profile.full_name ? (
           <RegisterProfile onComplete={handleReloadProfile} />
         ) : (
           <AppShell onLogout={handleLogout}>
@@ -142,8 +144,8 @@ function App() {
                       <Route path="/queue-legacy" element={<Queue />} />
                       <Route path="/consults" element={<Consults />} />
                       <Route path="/patients" element={<Patients />} />
-                      <Route path="/clinical/:patientId" element={<ClinicalForms patientId="" />} />
-                      <Route path="/encounter/:encounterId" element={<EncounterClosureForm encounterId="" />} />
+                      <Route path="/clinical/:patientId" element={<ClinicalForms />} />
+                      <Route path="/encounter/:encounterId" element={<EncounterClosureForm />} />
                       <Route path="/prescriptions" element={<Prescriptions />} />
                       <Route path="/me" element={<UserProfilePage />} />
                       <Route path="/profile" element={<Profile onLogout={handleLogout} />} />
@@ -152,6 +154,7 @@ function App() {
                     </Routes>
                   );
                 case 'asha':
+                case 'asha_worker':
                 case 'staff':
                   return (
                     <Routes>
@@ -210,7 +213,7 @@ function App() {
       ) : (
         <Routes>
           <Route path="/login" element={<LoginContainer onLogin={handleLogin} />} />
-          <Route path="/staff-login" element={<StaffLogin />} />
+          <Route path="/staff-login" element={<StaffLogin onLogin={handleLogin} />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       )}

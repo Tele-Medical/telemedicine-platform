@@ -53,7 +53,7 @@ const Profile: React.FC<ProfileProps> = ({ onLogout }) => {
           <h2 className="text-base font-bold text-neutral-900">{profile?.full_name || t('profile.default_name')}</h2>
           <p className="text-xs text-neutral-500 font-semibold mt-0.5">{profile?.phone_number || '+91 XXXXX XXXXX'}</p>
           <span className="inline-block mt-2 px-2.5 py-0.5 rounded-full text-[9px] font-black tracking-wider uppercase bg-primary/10 text-primary border border-primary/20">
-            {profile?.default_role || 'Patient'}
+            {profile?.default_role ? t(`clinical.${profile.default_role.toLowerCase()}`, profile.default_role) : t('clinical.patient')}
           </span>
         </div>
       </section>
@@ -121,9 +121,9 @@ const Profile: React.FC<ProfileProps> = ({ onLogout }) => {
               onChange={handleLanguageChange}
               className="bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all"
             >
-              <option value="en">English</option>
-              <option value="hi">हिन्दी (Hindi)</option>
-              <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
+              <option value="pa">{t('profile.lang_pa')}</option>
+              <option value="hi">{t('profile.lang_hi')}</option>
+              <option value="en">{t('profile.lang_en')}</option>
             </select>
 
             {isSaved && (

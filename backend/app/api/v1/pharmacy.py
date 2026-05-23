@@ -52,3 +52,32 @@ def dispense_fulfillment(fulfillment_id: uuid.UUID, request: FulfillmentDispense
     if current_user.default_role not in ["admin", "pharmacist"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     return PharmacyService.dispense_fulfillment(db, fulfillment_id, request, current_user)
+
+@router.get("/fulfillments/prescriptions")
+def list_pending_fulfillments(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    List prescriptions that need fulfillment.
+    Joins with Patient and MedicineCatalog for a rich response.
+    """
+    if current_user.default_role not in ["admin", "pharmacist"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    from app.models.pharmacy import Prescription, PrescriptionItem, MedicineCatalog
+    from app.models.patient import Patient
+    
+    results = db.query(Prescription, Patient.full_name).join(Patient, Prescription.patient_id == Patient.id).all()
+    
+    response = []
+    for prescription, patient_name in results:
+        items = db.query(MedicineCatalog.name).join(PrescriptionItem, PrescriptionItem.medicine_catalog_id == MedicineCatalog.id).filter(PrescriptionItem.prescription_id == prescription.id).all()
+        response.append({
+            "id": str(prescription.id),
+            "patientName": patient_name,
+            "status": "pending", # Simplified for demo
+            "medications": [item[0] for item in items]
+        })
+    
+    return response

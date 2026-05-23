@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const Sync: React.FC = () => {
+  const { t } = useTranslation();
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
 
   const performSync = async () => {
@@ -16,10 +18,10 @@ const Sync: React.FC = () => {
   };
 
   return (
-    <div className="animate-fade-in pb-12">
+    <div className="animate-fade-in pb-12 text-neutral-900">
       <header className="mb-6 mt-2">
-        <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">Offline Record Synchronization</h1>
-        <p className="text-neutral-500 text-sm mt-1">Sync assisted medical cases and rural registry details gathered during low-connectivity home visits.</p>
+        <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">{t('asha.sync_title')}</h1>
+        <p className="text-neutral-500 text-sm mt-1">{t('asha.sync_desc')}</p>
       </header>
 
       <div className="bg-white rounded-2xl border border-neutral-200/60 p-6 shadow-sm flex flex-col items-center justify-center text-center">
@@ -32,19 +34,19 @@ const Sync: React.FC = () => {
            <CheckCircle size={30} className="stroke-[2.25]" />}
         </div>
         <h2 className="text-lg font-bold text-neutral-900">
-          {syncStatus === 'idle' ? 'Ready to Sync' :
-           syncStatus === 'syncing' ? 'Syncing...' :
-           syncStatus === 'error' ? 'Sync Failed' :
-           'Database is Fully Synced'}
+          {syncStatus === 'idle' ? t('asha.ready_to_sync') :
+           syncStatus === 'syncing' ? t('app.syncing') :
+           syncStatus === 'error' ? t('app.sync_failed') :
+           t('asha.synced_success')}
         </h2>
-        <p className="text-neutral-500 text-sm mt-1 max-w-sm">All local vitals reports, registration records, and clinical observations are synced with the central regional server.</p>
+        <p className="text-neutral-500 text-sm mt-1 max-w-sm">{t('asha.sync_info')}</p>
         
         <button 
           onClick={performSync}
           disabled={syncStatus === 'syncing'}
-          className="mt-6 flex items-center gap-2 bg-primary hover:bg-primary-700 active:scale-[0.98] transition-all text-white font-bold text-sm px-6 py-3 rounded-full shadow-md shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed">
+          className="mt-6 flex items-center gap-2 bg-primary hover:bg-primary-700 active:scale-[0.98] transition-all text-white font-bold text-sm px-6 py-3 rounded-full shadow-md shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
           <RefreshCw size={14} className={syncStatus === 'syncing' ? 'animate-spin' : ''} />
-          <span>{syncStatus === 'syncing' ? 'Synchronizing...' : 'Synchronize Offline Cache'}</span>
+          <span>{syncStatus === 'syncing' ? t('app.syncing') : t('asha.sync_action', 'Synchronize Offline Cache')}</span>
         </button>
       </div>
     </div>

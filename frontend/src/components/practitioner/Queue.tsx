@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Clock, AlertCircle, ArrowRight, Play, CheckCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface QueuePatient {
   id: string;
@@ -15,6 +16,7 @@ interface QueuePatient {
 }
 
 const Queue: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [patients] = useState<QueuePatient[]>([
     {
@@ -81,10 +83,10 @@ const Queue: React.FC = () => {
   };
 
   return (
-    <div className="animate-fade-in pb-12">
+    <div className="animate-fade-in pb-12 text-neutral-900">
       <header className="mb-6 mt-2">
-        <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">Teleconsultation Queue</h1>
-        <p className="text-neutral-500 text-sm mt-1">Manage active patient triage, waiting queues, and launch instant WebRTC consultations.</p>
+        <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">{t('clinical.queue_title')}</h1>
+        <p className="text-neutral-500 text-sm mt-1">{t('clinical.queue_desc')}</p>
       </header>
 
       {/* Stats Cards Row */}
@@ -97,7 +99,7 @@ const Queue: React.FC = () => {
             <div className="text-2xl font-bold text-neutral-900">
               {patients.filter(p => p.status === 'Waiting').length}
             </div>
-            <div className="text-xs text-neutral-500 font-semibold mt-0.5">Patients Waiting</div>
+            <div className="text-xs text-neutral-500 font-semibold mt-0.5">{t('clinical.patients_waiting')}</div>
           </div>
         </div>
 
@@ -109,7 +111,7 @@ const Queue: React.FC = () => {
             <div className="text-2xl font-bold text-neutral-900">
               {patients.filter(p => p.triage === 'Critical' || p.triage === 'Urgent').length}
             </div>
-            <div className="text-xs text-neutral-500 font-semibold mt-0.5">High Priority Patients</div>
+            <div className="text-xs text-neutral-500 font-semibold mt-0.5">{t('clinical.high_priority')}</div>
           </div>
         </div>
 
@@ -118,24 +120,24 @@ const Queue: React.FC = () => {
             <Clock size={22} className="stroke-[2.25]" />
           </div>
           <div>
-            <div className="text-2xl font-bold text-neutral-900">8 mins</div>
-            <div className="text-xs text-neutral-500 font-semibold mt-0.5">Average Triage Time</div>
+            <div className="text-2xl font-bold text-neutral-900">8 {t('clinical.mins')}</div>
+            <div className="text-xs text-neutral-500 font-semibold mt-0.5">{t('clinical.avg_triage_time')}</div>
           </div>
         </div>
       </div>
 
       {/* Patient Queue Cards */}
       <div className="space-y-4">
-        <h2 className="text-sm font-bold text-neutral-500 uppercase tracking-wider mb-2">Active Queue</h2>
+        <h2 className="text-sm font-bold text-neutral-500 uppercase tracking-wider mb-2">{t('clinical.active_queue')}</h2>
         
         {patients.length === 0 ? (
           <div className="bg-white rounded-2xl border border-neutral-200/60 p-8 text-center">
             <CheckCircle size={40} className="text-success mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-neutral-900">Queue is Clear</h3>
-            <p className="text-neutral-500 text-sm mt-1">There are no patients currently waiting in the teleconsultation queue.</p>
+            <h3 className="text-lg font-bold text-neutral-900">{t('clinical.queue_clear')}</h3>
+            <p className="text-neutral-500 text-sm mt-1">{t('clinical.no_waiting_queue')}</p>
           </div>
         ) : (
-          patients
+          [...patients]
             .sort((a, b) => {
               // Critical first, then Urgent, then Standard
               const priority = { Critical: 3, Urgent: 2, Standard: 1 };
@@ -158,19 +160,19 @@ const Queue: React.FC = () => {
                       </p>
                     </div>
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border shrink-0 ${getTriageBadgeColor(patient.triage)}`}>
-                      {patient.triage}
+                      {t(`clinical.${patient.triage.toLowerCase()}`)}
                     </span>
                   </div>
 
                   <div className="bg-neutral-50 border border-neutral-100 rounded-xl p-3.5 text-sm text-neutral-700 font-medium">
-                    <span className="text-neutral-400 font-semibold text-xs block mb-1">CHIEF COMPLAINT</span>
+                    <span className="text-neutral-400 font-semibold text-xs block mb-1">{t('clinical.chief_complaint')}</span>
                     {patient.complaint}
                   </div>
                 </div>
 
                 <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center gap-3 border-t md:border-t-0 border-neutral-100 pt-4 md:pt-0 shrink-0">
                   <div className="text-right flex items-center md:flex-col gap-1.5 md:gap-0">
-                    <span className="text-xs text-neutral-400 font-semibold">WAIT TIME</span>
+                    <span className="text-xs text-neutral-400 font-semibold">{t('clinical.wait_time')}</span>
                     <div className="text-sm font-bold text-neutral-700 flex items-center gap-1">
                       <Clock size={14} className="text-neutral-400" />
                       <span>{patient.waitTime}</span>
@@ -182,7 +184,7 @@ const Queue: React.FC = () => {
                     className="flex items-center gap-2 bg-primary hover:bg-primary-700 active:scale-[0.98] transition-all text-white font-bold text-sm px-5 py-3 rounded-full shadow-md shadow-primary/10"
                   >
                     <Play size={14} className="fill-current text-white shrink-0" />
-                    <span>Start Consultation</span>
+                    <span>{t('clinical.start_consultation')}</span>
                     <ArrowRight size={14} className="shrink-0" />
                   </button>
                 </div>

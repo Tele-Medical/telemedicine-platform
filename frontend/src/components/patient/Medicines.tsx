@@ -78,7 +78,7 @@ const Medicines: React.FC = () => {
                   <div>
                     <h3 className="text-sm font-bold text-neutral-900">{med.name}</h3>
                     <p className="text-xs text-neutral-500 font-semibold mt-0.5">
-                      For {med.purpose} • {med.dosage}
+                      {t('pharmacy.for', 'For')} {med.purpose} • {med.dosage}
                     </p>
                   </div>
                 </div>

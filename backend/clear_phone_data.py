@@ -11,7 +11,7 @@ from app.models.clinical import Observation, MedicationRequest
 def clear_phone_data():
     phone_variants = ["9821709422", "+919821709422"]
     
-    print(f"Connecting to database at: {settings.database_url}")
+    print("Connecting to database...")
     engine = create_engine(settings.database_url)
     SessionClass = sessionmaker(bind=engine)
     session = SessionClass()

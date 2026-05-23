@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useParams } from 'react-router-dom';
 import { db } from '../../db/db';
+import { apiClient } from '../../api/client';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 
-const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
+const ClinicalForms: React.FC = () => {
+  const { patientId } = useParams<{ patientId: string }>();
   const { t } = useTranslation();
+  const { isOnline } = useNetworkStatus();
   const [activeTab, setActiveTab] = useState<'vitals' | 'conditions' | 'allergies'>('vitals');
 
   const [vitals, setVitals] = useState({ heartRate: '', bloodPressure: '', temperature: '' });
   const [condition, setCondition] = useState('');
   const [allergy, setAllergy] = useState('');
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
   const showSuccess = (msg: string) => {
@@ -18,22 +24,24 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
   };
 
   const handleSaveVitals = async () => {
+    if (!patientId) return;
+    setIsSubmitting(true);
     const id = crypto.randomUUID();
     const payload = {
       id,
       patient_id: patientId,
       heart_rate: vitals.heartRate,
       blood_pressure: vitals.bloodPressure,
+      temperature: vitals.temperature,
       created_at: new Date().toISOString(),
     };
 
     try {
       await db.observations.put(payload);
 
-      if (navigator.onLine) {
-        await fetch('/api/v1/observations', {
+      if (isOnline) {
+        await apiClient('/observations', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
       } else {
@@ -47,14 +55,17 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
         });
       }
 
-      showSuccess('Vitals saved successfully');
-    } catch (e) {
-      console.error(e);
+      showSuccess(t('auth.saved'));
+    } catch {
+      console.error('Failed to save vitals');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleAddCondition = async () => {
-    if (!condition) return;
+    if (!condition || !patientId) return;
+    setIsSubmitting(true);
     const id = crypto.randomUUID();
     const payload = {
       id,
@@ -66,10 +77,9 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
     try {
       await db.conditions.put(payload);
 
-      if (navigator.onLine) {
-        await fetch('/api/v1/conditions', {
+      if (isOnline) {
+        await apiClient('/conditions', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
       } else {
@@ -83,15 +93,18 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
         });
       }
 
-      showSuccess('Condition added successfully');
+      showSuccess(t('auth.saved'));
       setCondition('');
-    } catch (e) {
-      console.error(e);
+    } catch {
+      console.error('Failed to add condition');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleAddAllergy = async () => {
-    if (!allergy) return;
+    if (!allergy || !patientId) return;
+    setIsSubmitting(true);
     const id = crypto.randomUUID();
     const payload = {
       id,
@@ -103,10 +116,9 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
     try {
       await db.allergies.put(payload);
 
-      if (navigator.onLine) {
-        await fetch('/api/v1/allergies', {
+      if (isOnline) {
+        await apiClient('/allergies', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
       } else {
@@ -120,15 +132,17 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
         });
       }
 
-      showSuccess('Allergy added successfully');
+      showSuccess(t('auth.saved'));
       setAllergy('');
-    } catch (e) {
-      console.error(e);
+    } catch {
+      console.error('Failed to add allergy');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden text-neutral-900">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden text-neutral-900 font-sans">
       <div className="flex bg-gray-50 border-b border-gray-200">
         {(['vitals', 'conditions', 'allergies'] as const).map(tab => (
           <button
@@ -147,42 +161,62 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
 
       <div className="p-6">
         {successMessage && (
-          <p className="text-green-600 text-sm font-medium mb-4">{successMessage}</p>
+          <div className="bg-green-50 border border-green-200 text-green-600 p-4 rounded-lg mb-6 flex items-center gap-2 animate-fade-in">
+            <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path></svg>
+            <span className="font-bold">{successMessage}</span>
+          </div>
         )}
 
         {activeTab === 'vitals' && (
-          <div className="space-y-5 animate-fade-in text-neutral-900">
-            <h4 className="text-lg font-semibold text-gray-800 border-b pb-2">{t('clinical.record_vitals')}</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="space-y-6 animate-fade-in text-neutral-900">
+            <h4 className="text-lg font-bold text-gray-800 border-b pb-2">{t('clinical.record_vitals')}</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label htmlFor="heartRate" className="block text-sm font-medium text-gray-700 mb-1">{t('clinical.heart_rate')}</label>
+                <label htmlFor="heartRate" className="block text-sm font-semibold text-gray-700 mb-1.5">{t('clinical.heart_rate')}</label>
                 <div className="relative">
                   <input 
                     id="heartRate"
                     type="number" 
                     value={vitals.heartRate} 
-                    onChange={e => setVitals({...vitals, heartRate: e.target.value})}
-                    placeholder="e.g. 72"
-                    className="block w-full rounded-md border border-gray-300 pl-3 pr-12 py-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm" 
+                    onChange={e => setVitals(prev => ({...prev, heartRate: e.target.value}))}
+                    placeholder="72"
+                    className="block w-full rounded-xl border border-gray-300 pl-4 pr-12 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm" 
                   />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <span className="text-gray-400 sm:text-sm">bpm</span>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                    <span className="text-gray-400 font-bold text-xs">{t('clinical.bpm')}</span>
                   </div>
                 </div>
               </div>
               <div>
-                <label htmlFor="bloodPressure" className="block text-sm font-medium text-gray-700 mb-1">{t('clinical.blood_pressure')}</label>
+                <label htmlFor="bloodPressure" className="block text-sm font-semibold text-gray-700 mb-1.5">{t('clinical.blood_pressure')}</label>
                 <div className="relative">
                   <input 
                     id="bloodPressure"
                     type="text" 
-                    placeholder="e.g. 120/80" 
+                    placeholder="120/80" 
                     value={vitals.bloodPressure} 
-                    onChange={e => setVitals({...vitals, bloodPressure: e.target.value})}
-                    className="block w-full rounded-md border border-gray-300 pl-3 pr-12 py-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm" 
+                    onChange={e => setVitals(prev => ({...prev, bloodPressure: e.target.value}))}
+                    className="block w-full rounded-xl border border-gray-300 pl-4 pr-12 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm" 
                   />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <span className="text-gray-400 sm:text-sm">mmHg</span>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                    <span className="text-gray-400 font-bold text-xs">{t('clinical.bp_unit')}</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label htmlFor="temperature" className="block text-sm font-semibold text-gray-700 mb-1.5">{t('clinical.temp')}</label>
+                <div className="relative">
+                  <input 
+                    id="temperature"
+                    type="number" 
+                    step="0.1"
+                    value={vitals.temperature} 
+                    onChange={e => setVitals(prev => ({...prev, temperature: e.target.value}))}
+                    placeholder="98.6"
+                    className="block w-full rounded-xl border border-gray-300 pl-4 pr-12 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm" 
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                    <span className="text-gray-400 font-bold text-xs">{t('clinical.temp_unit')}</span>
                   </div>
                 </div>
               </div>
@@ -190,8 +224,10 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
             <div className="pt-2">
               <button 
                 onClick={handleSaveVitals}
-                className="bg-blue-600 text-white px-5 py-2 rounded-md font-medium hover:bg-blue-700 transition-colors shadow-sm"
+                disabled={isSubmitting}
+                className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md active:scale-[0.98] disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center gap-2"
               >
+                {isSubmitting && <RefreshCw size={16} className="animate-spin" />}
                 {t('clinical.save_vitals')}
               </button>
             </div>
@@ -199,46 +235,50 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
         )}
 
         {activeTab === 'conditions' && (
-          <div className="space-y-5 animate-fade-in text-neutral-900">
-            <h4 className="text-lg font-semibold text-gray-800 border-b pb-2">{t('clinical.record_conditions')}</h4>
+          <div className="space-y-6 animate-fade-in text-neutral-900">
+            <h4 className="text-lg font-bold text-gray-800 border-b pb-2">{t('clinical.record_conditions')}</h4>
             <div>
-              <label htmlFor="condition" className="block text-sm font-medium text-gray-700 mb-1">{t('clinical.condition_name')}</label>
+              <label htmlFor="condition" className="block text-sm font-semibold text-gray-700 mb-1.5">{t('clinical.condition_name')}</label>
               <input 
                 id="condition"
                 type="text" 
                 value={condition} 
                 onChange={e => setCondition(e.target.value)}
                 placeholder="e.g. Hypertension, Diabetes"
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm" 
+                className="block w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm" 
               />
             </div>
             <button 
               onClick={handleAddCondition}
-              className="bg-blue-600 text-white px-5 py-2 rounded-md font-medium hover:bg-blue-700 transition-colors shadow-sm"
+              disabled={isSubmitting || !condition}
+              className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md active:scale-[0.98] disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center gap-2"
             >
+              {isSubmitting && <RefreshCw size={16} className="animate-spin" />}
               {t('clinical.add_condition')}
             </button>
           </div>
         )}
 
         {activeTab === 'allergies' && (
-          <div className="space-y-5 animate-fade-in text-neutral-900">
-            <h4 className="text-lg font-semibold text-gray-800 border-b pb-2">{t('clinical.record_allergies')}</h4>
+          <div className="space-y-6 animate-fade-in text-neutral-900">
+            <h4 className="text-lg font-bold text-gray-800 border-b pb-2">{t('clinical.record_allergies')}</h4>
             <div>
-              <label htmlFor="allergy" className="block text-sm font-medium text-gray-700 mb-1">{t('clinical.allergy_substance')}</label>
+              <label htmlFor="allergy" className="block text-sm font-semibold text-gray-700 mb-1.5">{t('clinical.allergy_substance')}</label>
               <input 
                 id="allergy"
                 type="text" 
                 value={allergy} 
                 onChange={e => setAllergy(e.target.value)}
                 placeholder="e.g. Penicillin, Peanuts, Dust"
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm" 
+                className="block w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm" 
               />
             </div>
             <button 
               onClick={handleAddAllergy}
-              className="bg-blue-600 text-white px-5 py-2 rounded-md font-medium hover:bg-blue-700 transition-colors shadow-sm"
+              disabled={isSubmitting || !allergy}
+              className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md active:scale-[0.98] disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center gap-2"
             >
+              {isSubmitting && <RefreshCw size={16} className="animate-spin" />}
               {t('clinical.add_allergy')}
             </button>
           </div>
@@ -249,3 +289,8 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
 };
 
 export default ClinicalForms;
+
+// Helper icons
+const RefreshCw = ({ size, className }: { size: number, className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+);

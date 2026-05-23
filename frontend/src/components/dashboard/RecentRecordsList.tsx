@@ -9,8 +9,8 @@ interface RecentRecordsListProps {
 const RecentRecordsList: React.FC<RecentRecordsListProps> = ({ isDemo = false }) => {
   const { t } = useTranslation();
   const records = [
-    { id: 1, title: 'Lab Report - Blood Test', date: 'Oct 12, 2026', type: 'lab' },
-    { id: 2, title: 'Prescription - Dr. Sharma', date: 'Oct 05, 2026', type: 'prescription' },
+    { id: 1, title: `${t('clinical.lab_report')} - ${t('clinical.blood_test')}`, date: 'Oct 12, 2026', type: 'lab' },
+    { id: 2, title: `${t('clinical.prescription')} - ${t('clinical.default_practitioner')}`, date: 'Oct 05, 2026', type: 'prescription' },
   ];
 
   if (!isDemo) {
