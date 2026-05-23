@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Search, FileDown, CheckCircle, Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface PrescriptionRecord {
   id: string;
@@ -11,6 +12,7 @@ interface PrescriptionRecord {
 }
 
 const Prescriptions: React.FC = () => {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [prescriptions] = useState<PrescriptionRecord[]>([
     {
@@ -45,11 +47,11 @@ const Prescriptions: React.FC = () => {
   );
 
   return (
-    <div className="animate-fade-in pb-12">
+    <div className="animate-fade-in pb-12 text-neutral-900 font-sans">
       <header className="mb-6 mt-2 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">Prescriptions Management</h1>
-          <p className="text-neutral-500 text-sm mt-1">Issue digital prescriptions, verify dispensary statuses, and check pharmacy fulfillment logs.</p>
+          <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">{t('clinical.prescriptions_mgmt')}</h1>
+          <p className="text-neutral-500 text-sm mt-1">{t('clinical.prescriptions_desc')}</p>
         </div>
       </header>
 
@@ -62,7 +64,7 @@ const Prescriptions: React.FC = () => {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by RX ID or patient name..."
+          placeholder={t('nav.search')}
           className="w-full pl-11 pr-4 py-3 bg-white border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-neutral-900 text-sm"
         />
       </div>
@@ -71,7 +73,7 @@ const Prescriptions: React.FC = () => {
       <div className="space-y-4">
         {filteredPrescriptions.length === 0 ? (
           <div className="bg-white rounded-2xl border border-neutral-200/60 p-8 text-center text-neutral-500">
-            No prescriptions found matching your search.
+            {t('clinical.no_records')}
           </div>
         ) : (
           filteredPrescriptions.map((rx) => (
@@ -87,23 +89,23 @@ const Prescriptions: React.FC = () => {
                       : 'bg-warning/10 text-warning border-warning/20 animate-pulse'
                   }`}>
                     {rx.status === 'Dispensed' ? <CheckCircle size={10} /> : <Clock size={10} />}
-                    <span>{rx.status}</span>
+                    <span>{rx.status === 'Dispensed' ? t('pharmacy.dispensed', 'Dispensed') : t('pharmacy.pending', 'Pending')}</span>
                   </span>
                 </div>
                 <h3 className="text-base font-bold text-neutral-900">{rx.patientName}</h3>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-500 font-semibold">
-                  <span>Issued: {rx.date}</span>
+                  <span>{t('clinical.issued')}: {rx.date}</span>
                   <span>•</span>
                   <span>{rx.clinic}</span>
                   <span>•</span>
-                  <span>{rx.medicationsCount} Meds Ordered</span>
+                  <span>{rx.medicationsCount} {t('pharmacy.prescription_items')}</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 border-t sm:border-t-0 border-neutral-100 pt-3.5 sm:pt-0 shrink-0">
                 <button className="flex items-center justify-center gap-1.5 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border border-neutral-200 font-bold text-xs px-4 py-2.5 rounded-xl transition-all">
                   <FileDown size={14} />
-                  <span>Download PDF</span>
+                  <span>{t('clinical.download_pdf')}</span>
                 </button>
               </div>
             </div>

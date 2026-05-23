@@ -109,10 +109,11 @@ def authenticate_staff(db: Session, payload: StaffLogin) -> TokenResponse:
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 def update_me(db: Session, current_user: User, payload: UserUpdate) -> User:
-    current_user.full_name = payload.full_name
-    current_user.preferred_language = payload.preferred_language
-    db.commit()
-    db.refresh(current_user)
+    update_data = payload.model_dump(exclude_unset=True)
+    if "full_name" in update_data:
+        current_user.full_name = update_data["full_name"]
+    if "preferred_language" in update_data:
+        current_user.preferred_language = update_data["preferred_language"]
     
     # Auto-create Clinical Patient profile for patient role to guarantee relational integrity
     if current_user.default_role == "patient":
@@ -125,6 +126,9 @@ def update_me(db: Session, current_user: User, payload: UserUpdate) -> User:
                 created_by_user_id=current_user.id
             )
             db.add(patient)
-            db.commit()
+            
+    db.commit()
+    db.refresh(current_user)
     return current_user
+
 

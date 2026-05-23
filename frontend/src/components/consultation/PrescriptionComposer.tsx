@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, CheckCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Medicine {
   name: string;
@@ -7,7 +8,12 @@ interface Medicine {
   duration: string;
 }
 
-const PrescriptionComposer: React.FC = () => {
+interface PrescriptionComposerProps {
+  appointmentId?: string;
+}
+
+const PrescriptionComposer: React.FC<PrescriptionComposerProps> = ({ appointmentId }) => {
+  const { t } = useTranslation();
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [currentName, setCurrentName] = useState('');
   const [currentDosage, setCurrentDosage] = useState('1-0-1 (Morning & Night)');
@@ -16,19 +22,31 @@ const PrescriptionComposer: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Load existing draft from localStorage on mount
+  const draftKey = appointmentId ? `prescription_draft_${appointmentId}` : 'prescription_draft';
+
+  // Load existing draft from localStorage on mount or key change
   useEffect(() => {
     try {
-      const savedDraft = localStorage.getItem('prescription_draft');
+      const savedDraft = localStorage.getItem(draftKey);
       if (savedDraft) {
         const parsed = JSON.parse(savedDraft);
         if (parsed.medicines) setMedicines(parsed.medicines);
         if (parsed.notes) setNotes(parsed.notes);
+      } else {
+        setMedicines([]);
+        setNotes('');
       }
     } catch (e) {
       console.error('Failed to load prescription draft:', e);
     }
-  }, []);
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (saveSuccess) {
+      const timer = setTimeout(() => setSaveSuccess(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveSuccess]);
 
   const handleAddMedicine = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,10 +91,9 @@ const PrescriptionComposer: React.FC = () => {
     };
 
     try {
-      localStorage.setItem('prescription_draft', JSON.stringify(draft));
+      localStorage.setItem(draftKey, JSON.stringify(draft));
       setMedicines(finalMedicines);
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e) {
       console.error('Failed to save prescription draft:', e);
       setErrorMsg('Failed to save draft local storage.');
@@ -84,13 +101,13 @@ const PrescriptionComposer: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-5 animate-fade-in pb-8">
+    <div className="flex flex-col gap-5 animate-fade-in pb-8 text-neutral-900 font-sans">
       
       {/* Success Notification */}
       {saveSuccess && (
         <div className="p-4 bg-success/10 border border-success/20 text-success rounded-2xl flex items-center gap-2.5 animate-scale-in">
           <CheckCircle size={18} className="shrink-0" />
-          <span className="text-sm font-bold">Prescription draft saved successfully to local records.</span>
+          <span className="text-sm font-bold">{t('pharmacy.draft_saved')}</span>
         </div>
       )}
 
@@ -104,14 +121,14 @@ const PrescriptionComposer: React.FC = () => {
       {/* Added Medicines List */}
       {medicines.length > 0 && (
         <div className="bg-white rounded-2xl p-4 shadow-[0_1px_2px_rgba(15,23,42,.08)] border border-neutral-200/60">
-          <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3">Prescribed Items ({medicines.length})</h3>
+          <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3">{t('pharmacy.prescription_items')} ({medicines.length})</h3>
           <div className="divide-y divide-neutral-100">
             {medicines.map((med, idx) => (
               <div key={idx} className="py-2.5 flex justify-between items-center gap-3">
                 <div className="space-y-0.5">
                   <h4 className="font-semibold text-neutral-800 text-sm">{med.name}</h4>
                   <p className="text-xs text-neutral-500 font-medium">
-                    {med.dosage} • {med.duration} days
+                    {med.dosage} • {med.duration} {t('pharmacy.days_left').split(' ')[1]}
                   </p>
                 </div>
                 <button 
@@ -129,11 +146,11 @@ const PrescriptionComposer: React.FC = () => {
 
       {/* Form to compose medicine */}
       <div className="bg-white rounded-2xl p-4 shadow-[0_1px_2px_rgba(15,23,42,.08)] border border-neutral-200/60">
-        <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-4">Add Medicine</h3>
+        <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-4">{t('pharmacy.add_medicine')}</h3>
         
         <div className="flex flex-col gap-3.5">
           <div>
-            <label htmlFor="medicine-name" className="block text-xs font-bold text-neutral-500 mb-1">Medicine Name</label>
+            <label htmlFor="medicine-name" className="block text-xs font-bold text-neutral-500 mb-1">{t('pharmacy.medicine_name')}</label>
             <input 
               id="medicine-name"
               type="text" 
@@ -149,7 +166,7 @@ const PrescriptionComposer: React.FC = () => {
           
           <div className="grid grid-cols-2 gap-3.5">
             <div>
-              <label htmlFor="dosage" className="block text-xs font-bold text-neutral-500 mb-1">Dosage Schedule</label>
+              <label htmlFor="dosage" className="block text-xs font-bold text-neutral-500 mb-1">{t('pharmacy.dosage_schedule')}</label>
               <select 
                 id="dosage" 
                 value={currentDosage}
@@ -164,7 +181,7 @@ const PrescriptionComposer: React.FC = () => {
               </select>
             </div>
             <div>
-              <label htmlFor="duration" className="block text-xs font-bold text-neutral-500 mb-1">Duration (Days)</label>
+              <label htmlFor="duration" className="block text-xs font-bold text-neutral-500 mb-1">{t('pharmacy.duration_days')}</label>
               <div className="flex bg-neutral-50 border border-neutral-200 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 rounded-xl items-center pr-4 transition-all">
                 <input 
                   id="duration"
@@ -176,7 +193,7 @@ const PrescriptionComposer: React.FC = () => {
                   placeholder="5" 
                   className="w-full bg-transparent border-none px-4 py-3 text-neutral-800 text-sm focus:outline-none font-medium"
                 />
-                <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">Days</span>
+                <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">{t('pharmacy.days_left').split(' ')[1]}</span>
               </div>
             </div>
           </div>
@@ -187,14 +204,14 @@ const PrescriptionComposer: React.FC = () => {
             className="mt-1 w-full py-3 rounded-xl border-2 border-dashed border-primary/30 text-primary font-bold hover:bg-primary/5 hover:border-primary/50 transition-all active:scale-[0.99] flex items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
           >
             <Plus size={16} />
-            <span>Add Medicine</span>
+            <span>{t('pharmacy.add_medicine')}</span>
           </button>
         </div>
       </div>
 
       {/* Doctor Notes */}
       <div className="bg-white rounded-2xl p-4 shadow-[0_1px_2px_rgba(15,23,42,.08)] border border-neutral-200/60">
-        <label htmlFor="doctor-notes" className="block text-xs font-bold text-neutral-500 mb-2">Doctor Notes / Instructions</label>
+        <label htmlFor="doctor-notes" className="block text-xs font-bold text-neutral-500 mb-2">{t('clinical.summary')}</label>
         <textarea 
           id="doctor-notes"
           rows={3} 
@@ -210,7 +227,7 @@ const PrescriptionComposer: React.FC = () => {
         onClick={handleSave}
         className="w-full bg-primary hover:bg-primary/95 text-white py-4 rounded-xl font-bold shadow-md shadow-primary/20 hover:shadow-lg transition-all active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-primary/30 flex justify-center items-center gap-2"
       >
-        <span>Save Prescription</span>
+        <span>{t('pharmacy.save_prescription')}</span>
       </button>
 
     </div>

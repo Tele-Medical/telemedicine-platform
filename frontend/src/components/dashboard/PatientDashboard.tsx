@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import UpcomingAppointmentCard from './UpcomingAppointmentCard';
 import VitalsWidget from './VitalsWidget';
 import RecentRecordsList from './RecentRecordsList';
 import { appointmentService, authService } from '../../api/services';
 import { AlertCircle, Calendar, PlusCircle, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface User {
   full_name?: string;
@@ -19,12 +20,13 @@ interface Appointment {
 }
 
 const PatientDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -35,15 +37,15 @@ const PatientDashboard: React.FC = () => {
       setAppointments(appts || []);
     } catch (err) {
       console.error("Error loading dashboard data:", err);
-      setError("Failed to sync your health records. Please verify your connection.");
+      setError(t('app.sync_failed'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleRequestCare = () => {
     // Mock booking flow showing clean toast-like experience or optimistic scheduling
@@ -77,23 +79,23 @@ const PatientDashboard: React.FC = () => {
     <div className="p-4 max-w-3xl mx-auto animate-fade-in pb-24">
       <header className="mb-6 mt-2">
         <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
-          Good morning{user?.full_name ? `, ${user.full_name}` : ''}
+          {t('app.good_morning')}{user?.full_name ? `, ${user.full_name}` : ''}
         </h1>
-        <p className="text-neutral-500 text-sm mt-1">Here is your digital health overview.</p>
+        <p className="text-neutral-500 text-sm mt-1">{t('app.health_overview')}</p>
       </header>
 
       {error && (
         <div className="mb-6 p-4 bg-danger/10 border border-danger/20 text-danger rounded-2xl flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <AlertCircle size={20} className="shrink-0" />
-            <span className="text-sm font-semibold">{error}</span>
+            <span className="text-sm font-semibold">{t('app.sync_failed')}</span>
           </div>
           <button 
             onClick={loadData}
             className="px-3 py-1.5 bg-danger/10 border border-danger/30 hover:bg-danger/20 text-danger rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all outline-none"
           >
             <RefreshCw size={12} />
-            <span>Retry</span>
+            <span>{t('app.retry')}</span>
           </button>
         </div>
       )}
@@ -108,9 +110,9 @@ const PatientDashboard: React.FC = () => {
               <Calendar size={28} className="stroke-[2.25]" />
             </div>
             <div className="space-y-1">
-              <h2 className="text-lg font-bold text-neutral-900">No upcoming consultations</h2>
+              <h2 className="text-lg font-bold text-neutral-900">{t('clinical.no_appointments')}</h2>
               <p className="text-neutral-500 text-sm max-w-md">
-                Need to speak with a medical specialist? Book a digital consult or contact your local assisted ASHA care worker.
+                {t('clinical.need_specialist')}
               </p>
             </div>
             <button 
@@ -118,7 +120,7 @@ const PatientDashboard: React.FC = () => {
               className="px-6 py-3 bg-primary hover:bg-primary-700 active:scale-[0.98] transition-all text-white font-semibold rounded-full shadow-md shadow-primary/20 flex items-center gap-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
               <PlusCircle size={18} />
-              <span>Book Appointment</span>
+              <span>{t('clinical.book_appointment')}</span>
             </button>
           </div>
         )}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import AppShell from './components/layout/AppShell';
 import LoginContainer from './components/auth/LoginContainer';
 import RegisterProfile from './components/auth/RegisterProfile';
@@ -21,12 +22,25 @@ import Inventory from './components/pharmacist/Inventory';
 import Users from './components/admin/Users';
 import Clinics from './components/admin/Clinics';
 
+// Phase 3: Staff Auth & Role Workflows
+import StaffLogin from './pages/auth/StaffLogin';
+import UserProfilePage from './pages/auth/UserProfile';
+import AssistedOnboardingWizard from './components/asha/AssistedOnboardingWizard';
+import AppointmentScheduler from './components/consultation/AppointmentScheduler';
+import PatientQueue from './components/doctor/PatientQueue';
+import ClinicalForms from './components/doctor/ClinicalForms';
+import EncounterClosureForm from './components/doctor/EncounterClosureForm';
+import InventoryLedger from './components/pharmacist/InventoryLedger';
+import StockForms from './components/pharmacist/StockForms';
+import PrescriptionFulfillmentTable from './components/pharmacist/PrescriptionFulfillmentTable';
+
 interface UserProfile {
   full_name?: string;
   default_role?: string;
 }
 
 function App() {
+  const { t } = useTranslation();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem('token'));
   const [userRole, setUserRole] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -105,7 +119,9 @@ function App() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-50 text-neutral-900 font-sans">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-          <p className="text-neutral-500 font-semibold text-sm animate-pulse">Loading secure portal...</p>
+          <p className="text-neutral-500 font-semibold text-sm animate-pulse">
+            {t('app.title')}: {t('app.loading')}
+          </p>
         </div>
       </div>
     );
@@ -114,7 +130,7 @@ function App() {
   return (
     <BrowserRouter>
       {isAuthenticated ? (
-        profile && profile.default_role === 'patient' && !profile.full_name ? (
+        profile && userRole === 'patient' && !profile.full_name ? (
           <RegisterProfile onComplete={handleReloadProfile} />
         ) : (
           <AppShell onLogout={handleLogout}>
@@ -124,23 +140,31 @@ function App() {
                 case 'practitioner':
                   return (
                     <Routes>
-                      <Route path="/" element={<Queue />} />
+                      <Route path="/" element={<PatientQueue />} />
+                      <Route path="/queue-legacy" element={<Queue />} />
                       <Route path="/consults" element={<Consults />} />
                       <Route path="/patients" element={<Patients />} />
+                      <Route path="/clinical/:patientId" element={<ClinicalForms />} />
+                      <Route path="/encounter/:encounterId" element={<EncounterClosureForm />} />
                       <Route path="/prescriptions" element={<Prescriptions />} />
+                      <Route path="/me" element={<UserProfilePage />} />
                       <Route path="/profile" element={<Profile onLogout={handleLogout} />} />
                       <Route path="/consultation" element={<TeleconsultationRoom userRole={userRole || 'patient'} />} />
                       <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                   );
                 case 'asha':
+                case 'asha_worker':
                 case 'staff':
                   return (
                     <Routes>
                       <Route path="/" element={<Assisted />} />
+                      <Route path="/register" element={<AssistedOnboardingWizard />} />
+                      <Route path="/schedule" element={<AppointmentScheduler patientId="" />} />
                       <Route path="/patients" element={<Patients />} />
                       <Route path="/appointments" element={<Queue />} />
                       <Route path="/sync" element={<Sync />} />
+                      <Route path="/me" element={<UserProfilePage />} />
                       <Route path="/profile" element={<Profile onLogout={handleLogout} />} />
                       <Route path="/consultation" element={<TeleconsultationRoom userRole={userRole || 'patient'} />} />
                       <Route path="*" element={<Navigate to="/" replace />} />
@@ -149,9 +173,13 @@ function App() {
                 case 'pharmacist':
                   return (
                     <Routes>
-                      <Route path="/" element={<Prescriptions />} />
-                      <Route path="/inventory" element={<Inventory />} />
+                      <Route path="/" element={<PrescriptionFulfillmentTable />} />
+                      <Route path="/prescriptions-legacy" element={<Prescriptions />} />
+                      <Route path="/inventory" element={<InventoryLedger />} />
+                      <Route path="/inventory-legacy" element={<Inventory />} />
+                      <Route path="/stock" element={<StockForms />} />
                       <Route path="/search" element={<Patients />} />
+                      <Route path="/me" element={<UserProfilePage />} />
                       <Route path="/profile" element={<Profile onLogout={handleLogout} />} />
                       <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
@@ -185,6 +213,7 @@ function App() {
       ) : (
         <Routes>
           <Route path="/login" element={<LoginContainer onLogin={handleLogin} />} />
+          <Route path="/staff-login" element={<StaffLogin onLogin={handleLogin} />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       )}

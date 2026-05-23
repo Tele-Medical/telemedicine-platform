@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { authService } from '../../api/services';
 
 interface OtpLoginProps {
@@ -6,6 +7,7 @@ interface OtpLoginProps {
 }
 
 const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
+  const { t } = useTranslation();
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']); // Changed to 6 digits for backend matching
@@ -23,9 +25,9 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
         setStep('otp');
       } catch (err: unknown) {
         if (err instanceof Error) {
-          setError(err.message || 'Failed to send OTP');
+          setError(err.message || t('common.error'));
         } else {
-          setError('Failed to send OTP');
+          setError(t('common.error'));
         }
       } finally {
         setLoading(false);
@@ -70,9 +72,9 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
         }
       } catch (err: unknown) {
         if (err instanceof Error) {
-          setError(err.message || 'Invalid OTP');
+          setError(err.message || t('common.error'));
         } else {
-          setError('Invalid OTP');
+          setError(t('common.error'));
         }
       } finally {
         setLoading(false);
@@ -91,13 +93,13 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
       {step === 'phone' ? (
         <div className="animate-fade-in">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-neutral-900 mb-2">Welcome to Telemedicine</h2>
-            <p className="text-neutral-500 text-sm">Enter your phone number to continue</p>
+            <h2 className="text-2xl font-bold text-neutral-900 mb-2">{t('auth.welcome_title')}</h2>
+            <p className="text-neutral-500 text-sm">{t('auth.enter_phone')}</p>
           </div>
           
           <form onSubmit={handleRequestOtp} className="space-y-6">
             <div>
-              <label htmlFor="phone" className="block text-sm font-semibold text-neutral-700 mb-1.5">Mobile Number</label>
+              <label htmlFor="phone" className="block text-sm font-semibold text-neutral-700 mb-1.5">{t('auth.phone_label')}</label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-neutral-500 font-semibold">
                   +91
@@ -105,10 +107,10 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
                 <input
                   id="phone"
                   type="tel"
-                  aria-label="Mobile phone number"
+                  aria-label={t('auth.phone_label')}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
-                  placeholder="Enter your mobile number"
+                  placeholder={t('auth.phone_placeholder')}
                   className="w-full pl-14 pr-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-lg tracking-wide text-neutral-900 placeholder-neutral-400"
                   maxLength={10}
                   required
@@ -121,18 +123,19 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
               disabled={phone.length < 10 || loading}
               className="w-full bg-primary hover:bg-primary-700 active:scale-[0.98] text-white py-3.5 rounded-full font-semibold text-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
-              {loading ? 'Sending...' : 'Request OTP'}
+              {loading ? t('auth.sending') : t('auth.request_otp')}
             </button>
           </form>
         </div>
       ) : (
         <div className="animate-fade-in">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-neutral-900 mb-2">Enter OTP</h2>
+            <h2 className="text-2xl font-bold text-neutral-900 mb-2">{t('auth.enter_otp')}</h2>
             <p className="text-neutral-500 text-sm">
-              We've sent a code to <span className="font-semibold text-neutral-700">+91 {phone}</span>
+              {t('auth.sent_code')} <span className="font-semibold text-gray-700">+91 {phone}</span>
             </p>
           </div>
+
           
           <form onSubmit={handleVerify} className="space-y-8">
             <div className="flex justify-between gap-1 sm:gap-2 px-1">
@@ -158,17 +161,21 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
               disabled={otp.join('').length < 6 || loading}
               className="w-full bg-primary hover:bg-primary-700 active:scale-[0.98] text-white py-3.5 rounded-full font-semibold text-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
-              {loading ? 'Verifying...' : 'Verify & Login'}
+              {loading ? t('auth.verifying') : t('auth.verify_login')}
             </button>
             
             <div className="text-center mt-4">
               <button 
                 type="button" 
-                onClick={() => setStep('phone')}
-                aria-label="Edit your mobile number"
+                onClick={() => {
+                  setStep('phone');
+                  setOtp(['', '', '', '', '', '']);
+                  setError('');
+                }}
+                aria-label={t('auth.edit_phone')}
                 className="text-sm text-neutral-500 hover:text-primary transition-colors font-medium"
               >
-                Edit phone number
+                {t('auth.edit_phone')}
               </button>
             </div>
           </form>

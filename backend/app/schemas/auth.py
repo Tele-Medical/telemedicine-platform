@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from uuid import UUID
+from typing import Literal
 
 class OTPRequest(BaseModel):
     phone: str = Field(..., pattern=r"^\+?[1-9]\d{1,14}$", description="The phone number to send the OTP to (E.164 format)")
@@ -50,5 +51,6 @@ class UserResponse(BaseModel):
 
 class UserUpdate(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=100)
-    preferred_language: str = "pa"
+    preferred_language: Literal["en", "pa", "hi"] = "pa"
+
 

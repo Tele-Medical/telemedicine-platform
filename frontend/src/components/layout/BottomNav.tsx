@@ -1,20 +1,35 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, Calendar, Heart, FileText, Pill, User, RefreshCw, BarChart2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface NavItem {
   to: string;
-  label: string;
+  labelKey: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
 const BottomNav = () => {
-  const role = React.useMemo(() => {
+  const { t } = useTranslation();
+
+  const [role, setRole] = React.useState(() => {
     try {
       return localStorage.getItem('role') || 'patient';
     } catch {
       return 'patient';
     }
+  });
+
+  React.useEffect(() => {
+    const handleStorage = () => {
+      try {
+        setRole(localStorage.getItem('role') || 'patient');
+      } catch {
+        setRole('patient');
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   const getNavItems = (): NavItem[] => {
@@ -22,42 +37,42 @@ const BottomNav = () => {
       case 'doctor':
       case 'practitioner':
         return [
-          { to: '/', label: 'Queue', icon: Calendar },
-          { to: '/consults', label: 'Consults', icon: Heart },
-          { to: '/patients', label: 'Patients', icon: User },
-          { to: '/prescriptions', label: 'Prescriptions', icon: FileText },
-          { to: '/profile', label: 'Profile', icon: User },
+          { to: '/', labelKey: 'nav.queue', icon: Calendar },
+          { to: '/consults', labelKey: 'nav.consults', icon: Heart },
+          { to: '/patients', labelKey: 'nav.patients', icon: User },
+          { to: '/prescriptions', labelKey: 'nav.prescriptions', icon: FileText },
+          { to: '/profile', labelKey: 'nav.profile', icon: User },
         ];
       case 'asha':
       case 'staff':
         return [
-          { to: '/', label: 'Assisted', icon: Heart },
-          { to: '/patients', label: 'Patients', icon: User },
-          { to: '/appointments', label: 'Appts', icon: Calendar },
-          { to: '/sync', label: 'Sync', icon: RefreshCw },
-          { to: '/profile', label: 'Profile', icon: User },
+          { to: '/', labelKey: 'nav.assisted', icon: Heart },
+          { to: '/patients', labelKey: 'nav.patients', icon: User },
+          { to: '/appointments', labelKey: 'nav.appointments', icon: Calendar },
+          { to: '/sync', labelKey: 'nav.sync', icon: RefreshCw },
+          { to: '/profile', labelKey: 'nav.profile', icon: User },
         ];
       case 'pharmacist':
         return [
-          { to: '/', label: 'Fulfill', icon: Pill },
-          { to: '/inventory', label: 'Inventory', icon: FileText },
-          { to: '/search', label: 'Search', icon: Home },
-          { to: '/profile', label: 'Profile', icon: User },
+          { to: '/', labelKey: 'nav.fulfill', icon: Pill },
+          { to: '/inventory', labelKey: 'nav.inventory', icon: FileText },
+          { to: '/search', labelKey: 'nav.search', icon: Home },
+          { to: '/profile', labelKey: 'nav.profile', icon: User },
         ];
       case 'admin':
         return [
-          { to: '/', label: 'Overview', icon: BarChart2 },
-          { to: '/users', label: 'Users', icon: User },
-          { to: '/clinics', label: 'Clinics', icon: Home },
-          { to: '/profile', label: 'Profile', icon: User },
+          { to: '/', labelKey: 'nav.overview', icon: BarChart2 },
+          { to: '/users', labelKey: 'nav.users', icon: User },
+          { to: '/clinics', labelKey: 'nav.clinics', icon: Home },
+          { to: '/profile', labelKey: 'nav.profile', icon: User },
         ];
       case 'patient':
       default:
         return [
-          { to: '/', label: 'Home', icon: Home },
-          { to: '/records', label: 'Records', icon: FileText },
-          { to: '/medicines', label: 'Medicines', icon: Pill },
-          { to: '/profile', label: 'Profile', icon: User },
+          { to: '/', labelKey: 'nav.home', icon: Home },
+          { to: '/records', labelKey: 'nav.records', icon: FileText },
+          { to: '/medicines', labelKey: 'nav.medicines', icon: Pill },
+          { to: '/profile', labelKey: 'nav.profile', icon: User },
         ];
     }
   };
@@ -84,7 +99,7 @@ const BottomNav = () => {
             }
           >
             <IconComponent size={20} className="stroke-[2.25]" />
-            <span className="text-[11px] tracking-wide">{item.label}</span>
+            <span className="text-[11px] tracking-wide">{t(item.labelKey)}</span>
           </NavLink>
         );
       })}

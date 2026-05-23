@@ -1,0 +1,36 @@
+import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import UserProfile from '../UserProfile';
+
+global.fetch = vi.fn();
+
+describe('UserProfile Component', () => {
+  it('renders user details when fetched successfully', async () => {
+    const mockUser = {
+      name: 'Dr. Jane Smith',
+      role: 'doctor',
+      email: 'jane.smith@telemed.org',
+      hospitalId: 'HOSP-101',
+    };
+    
+    (global as any).mockFetchJson(mockUser);
+    
+    render(<UserProfile />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Dr. Jane Smith')).toBeInTheDocument();
+      expect(screen.getByText('doctor')).toBeInTheDocument();
+      expect(screen.getByText('jane.smith@telemed.org')).toBeInTheDocument();
+    });
+  });
+
+  it('handles error states if fetching fails', async () => {
+    (global as any).mockFetchJson({}, { ok: false });
+    
+    render(<UserProfile />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('common.error')).toBeInTheDocument();
+    });
+  });
+});

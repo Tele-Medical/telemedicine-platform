@@ -97,3 +97,32 @@ def update_appointment(
     db.commit()
     db.refresh(appt)
     return appt
+
+@router.get("/queue")
+def get_doctor_queue(
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """Retrieve appointments for the current doctor with patient names."""
+    if current_user.default_role not in ["doctor", "practitioner", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    practitioner = db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
+    if not practitioner and current_user.default_role != "admin":
+        raise HTTPException(status_code=403, detail="Practitioner profile not found")
+
+    query = db.query(Appointment, Patient.full_name).join(Patient, Appointment.patient_id == Patient.id)
+    if practitioner:
+        query = query.filter(Appointment.practitioner_id == practitioner.id)
+    
+    results = query.all()
+    
+    return [
+        {
+            "id": str(appt.id),
+            "patientName": full_name,
+            "time": appt.scheduled_for.isoformat() if appt.scheduled_for else appt.created_at.isoformat(),
+            "status": appt.status
+        }
+        for appt, full_name in results
+    ]

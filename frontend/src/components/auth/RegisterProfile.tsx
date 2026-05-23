@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { authService } from '../../api/services';
 import { User, Globe, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface RegisterProfileProps {
   onComplete: () => void;
 }
 
 const RegisterProfile: React.FC<RegisterProfileProps> = ({ onComplete }) => {
+  const { t, i18n } = useTranslation();
   const [fullName, setFullName] = useState('');
   const [language, setLanguage] = useState('pa'); // Default Punjabi
   const [loading, setLoading] = useState(false);
@@ -45,9 +47,9 @@ const RegisterProfile: React.FC<RegisterProfileProps> = ({ onComplete }) => {
           <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4 border border-primary/20 shadow-inner">
             <User size={30} className="stroke-[2.25] animate-pulse" />
           </div>
-          <h2 className="text-2xl font-bold text-neutral-900 mb-2">Complete Your Profile</h2>
+          <h2 className="text-2xl font-bold text-neutral-900 mb-2">{t('auth.register_title')}</h2>
           <p className="text-neutral-500 text-sm max-w-xs mx-auto">
-            Please enter your name to register your digital health account.
+            {t('auth.enter_name', 'Please enter your name to register your digital health account.')}
           </p>
         </div>
 
@@ -62,7 +64,7 @@ const RegisterProfile: React.FC<RegisterProfileProps> = ({ onComplete }) => {
           {/* Full Name Input */}
           <div>
             <label htmlFor="fullName" className="block text-sm font-semibold text-neutral-700 mb-1.5">
-              Full Name
+              {t('auth.full_name')}
             </label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-neutral-400">
@@ -73,7 +75,7 @@ const RegisterProfile: React.FC<RegisterProfileProps> = ({ onComplete }) => {
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Enter your name (e.g. Aditya)"
+                placeholder={t('auth.full_name')}
                 className="w-full pl-11 pr-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-neutral-900 placeholder-neutral-400 text-base"
                 maxLength={50}
                 required
@@ -85,7 +87,7 @@ const RegisterProfile: React.FC<RegisterProfileProps> = ({ onComplete }) => {
           {/* Preferred Language Input */}
           <div>
             <label htmlFor="language" className="block text-sm font-semibold text-neutral-700 mb-1.5">
-              Preferred Language
+              {t('profile.primary_language')}
             </label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-neutral-400">
@@ -94,13 +96,16 @@ const RegisterProfile: React.FC<RegisterProfileProps> = ({ onComplete }) => {
               <select
                 id="language"
                 value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="w-full pl-11 pr-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-neutral-900 text-base appearance-none cursor-pointer"
+                onChange={(e) => {
+                  setLanguage(e.target.value);
+                  i18n.changeLanguage(e.target.value);
+                }}
+                className="w-full pl-11 pr-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-neutral-900 text-base appearance-none cursor-pointer font-bold"
                 disabled={loading}
               >
-                <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
-                <option value="en">English</option>
-                <option value="hi">Hindi (हिन्दी)</option>
+                <option value="pa">{t('profile.lang_pa')}</option>
+                <option value="hi">{t('profile.lang_hi')}</option>
+                <option value="en">{t('profile.lang_en')}</option>
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-neutral-400">
                 <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
@@ -116,7 +121,7 @@ const RegisterProfile: React.FC<RegisterProfileProps> = ({ onComplete }) => {
             disabled={fullName.trim().length < 2 || loading}
             className="w-full bg-primary hover:bg-primary-700 active:scale-[0.98] text-white py-3.5 rounded-full font-semibold text-base shadow-md shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
           >
-            {loading ? 'Completing Registration...' : 'Complete Profile'}
+            {loading ? t('auth.sending') : t('auth.save_profile')}
           </button>
         </form>
       </div>

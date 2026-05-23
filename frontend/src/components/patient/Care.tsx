@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Heart, Phone, MapPin, Calendar, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const Care: React.FC = () => {
+  const { t } = useTranslation();
   const [subscribedPrograms, setSubscribedPrograms] = useState<string[]>(['hypertension']);
 
   const toggleProgram = (id: string) => {
@@ -13,15 +15,15 @@ const Care: React.FC = () => {
   };
 
   return (
-    <div className="animate-fade-in pb-12">
+    <div className="animate-fade-in pb-12 text-neutral-900">
       <header className="mb-6 mt-2">
-        <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">Care Programs</h1>
-        <p className="text-neutral-500 text-sm mt-1">Manage your active village health programs and community support.</p>
+        <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">{t('clinical.care_programs', 'Care Programs')}</h1>
+        <p className="text-neutral-500 text-sm mt-1">{t('clinical.care_programs_desc', 'Manage your active village health programs and community support.')}</p>
       </header>
 
       {/* Primary ASHA Worker Contact Card */}
       <section className="bg-white rounded-2xl p-5 shadow-[0_1px_3px_rgba(15,23,42,0.06)] border border-neutral-200/60 mb-6">
-        <h2 className="text-sm font-bold text-neutral-500 uppercase tracking-wider mb-4">Assigned Community Health Worker</h2>
+        <h2 className="text-sm font-bold text-neutral-500 uppercase tracking-wider mb-4">{t('asha.assigned_worker')}</h2>
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg">
             SK
@@ -47,15 +49,15 @@ const Care: React.FC = () => {
       <section className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl p-5 border border-primary/15 mb-6">
         <div className="flex gap-4">
           <div className="w-12 h-12 rounded-xl bg-primary text-white flex flex-col items-center justify-center font-bold text-xs uppercase shadow-sm">
-            <span className="text-[10px] opacity-90">Oct</span>
+            <span className="text-[10px] opacity-90">{t('common.oct', 'Oct')}</span>
             <span className="text-lg leading-none -mt-0.5">30</span>
           </div>
           <div className="flex-1">
             <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black tracking-wider uppercase bg-primary text-white">
-              Upcoming Camp
+              {t('clinical.upcoming_camp')}
             </span>
-            <h3 className="text-base font-bold text-neutral-900 mt-2">Maternal & General Health Screening Drive</h3>
-            <p className="text-xs text-neutral-600 mt-1">Free doctor consultations, vital checks, and medicine distribution.</p>
+            <h3 className="text-base font-bold text-neutral-900 mt-2">{t('clinical.camp_title')}</h3>
+            <p className="text-xs text-neutral-600 mt-1">{t('clinical.camp_desc')}</p>
             <div className="flex items-center gap-4 text-xs text-neutral-500 mt-3 font-semibold">
               <span className="flex items-center gap-1">
                 <Calendar size={13} />
@@ -72,7 +74,7 @@ const Care: React.FC = () => {
 
       {/* Community Health Programs */}
       <section className="space-y-4">
-        <h2 className="text-sm font-bold text-neutral-500 uppercase tracking-wider">Available Health Subscriptions</h2>
+        <h2 className="text-sm font-bold text-neutral-500 uppercase tracking-wider">{t('clinical.available_subscriptions')}</h2>
         <div className="grid gap-4">
           
           {/* Program 1 */}
@@ -81,8 +83,8 @@ const Care: React.FC = () => {
               <Heart size={20} className="stroke-[2.25]" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-neutral-900">Hypertension Management Program</h3>
-              <p className="text-xs text-neutral-500 mt-1">Weekly BP monitoring by ASHA, diet tracking, and automated refill alerts.</p>
+              <h3 className="text-sm font-bold text-neutral-900">{t('clinical.program_hypertension')}</h3>
+              <p className="text-xs text-neutral-500 mt-1">{t('clinical.program_hypertension_desc')}</p>
               <button 
                 onClick={() => toggleProgram('hypertension')}
                 className={`mt-3 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
@@ -94,10 +96,10 @@ const Care: React.FC = () => {
                 {subscribedPrograms.includes('hypertension') ? (
                   <>
                     <CheckCircle2 size={13} />
-                    <span>Subscribed</span>
+                    <span>{t('clinical.subscribed')}</span>
                   </>
                 ) : (
-                  <span>Subscribe Program</span>
+                  <span>{t('clinical.subscribe_program')}</span>
                 )}
               </button>
             </div>
@@ -109,8 +111,8 @@ const Care: React.FC = () => {
               <ShieldAlert size={20} className="stroke-[2.25]" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-neutral-900">Diabetes Wellness Plan</h3>
-              <p className="text-xs text-neutral-500 mt-1">Monthly blood glucose screenings, lifestyle coaching, and medication compliance check-ins.</p>
+              <h3 className="text-sm font-bold text-neutral-900">{t('clinical.program_diabetes')}</h3>
+              <p className="text-xs text-neutral-500 mt-1">{t('clinical.program_diabetes_desc')}</p>
               <button 
                 onClick={() => toggleProgram('diabetes')}
                 className={`mt-3 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
@@ -122,10 +124,10 @@ const Care: React.FC = () => {
                 {subscribedPrograms.includes('diabetes') ? (
                   <>
                     <CheckCircle2 size={13} />
-                    <span>Subscribed</span>
+                    <span>{t('clinical.subscribed')}</span>
                   </>
                 ) : (
-                  <span>Subscribe Program</span>
+                  <span>{t('clinical.subscribe_program')}</span>
                 )}
               </button>
             </div>

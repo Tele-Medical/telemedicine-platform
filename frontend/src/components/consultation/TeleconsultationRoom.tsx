@@ -2,90 +2,97 @@ import React, { useState } from 'react';
 import VideoFeed from './VideoFeed';
 import PatientRecordsPanel from './PatientRecordsPanel';
 import PrescriptionComposer from './PrescriptionComposer';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface TeleconsultationRoomProps {
   userRole?: string;
+  appointmentId?: string;
+  token?: string;
 }
 
-const TeleconsultationRoom: React.FC<TeleconsultationRoomProps> = ({ userRole = 'practitioner' }) => {
+const TeleconsultationRoom: React.FC<TeleconsultationRoomProps> = ({ 
+  userRole = 'practitioner', 
+  appointmentId: propAppointmentId
+}) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'records' | 'prescription'>('records');
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const appointmentId = searchParams.get('appointmentId') || '11111111-2222-3333-4444-555555555555';
+  const [appointmentId] = useState(() => {
+    return propAppointmentId || searchParams.get('appointmentId') || (
+      typeof crypto !== 'undefined' && crypto.randomUUID 
+        ? crypto.randomUUID() 
+        : Math.random().toString(36).substring(2) + '-' + Date.now()
+    );
+  });
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-background">
-      
-      {/* Top Header - Context */}
-      <div className="absolute top-0 left-0 w-full p-4 z-10 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent">
-        <button 
-          onClick={() => navigate('/')}
-          aria-label="Exit consultation and return to dashboard"
-          className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-        </button>
-      </div>
-
-      {/* Top Section - Video */}
+    <div className="flex flex-col h-[100dvh] bg-neutral-50 text-neutral-900 font-sans">
+      {/* Top Section - Video Call */}
       <div className="flex-none">
         <VideoFeed appointmentId={appointmentId} userRole={userRole} />
       </div>
 
       {/* Bottom Section - Interactive Panel */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-background">
-        
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Tab Navigation */}
-        <div 
+        <div
           role="tablist"
           aria-label="Clinical information panels"
-          className="flex p-4 gap-2 border-b border-black/5 bg-background sticky top-0 z-10"
+          className="flex p-4 gap-2 border-b border-neutral-200 bg-white sticky top-0 z-10"
         >
-          <button 
+          <button
             id="tab-records"
             role="tab"
             aria-selected={activeTab === 'records'}
             aria-controls="panel-records"
             onClick={() => setActiveTab('records')}
-            className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-colors ${activeTab === 'records' ? 'bg-primary text-white shadow-md' : 'bg-surface text-text-secondary hover:bg-surface-dim'}`}
+            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${
+              activeTab === 'records'
+                ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
+            }`}
           >
-            Records
+            {t('nav.records')}
           </button>
           {userRole !== 'patient' && (
-            <button 
+            <button
               id="tab-prescription"
               role="tab"
               aria-selected={activeTab === 'prescription'}
               aria-controls="panel-prescription"
               onClick={() => setActiveTab('prescription')}
-              className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-colors ${activeTab === 'prescription' ? 'bg-primary text-white shadow-md' : 'bg-surface text-text-secondary hover:bg-surface-dim'}`}
+              className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${
+                activeTab === 'prescription'
+                  ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                  : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
+              }`}
             >
-              Prescription
+              {t('clinical.prescription')}
             </button>
           )}
         </div>
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto p-4">
-          <div 
-            id="panel-records"
-            role="tabpanel"
-            aria-labelledby="tab-records"
-            hidden={activeTab !== 'records'}
-            className={activeTab === 'records' ? 'block' : 'hidden'}
-          >
-            <PatientRecordsPanel />
-          </div>
-          {userRole !== 'patient' && (
-            <div 
+          {activeTab === 'records' && (
+            <div
+              id="panel-records"
+              role="tabpanel"
+              aria-labelledby="tab-records"
+              className="animate-fade-in"
+            >
+              <PatientRecordsPanel />
+            </div>
+          )}
+          {userRole !== 'patient' && activeTab === 'prescription' && (
+            <div
               id="panel-prescription"
               role="tabpanel"
               aria-labelledby="tab-prescription"
-              hidden={activeTab !== 'prescription'}
-              className={activeTab === 'prescription' ? 'block' : 'hidden'}
+              className="animate-fade-in"
             >
-              <PrescriptionComposer />
+              <PrescriptionComposer appointmentId={appointmentId} />
             </div>
           )}
         </div>

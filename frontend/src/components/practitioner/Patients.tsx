@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Phone, Activity, Calendar } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface PatientRecord {
   id: string;
@@ -13,6 +14,7 @@ interface PatientRecord {
 }
 
 const Patients: React.FC = () => {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [patients] = useState<PatientRecord[]>([
     {
@@ -53,10 +55,10 @@ const Patients: React.FC = () => {
   );
 
   return (
-    <div className="animate-fade-in pb-12">
+    <div className="animate-fade-in pb-12 text-neutral-900">
       <header className="mb-6 mt-2">
-        <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">Patient Directory</h1>
-        <p className="text-neutral-500 text-sm mt-1">Access secure medical records, health card status, and case files for registered clinic patients.</p>
+        <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">{t('nav.patients')}</h1>
+        <p className="text-neutral-500 text-sm mt-1">{t('profile.subtitle')}</p>
       </header>
 
       {/* Search Bar */}
@@ -68,7 +70,7 @@ const Patients: React.FC = () => {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search patients by name or phone..."
+          placeholder={t('nav.search')}
           className="w-full pl-11 pr-4 py-3 bg-white border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-neutral-900 text-sm"
         />
       </div>
@@ -77,7 +79,7 @@ const Patients: React.FC = () => {
       <div className="grid grid-cols-1 gap-4">
         {filteredPatients.length === 0 ? (
           <div className="bg-white rounded-2xl border border-neutral-200/60 p-8 text-center text-neutral-500">
-            No patients found matching your search.
+            {t('clinical.no_medical_records')}
           </div>
         ) : (
           filteredPatients.map((patient) => (
@@ -93,7 +95,7 @@ const Patients: React.FC = () => {
                     <span>•</span>
                     <span>{patient.age} Yrs</span>
                     <span>•</span>
-                    <span>Blood Group: <strong className="text-neutral-700">{patient.bloodGroup}</strong></span>
+                    <span>{t('clinical.blood_group')}: <strong className="text-neutral-700">{patient.bloodGroup}</strong></span>
                   </div>
                 </div>
               </div>
@@ -101,7 +103,7 @@ const Patients: React.FC = () => {
               {/* Vitals Summary and Phone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:flex items-center gap-x-6 gap-y-2 border-t md:border-t-0 border-neutral-100 pt-4 md:pt-0">
                 <div className="space-y-1">
-                  <span className="text-[10px] text-neutral-400 font-black tracking-wider uppercase block">CONTACT</span>
+                  <span className="text-[10px] text-neutral-400 font-black tracking-wider uppercase block">{t('auth.phone_label')}</span>
                   <div className="text-xs font-bold text-neutral-700 flex items-center gap-1.5">
                     <Phone size={13} className="text-neutral-400" />
                     <span>{patient.phone}</span>
@@ -109,7 +111,7 @@ const Patients: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <span className="text-[10px] text-neutral-400 font-black tracking-wider uppercase block">LAST TRIP</span>
+                  <span className="text-[10px] text-neutral-400 font-black tracking-wider uppercase block">{t('clinical.latest_vitals')}</span>
                   <div className="text-xs font-bold text-neutral-700 flex items-center gap-1.5">
                     <Calendar size={13} className="text-neutral-400" />
                     <span>{patient.lastVisit}</span>
@@ -117,7 +119,7 @@ const Patients: React.FC = () => {
                 </div>
 
                 <div className="space-y-1 sm:col-span-2">
-                  <span className="text-[10px] text-neutral-400 font-black tracking-wider uppercase block">RECENT VITALS</span>
+                  <span className="text-[10px] text-neutral-400 font-black tracking-wider uppercase block">{t('clinical.recent_vitals')}</span>
                   <div className="text-xs font-bold text-primary flex items-center gap-1.5">
                     <Activity size={13} className="text-primary/70 animate-pulse" />
                     <span>{patient.vitalsSummary}</span>

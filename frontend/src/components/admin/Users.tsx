@@ -1,15 +1,18 @@
 import React from 'react';
 import { Users as UsersIcon, PlusCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const Users: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+
   return (
-    <div className="animate-fade-in pb-12">
+    <div className="animate-fade-in pb-12 text-neutral-900 font-sans">
       <header className="mb-6 mt-2 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">User Account Credentials</h1>
-          <p className="text-neutral-500 text-sm mt-1">Audit security roles, practitioner registrations, and administrative portal keys.</p>
+          <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">{t('admin.users_title')}</h1>
+          <p className="text-neutral-500 text-sm mt-1">{t('admin.users_desc')}</p>
         </div>
       </header>
 
@@ -17,14 +20,14 @@ const Users: React.FC = () => {
         <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
           <UsersIcon size={30} className="stroke-[2.25]" />
         </div>
-        <h2 className="text-lg font-bold text-neutral-900">User Management Console</h2>
-        <p className="text-neutral-500 text-sm mt-1 max-w-sm">Manage, authorize, and audit credential layers for clinicians, pharmacists, and health assistants.</p>
+        <h2 className="text-lg font-bold text-neutral-900">{t('admin.user_mgmt')}</h2>
+        <p className="text-neutral-500 text-sm mt-1 max-w-sm">{t('admin.user_mgmt_desc')}</p>
         
         <button 
           onClick={() => navigate('/admin/users/new')}
-          className="mt-6 flex items-center gap-2 bg-primary hover:bg-primary-700 active:scale-[0.98] transition-all text-white font-bold text-sm px-6 py-3 rounded-full shadow-md shadow-primary/10">
+          className="mt-6 flex items-center gap-2 bg-primary hover:bg-primary-700 active:scale-[0.98] transition-all text-white font-bold text-sm px-6 py-3 rounded-full shadow-md shadow-primary/10 outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
           <PlusCircle size={14} />
-          <span>Register New Portal User</span>
+          <span>{t('admin.register_user')}</span>
         </button>
       </div>
     </div>

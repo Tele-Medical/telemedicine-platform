@@ -333,6 +333,7 @@ def test_patch_me_profile_success(client: TestClient, db_session: Session):
     assert patient is not None
     assert patient.full_name == "Test Aditya"
     assert patient.preferred_language == "pa"
+    assert str(patient.created_by_user_id) == data["id"]
 
 
 def test_patch_me_profile_invalid_name_422(client: TestClient):
