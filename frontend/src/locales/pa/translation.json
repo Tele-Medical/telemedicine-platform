@@ -1,0 +1,47 @@
+{
+  "app": {
+    "title": "ਨਾਭਾ ਟੈਲੀਮੈਡੀਸਨ ਪਲੇਟਫਾਰਮ",
+    "offline_notice": "ਔਫਲਾਈਨ ਮੋਡ ਸਰਗਰਮ",
+    "syncing": "ਡੇਟਾ ਸਿੰਕ ਹੋ ਰਿਹਾ ਹੈ...",
+    "online": "ਔਨਲਾਈਨ"
+  },
+  "nav": {
+    "home": "ਮੁੱਖ ਪੰਨਾ",
+    "records": "ਰਿਕਾਰਡ",
+    "medicines": "ਦਵਾਈਆਂ",
+    "profile": "ਪ੍ਰੋਫਾਈਲ",
+    "queue": "ਲਾਈਨ",
+    "consults": "ਸਲਾਹਾਂ",
+    "patients": "ਮਰੀਜ਼",
+    "prescriptions": "ਪਰਚੇ",
+    "assisted": "ਸਹਾਇਤਾ",
+    "appointments": "ਅਪੌਇੰਟਮੈਂਟ",
+    "sync": "ਸਿੰਕ",
+    "fulfill": "ਦਵਾਈਆਂ ਦੇਣਾ",
+    "inventory": "ਇਨਵੈਂਟਰੀ",
+    "search": "ਖੋਜ",
+    "overview": "ਸੰਖੇਪ",
+    "users": "ਯੂਜ਼ਰਸ",
+    "clinics": "ਕਲੀਨਿਕ"
+  },
+  "auth": {
+    "staff_portal": "ਸਟਾਫ ਪੋਰਟਲ",
+    "username": "ਯੂਜ਼ਰਨਾਮ",
+    "password": "ਪਾਸਵਰਡ",
+    "login": "ਲੌਗਇਨ",
+    "username_required": "ਯੂਜ਼ਰਨਾਮ ਲੋੜੀਂਦਾ ਹੈ",
+    "password_required": "ਪਾਸਵਰਡ ਲੋੜੀਂਦਾ ਹੈ"
+  },
+  "clinical": {
+    "vitals": "ਵਾਈਟਲਸ (ਲੱਛਣ)",
+    "conditions": "ਬੀਮਾਰੀਆਂ",
+    "allergies": "ਐਲਰਜੀ",
+    "heart_rate": "ਦਿਲ ਦੀ ਧੜਕਣ (bpm)",
+    "blood_pressure": "ਬਲੱਡ ਪ੍ਰੈਸ਼ਰ (ਬੀਪੀ)",
+    "save_vitals": "ਲੱਛਣ ਸੁਰੱਖਿਅਤ ਕਰੋ",
+    "condition_name": "ਬੀਮਾਰੀ ਦਾ ਨਾਮ",
+    "add_condition": "ਬੀਮਾਰੀ ਜੋੜੋ",
+    "allergy_substance": "ਐਲਰਜੀ ਵਾਲੀ ਚੀਜ਼",
+    "add_allergy": "ਐਲਰਜੀ ਜੋੜੋ"
+  }
+}

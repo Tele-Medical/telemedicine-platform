@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { db, OutboxOperation } from '../db/db';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import { db } from '../db/db';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 
 export interface Conflict {

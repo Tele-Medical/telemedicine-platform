@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 interface Props {
   patientId: string;
 }
 
-export function ABHALink({ patientId }: Props) {
+export function ABHALink({ patientId: _patientId }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [abhaAddress, setAbhaAddress] = useState('');
   const [otp, setOtp] = useState('');

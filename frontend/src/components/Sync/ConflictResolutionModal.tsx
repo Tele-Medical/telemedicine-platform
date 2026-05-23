@@ -1,5 +1,5 @@
-import React from 'react';
-import { Conflict } from '../../contexts/SyncContext';
+import { useEffect, useRef } from 'react';
+import type { Conflict } from '../../contexts/SyncContext';
 
 interface Props {
   conflict: Conflict;
@@ -7,11 +7,28 @@ interface Props {
 }
 
 export function ConflictResolutionModal({ conflict, onResolve }: Props) {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Focus the modal container on mount for keyboard usability
+    modalRef.current?.focus();
+  }, []);
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+    <div 
+      ref={modalRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dialog-title"
+      aria-describedby="dialog-desc"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 outline-none"
+    >
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
-        <h2 className="text-xl font-bold mb-4 text-red-600">Data Conflict Detected</h2>
-        <p className="text-gray-600 mb-6">
+        <h2 id="dialog-title" className="text-xl font-bold mb-4 text-red-600">
+          Data Conflict Detected
+        </h2>
+        <p id="dialog-desc" className="text-gray-600 mb-6">
           Another user modified this {conflict.entity_type} while you were offline. Please choose which version to keep.
         </p>
 
@@ -23,7 +40,8 @@ export function ConflictResolutionModal({ conflict, onResolve }: Props) {
             </pre>
             <button
               onClick={() => onResolve(conflict.conflict_id, 'keep_local', conflict.local_data)}
-              className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              aria-label="Keep your local offline modifications"
             >
               Keep Local
             </button>
@@ -36,7 +54,8 @@ export function ConflictResolutionModal({ conflict, onResolve }: Props) {
             </pre>
             <button
               onClick={() => onResolve(conflict.conflict_id, 'keep_server', conflict.server_data)}
-              className="mt-4 w-full bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700"
+              className="mt-4 w-full bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+              aria-label="Overwrite local changes with server data"
             >
               Keep Server
             </button>

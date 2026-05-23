@@ -1,0 +1,47 @@
+{
+  "app": {
+    "title": "Nabha Telemedicine Platform",
+    "offline_notice": "Offline Mode Enabled",
+    "syncing": "Syncing Data...",
+    "online": "Connected"
+  },
+  "nav": {
+    "home": "Home",
+    "records": "Records",
+    "medicines": "Medicines",
+    "profile": "Profile",
+    "queue": "Queue",
+    "consults": "Consults",
+    "patients": "Patients",
+    "prescriptions": "Prescriptions",
+    "assisted": "Assisted",
+    "appointments": "Appts",
+    "sync": "Sync",
+    "fulfill": "Fulfill",
+    "inventory": "Inventory",
+    "search": "Search",
+    "overview": "Overview",
+    "users": "Users",
+    "clinics": "Clinics"
+  },
+  "auth": {
+    "staff_portal": "Staff Portal",
+    "username": "Username",
+    "password": "Password",
+    "login": "Login",
+    "username_required": "Username is required",
+    "password_required": "Password is required"
+  },
+  "clinical": {
+    "vitals": "Vitals",
+    "conditions": "Conditions",
+    "allergies": "Allergies",
+    "heart_rate": "Heart Rate (bpm)",
+    "blood_pressure": "Blood Pressure",
+    "save_vitals": "Save Vitals",
+    "condition_name": "Condition Name",
+    "add_condition": "Add Condition",
+    "allergy_substance": "Allergy Substance",
+    "add_allergy": "Add Allergy"
+  }
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface Props {
   patientId: string;
@@ -9,6 +9,13 @@ export function ConsentFormModal({ patientId, onComplete }: Props) {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Focus container on mount for screen readers and keyboard users
+    modalRef.current?.focus();
+  }, []);
 
   const handleSubmit = async () => {
     if (!agreed) return;
@@ -36,11 +43,21 @@ export function ConsentFormModal({ patientId, onComplete }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div 
+      ref={modalRef}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="consent-title"
+      aria-describedby="consent-desc"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 outline-none"
+    >
       <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">Digital Consent Form</h2>
+        <h2 id="consent-title" className="text-2xl font-bold mb-4 text-gray-800">
+          Digital Consent Form
+        </h2>
         
-        <div className="bg-gray-50 border p-4 rounded text-sm text-gray-700 h-48 overflow-y-auto mb-6">
+        <div id="consent-desc" className="bg-gray-50 border p-4 rounded text-sm text-gray-700 h-48 overflow-y-auto mb-6">
           <p className="mb-2">By checking the box below, you (the patient or authorized guardian) agree to the following:</p>
           <ul className="list-disc pl-5 space-y-2">
             <li>I consent to the storage and processing of my Personal Health Information (PHI) by this telemedicine platform.</li>
@@ -57,7 +74,8 @@ export function ConsentFormModal({ patientId, onComplete }: Props) {
             type="checkbox"
             checked={agreed}
             onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-1 w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+            className="mt-1 w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 focus:ring-offset-2 outline-none"
+            aria-label="I agree to the consent terms"
           />
           <span className="text-gray-800 font-medium">
             I consent to the storage and processing of my data for clinical purposes.
@@ -67,7 +85,7 @@ export function ConsentFormModal({ patientId, onComplete }: Props) {
         <button
           onClick={handleSubmit}
           disabled={!agreed || loading}
-          className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg shadow hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg shadow hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
         >
           {loading ? 'Recording Consent...' : 'Agree & Continue'}
         </button>

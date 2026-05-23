@@ -50,6 +50,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/setupTests.ts',
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
   },
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any)

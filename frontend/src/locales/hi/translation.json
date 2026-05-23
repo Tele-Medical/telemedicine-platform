@@ -1,0 +1,47 @@
+{
+  "app": {
+    "title": "नाभा टेलीमेडिसिन प्लेटफॉर्म",
+    "offline_notice": "ऑफ़लाइन मोड सक्रिय",
+    "syncing": "डेटा सिंक हो रहा है...",
+    "online": "ऑनलाइन"
+  },
+  "nav": {
+    "home": "मुख्य पृष्ठ",
+    "records": "रिकॉर्ड",
+    "medicines": "दवाइयाँ",
+    "profile": "प्रोफ़ाइल",
+    "queue": "कतार",
+    "consults": "परामर्श",
+    "patients": "मरीज",
+    "prescriptions": "पर्चे",
+    "assisted": "सहायता प्राप्त",
+    "appointments": "अपॉइंटमेंट",
+    "sync": "सिंक",
+    "fulfill": "वितरण",
+    "inventory": "इन्वेंटरी",
+    "search": "खोज",
+    "overview": "अवलोकन",
+    "users": "उपयोगकर्ता",
+    "clinics": "क्लिनिक"
+  },
+  "auth": {
+    "staff_portal": "स्टाफ पोर्टल",
+    "username": "उपयोगकर्ता नाम",
+    "password": "पासवर्ड",
+    "login": "लॉगिन",
+    "username_required": "उपयोगकर्ता नाम आवश्यक है",
+    "password_required": "पासवर्ड आवश्यक है"
+  },
+  "clinical": {
+    "vitals": "वाइटल्स (लक्षण)",
+    "conditions": "बीमारियां",
+    "allergies": "एलर्जी",
+    "heart_rate": "दिल की धड़कन (bpm)",
+    "blood_pressure": "रक्तचाप (बीपी)",
+    "save_vitals": "लक्षण सहेजें",
+    "condition_name": "बीमारी का नाम",
+    "add_condition": "बीमारी जोड़ें",
+    "allergy_substance": "एलर्जी पदार्थ",
+    "add_allergy": "एलर्जी जोड़ें"
+  }
+}
