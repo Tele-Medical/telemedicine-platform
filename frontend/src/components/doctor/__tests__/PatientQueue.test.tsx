@@ -7,7 +7,7 @@ global.fetch = vi.fn();
 
 describe('PatientQueue Component', () => {
   it('displays loading state initially', () => {
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     });
@@ -22,7 +22,7 @@ describe('PatientQueue Component', () => {
       { id: '2', patientName: 'Jane Smith', time: '10:30 AM', status: 'waiting' },
     ];
     
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => mockAppointments,
     });
@@ -36,7 +36,7 @@ describe('PatientQueue Component', () => {
   });
 
   it('shows empty state message if no appointments exist', async () => {
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     });

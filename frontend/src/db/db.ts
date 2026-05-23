@@ -1,23 +1,22 @@
 import Dexie, { type Table } from 'dexie';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface OutboxOperation {
   id?: number;
   operation_id: string;
   entity_type: string;
   entity_id: string;
   action: string;
-  payload: any;
+  payload: Record<string, unknown>;
   created_at: string;
 }
 
 export class TelemedicineDB extends Dexie {
-  patients!: Table<any, string>;
-  appointments!: Table<any, string>;
-  observations!: Table<any, string>;
-  allergies!: Table<any, string>;
-  conditions!: Table<any, string>;
-  medication_requests!: Table<any, string>;
+  patients!: Table<Record<string, unknown>, string>;
+  appointments!: Table<Record<string, unknown>, string>;
+  observations!: Table<Record<string, unknown>, string>;
+  allergies!: Table<Record<string, unknown>, string>;
+  conditions!: Table<Record<string, unknown>, string>;
+  medication_requests!: Table<Record<string, unknown>, string>;
   outbox!: Table<OutboxOperation, number>;
 
   constructor() {

@@ -21,7 +21,7 @@ describe('ConsentFormModal', () => {
 
   it('should POST consent to API on submit', async () => {
     const onComplete = vi.fn();
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ status: 'success' })
     });

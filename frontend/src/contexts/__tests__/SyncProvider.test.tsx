@@ -37,7 +37,7 @@ describe('SyncProvider', () => {
       created_at: new Date().toISOString()
     });
 
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ processed_count: 1 })
     });
@@ -71,7 +71,7 @@ describe('SyncProvider', () => {
     });
 
     // Mock 409 Conflict
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
       status: 409,
       json: async () => ({
@@ -108,7 +108,7 @@ describe('SyncProvider', () => {
     });
 
     // Mock 409 Conflict where server ONLY changed allergies, not phone
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
       status: 409,
       json: async () => ({
@@ -120,7 +120,7 @@ describe('SyncProvider', () => {
     });
 
     // Mock successful push after auto-resolution
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ message: 'Resolved successfully' })
     });

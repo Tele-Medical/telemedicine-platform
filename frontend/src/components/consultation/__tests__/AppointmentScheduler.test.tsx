@@ -7,7 +7,7 @@ global.fetch = vi.fn();
 describe('AppointmentScheduler Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (global.fetch as any).mockImplementation((url: string) => {
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
       if (url.includes('/api/v1/practitioners')) {
         return Promise.resolve({
           ok: true,

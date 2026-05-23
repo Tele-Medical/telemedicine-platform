@@ -12,7 +12,7 @@ describe('EncounterClosureForm Component', () => {
   });
 
   it('submits the encounter summary to the backend', async () => {
-    (global.fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) });
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, json: async () => ({}) });
 
     render(<EncounterClosureForm encounterId="enc-1" />);
     

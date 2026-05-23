@@ -6,7 +6,7 @@ global.fetch = vi.fn();
 
 describe('UserProfile Component', () => {
   it('displays a loading state initially', () => {
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({}),
     });
@@ -23,7 +23,7 @@ describe('UserProfile Component', () => {
       hospitalId: 'HOSP-101',
     };
     
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => mockUser,
     });
@@ -38,7 +38,7 @@ describe('UserProfile Component', () => {
   });
 
   it('handles error states if fetching fails', async () => {
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
     });
     

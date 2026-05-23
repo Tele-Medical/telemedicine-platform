@@ -9,14 +9,16 @@ global.WebSocket = vi.fn().mockImplementation(() => ({
   close: vi.fn(),
   addEventListener: vi.fn(),
   removeEventListener: vi.fn(),
-})) as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+})) as unknown as any;
 
 global.RTCPeerConnection = vi.fn().mockImplementation(() => ({
   createOffer: vi.fn().mockResolvedValue({ type: 'offer', sdp: 'mock-sdp' }),
   setLocalDescription: vi.fn(),
   addEventListener: vi.fn(),
   close: vi.fn(),
-})) as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+})) as unknown as any;
 
 vi.mock('./VideoFeed', () => ({
   default: () => <div data-testid="video-feed">Video Feed</div>

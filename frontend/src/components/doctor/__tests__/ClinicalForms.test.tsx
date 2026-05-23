@@ -13,7 +13,7 @@ describe('ClinicalForms Component', () => {
   });
 
   it('can submit new vitals data', async () => {
-    (global.fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) });
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, json: async () => ({}) });
 
     render(<ClinicalForms patientId="patient-123" />);
     
@@ -32,7 +32,7 @@ describe('ClinicalForms Component', () => {
   });
 
   it('can add a new allergy', async () => {
-    (global.fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) });
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, json: async () => ({}) });
 
     render(<ClinicalForms patientId="patient-123" />);
     

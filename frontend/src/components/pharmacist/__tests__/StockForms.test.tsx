@@ -12,7 +12,7 @@ describe('StockForms Component', () => {
   });
 
   it('can submit a stock intake form', async () => {
-    (global.fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) });
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, json: async () => ({}) });
 
     render(<StockForms />);
     

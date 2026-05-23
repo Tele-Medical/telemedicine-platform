@@ -128,10 +128,10 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <div className="flex bg-gray-50 border-b border-gray-200">
-        {['vitals', 'conditions', 'allergies'].map(tab => (
+        {(['vitals', 'conditions', 'allergies'] as const).map(tab => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab as any)}
+            onClick={() => setActiveTab(tab)}
             className={`flex-1 py-3 px-4 text-sm font-bold uppercase tracking-wider transition-colors ${
               activeTab === tab 
                 ? 'bg-white text-blue-700 border-t-2 border-blue-600 shadow-sm z-10' 

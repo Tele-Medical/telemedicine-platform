@@ -35,8 +35,12 @@ export function ConsentFormModal({ patientId, onComplete }: Props) {
       if (!res.ok) throw new Error('Failed to record consent');
       
       onComplete();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to record consent');
+      }
     } finally {
       setLoading(false);
     }

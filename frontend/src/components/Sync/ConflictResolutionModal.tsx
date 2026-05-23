@@ -3,7 +3,7 @@ import type { Conflict } from '../../contexts/SyncContext';
 
 interface Props {
   conflict: Conflict;
-  onResolve: (conflictId: string, resolution: 'keep_local' | 'keep_server', mergedData?: any) => void;
+  onResolve: (conflictId: string, resolution: 'keep_local' | 'keep_server', mergedData?: Record<string, unknown>) => void;
 }
 
 export function ConflictResolutionModal({ conflict, onResolve }: Props) {

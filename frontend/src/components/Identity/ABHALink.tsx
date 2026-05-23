@@ -4,7 +4,7 @@ interface Props {
   patientId: string;
 }
 
-export function ABHALink({ patientId: _patientId }: Props) {
+export function ABHALink({ patientId }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [abhaAddress, setAbhaAddress] = useState('');
   const [otp, setOtp] = useState('');
@@ -13,6 +13,7 @@ export function ABHALink({ patientId: _patientId }: Props) {
   const [loading, setLoading] = useState(false);
 
   const handleSearch = async () => {
+    console.log('Searching ABHA for patient:', patientId);
     setLoading(true);
     setError('');
     try {
@@ -38,8 +39,12 @@ export function ABHALink({ patientId: _patientId }: Props) {
       
       setTxnId(otpData.txnId);
       setStep(2);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unexpected error occurred');
+      }
     } finally {
       setLoading(false);
     }
@@ -59,8 +64,12 @@ export function ABHALink({ patientId: _patientId }: Props) {
         throw new Error(data.detail || 'Failed to verify');
       }
       setStep(3);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unexpected error occurred');
+      }
     } finally {
       setLoading(false);
     }

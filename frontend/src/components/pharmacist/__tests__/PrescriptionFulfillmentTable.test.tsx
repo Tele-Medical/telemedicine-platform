@@ -10,7 +10,7 @@ describe('PrescriptionFulfillmentTable Component', () => {
       { id: 'presc-1', patientName: 'Alice', status: 'pending', medications: ['Aspirin'] },
     ];
     
-    (global.fetch as any).mockResolvedValue({ ok: true, json: async () => mockPrescriptions });
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, json: async () => mockPrescriptions });
 
     render(<PrescriptionFulfillmentTable />);
     
@@ -25,7 +25,7 @@ describe('PrescriptionFulfillmentTable Component', () => {
       { id: 'presc-1', patientName: 'Alice', status: 'pending', medications: ['Aspirin'] },
     ];
     
-    (global.fetch as any).mockResolvedValue({ ok: true, json: async () => mockPrescriptions });
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, json: async () => mockPrescriptions });
 
     render(<PrescriptionFulfillmentTable />);
     

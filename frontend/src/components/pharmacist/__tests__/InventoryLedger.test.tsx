@@ -6,7 +6,7 @@ global.fetch = vi.fn();
 
 describe('InventoryLedger Component', () => {
   it('renders loading state initially', () => {
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     });
@@ -21,7 +21,7 @@ describe('InventoryLedger Component', () => {
       { id: '2', medicineName: 'Amoxicillin 250mg', stockQuantity: 50, unit: 'capsules' },
     ];
     
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => mockInventory,
     });

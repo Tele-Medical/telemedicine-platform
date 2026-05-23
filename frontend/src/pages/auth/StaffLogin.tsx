@@ -31,8 +31,12 @@ const StaffLogin: React.FC = () => {
       localStorage.setItem('token', data.access_token);
       localStorage.setItem('role', data.role);
       navigate(`/${data.role || 'patient'}/dashboard`);
-    } catch (e: any) {
-      setLoginError(e?.message || 'Login failed. Please check your credentials.');
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setLoginError(e.message || 'Login failed. Please check your credentials.');
+      } else {
+        setLoginError('Login failed. Please check your credentials.');
+      }
     }
   };
 

@@ -51,7 +51,7 @@ describe('StaffLogin Component', () => {
   });
 
   it('submits valid data, stores JWT, and redirects on success', async () => {
-    (authService.loginStaff as any).mockResolvedValue({
+    (authService.loginStaff as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       access_token: 'mock-jwt-token',
       role: 'doctor',
     });
@@ -75,7 +75,7 @@ describe('StaffLogin Component', () => {
   });
 
   it('shows error message on login failure', async () => {
-    (authService.loginStaff as any).mockRejectedValue(new Error('Invalid credentials'));
+    (authService.loginStaff as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Invalid credentials'));
 
     render(
       <BrowserRouter>

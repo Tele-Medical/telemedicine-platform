@@ -13,7 +13,7 @@ describe('ABHALink', () => {
   });
 
   it('should handle Invalid ABHA Address error (Case B)', async () => {
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
       status: 404,
       json: async () => ({ detail: 'ABHA Address not found' })
@@ -31,19 +31,19 @@ describe('ABHALink', () => {
 
   it('should handle Invalid OTP error (Case B)', async () => {
     // Mock Step 1 Search success
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({})
     });
 
     // Mock Step 1 Init-Auth success
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ txnId: 'txn-123' })
     });
 
     // Mock Step 2 failure (Invalid OTP)
-    (global.fetch as any).mockResolvedValueOnce({
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
       status: 400,
       json: async () => ({ detail: 'Invalid OTP entered' })

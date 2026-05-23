@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { db } from '../db/db';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
@@ -6,14 +7,14 @@ import { useNetworkStatus } from '../hooks/useNetworkStatus';
 export interface Conflict {
   conflict_id: string;
   entity_type: string;
-  local_data: any;
-  server_data: any;
+  local_data: Record<string, unknown>;
+  server_data: Record<string, unknown>;
 }
 
 interface SyncContextType {
   isSyncing: boolean;
   conflicts: Conflict[];
-  resolveConflict: (conflictId: string, resolution: 'keep_local' | 'keep_server', mergedData?: any) => Promise<void>;
+  resolveConflict: (conflictId: string, resolution: 'keep_local' | 'keep_server', mergedData?: Record<string, unknown>) => Promise<void>;
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined);
@@ -21,22 +22,19 @@ const SyncContext = createContext<SyncContextType | undefined>(undefined);
 export function SyncProvider({ children }: { children: ReactNode }) {
   const { isOnline } = useNetworkStatus();
   const [isSyncing, setIsSyncing] = useState(false);
+  const syncLock = useRef(false);
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
 
-  useEffect(() => {
-    if (isOnline) {
-      processOutbox();
-    }
-  }, [isOnline]);
-
-  const processOutbox = async () => {
-    if (isSyncing) return;
+  const processOutbox = useCallback(async () => {
+    if (syncLock.current) return;
+    syncLock.current = true;
     setIsSyncing(true);
 
     try {
       const operations = await db.outbox.toArray();
       if (operations.length === 0) {
         setIsSyncing(false);
+        syncLock.current = false;
         return;
       }
 
@@ -89,10 +87,17 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       console.error('Sync failed', error);
     } finally {
       setIsSyncing(false);
+      syncLock.current = false;
     }
-  };
+  }, []);
 
-  const resolveConflict = async (conflictId: string, resolution: 'keep_local' | 'keep_server', mergedData?: any) => {
+  useEffect(() => {
+    if (isOnline) {
+      processOutbox();
+    }
+  }, [isOnline, processOutbox]);
+
+  const resolveConflict = async (conflictId: string, resolution: 'keep_local' | 'keep_server', mergedData?: Record<string, unknown>) => {
     await fetch(`/api/v1/sync/conflicts/${conflictId}/resolve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
