@@ -7,9 +7,9 @@ global.fetch = vi.fn();
 describe('ClinicalForms Component', () => {
   it('renders tabs or sections for Vitals, Conditions, and Allergies', () => {
     render(<ClinicalForms patientId="patient-123" />);
-    expect(screen.getByRole('button', { name: /^vitals$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^conditions$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^allergies$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'clinical.vitals' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'clinical.conditions' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'clinical.allergies' })).toBeInTheDocument();
   });
 
   it('can submit new vitals data', async () => {
@@ -17,10 +17,10 @@ describe('ClinicalForms Component', () => {
 
     render(<ClinicalForms patientId="patient-123" />);
     
-    const heartRateInput = screen.getByLabelText(/heart rate/i);
+    const heartRateInput = screen.getByLabelText('clinical.heart_rate');
     fireEvent.change(heartRateInput, { target: { value: '75' } });
     
-    const submitButton = screen.getByRole('button', { name: /save vitals/i });
+    const submitButton = screen.getByRole('button', { name: 'clinical.save_vitals' });
     fireEvent.click(submitButton);
 
     await waitFor(() => {
@@ -37,13 +37,13 @@ describe('ClinicalForms Component', () => {
     render(<ClinicalForms patientId="patient-123" />);
     
     // Switch to allergies section
-    const allergiesTabButton = screen.getByRole('button', { name: /allergies/i });
+    const allergiesTabButton = screen.getByRole('button', { name: 'clinical.allergies' });
     fireEvent.click(allergiesTabButton);
     
-    const allergyInput = screen.getByLabelText(/allergy substance/i);
+    const allergyInput = screen.getByLabelText('clinical.allergy_substance');
     fireEvent.change(allergyInput, { target: { value: 'Penicillin' } });
     
-    const addButton = screen.getByRole('button', { name: /add allergy/i });
+    const addButton = screen.getByRole('button', { name: 'clinical.add_allergy' });
     fireEvent.click(addButton);
 
     await waitFor(() => {

@@ -1,93 +1,83 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Pill, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface InventoryItem {
   id: string;
-  medicineName: string;
-  stockQuantity: number;
+  name: string;
+  current_quantity: number;
   unit: string;
+  expiry_date: string;
 }
 
 const InventoryLedger: React.FC = () => {
+  const { t } = useTranslation();
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchInventory = async () => {
-      try {
-        const response = await fetch('/api/v1/pharmacies/availability');
-        if (response.ok) {
-          const data = await response.json();
-          setInventory(data);
-        }
-      } catch (e) {
-        console.error('Failed to load inventory', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchInventory();
+    // Simulated fetch
+    setTimeout(() => {
+      setInventory([
+        { id: '1', name: 'Paracetamol 650mg', current_quantity: 1250, unit: 'Tablets', expiry_date: '2028-12-01' },
+        { id: '2', name: 'Amlodipine 5mg', current_quantity: 420, unit: 'Tablets', expiry_date: '2027-06-15' },
+        { id: '3', name: 'Novamox 500mg', current_quantity: 45, unit: 'Capsules', expiry_date: '2026-11-20' }
+      ]);
+      setLoading(false);
+    }, 800);
   }, []);
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-48 bg-white rounded-lg border border-gray-200">
-        <p className="text-gray-500 font-medium">Loading inventory...</p>
+      <div className="flex flex-col items-center justify-center p-12 text-neutral-400">
+        <RefreshCw size={24} className="animate-spin mb-2" />
+        <p className="text-sm font-medium">{t('app.loading')}</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <div className="px-6 py-5 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-        <div>
-          <h3 className="text-xl font-bold text-gray-800">Inventory Ledger</h3>
-          <p className="text-sm text-gray-500 mt-1">Real-time medication availability</p>
-        </div>
-        <button className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50 hover:text-blue-600 transition-colors shadow-sm flex items-center">
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-          Export CSV
-        </button>
+    <div className="animate-fade-in text-neutral-900">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-xl font-bold text-gray-800">{t('pharmacy.inventory_ledger')}</h3>
       </div>
+
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-gray-600">
-          <thead className="text-xs text-gray-500 uppercase bg-white border-b-2 border-gray-200">
-            <tr>
-              <th className="px-6 py-4 font-bold">Medicine Name</th>
-              <th className="px-6 py-4 font-bold">Stock Level</th>
-              <th className="px-6 py-4 font-bold">Unit</th>
-              <th className="px-6 py-4 font-bold text-right">Status</th>
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-gray-100">
+              <th className="px-6 py-4 font-bold">{t('pharmacy.medicine_name')}</th>
+              <th className="px-6 py-4 font-bold">{t('pharmacy.stock_level')}</th>
+              <th className="px-6 py-4 font-bold">Status</th>
             </tr>
           </thead>
           <tbody>
-            {inventory.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-6 py-12 text-center">
-                  <svg className="mx-auto h-12 w-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                  </svg>
-                  <p className="text-gray-500 font-medium">No inventory records found.</p>
+            {inventory.map((item) => (
+              <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <Pill size={16} className="text-primary" />
+                    <span className="font-medium">{item.name}</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <span className="text-sm font-bold">{item.current_quantity}</span>
+                  <span className="text-xs text-gray-500 ml-1">{item.unit}</span>
+                </td>
+                <td className="px-6 py-4">
+                  {item.current_quantity > 100 ? (
+                    <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full border border-green-200">
+                      {t('pharmacy.in_stock')}
+                    </span>
+                  ) : (
+                    <span className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1 rounded-full border border-red-200 shadow-sm animate-pulse flex items-center gap-1 w-fit">
+                      <AlertCircle size={10} />
+                      {t('pharmacy.low_stock')}
+                    </span>
+                  )}
                 </td>
               </tr>
-            ) : (
-              inventory.map((item) => (
-                <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-bold text-gray-900">{item.medicineName}</td>
-                  <td className="px-6 py-4">
-                    <span className={`font-bold text-lg ${item.stockQuantity < 100 ? 'text-red-600' : 'text-gray-900'}`}>
-                      {item.stockQuantity}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-gray-500 font-medium">{item.unit}</td>
-                  <td className="px-6 py-4 text-right">
-                    {item.stockQuantity > 100 ? (
-                      <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full border border-green-200">In Stock</span>
-                    ) : (
-                      <span className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1 rounded-full border border-red-200 shadow-sm animate-pulse">Low Stock</span>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
       </div>

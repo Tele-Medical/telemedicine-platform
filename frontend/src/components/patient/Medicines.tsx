@@ -11,7 +11,10 @@ interface Medicine {
   stockLeft: number;
 }
 
+import { useTranslation } from 'react-i18next';
+
 const Medicines: React.FC = () => {
+  const { t } = useTranslation();
   const [medicines, setMedicines] = useState<Medicine[]>([
     { id: '1', name: 'Amlodipine 5mg', dosage: '1 Pill', purpose: 'Hypertension', schedule: 'Once Daily', timing: 'Morning (after breakfast)', stockLeft: 12 },
     { id: '2', name: 'Metformin 500mg', dosage: '1 Pill', purpose: 'Diabetes', schedule: 'Twice Daily', timing: 'Morning, Night (with meals)', stockLeft: 8 },
@@ -42,8 +45,8 @@ const Medicines: React.FC = () => {
   return (
     <div className="animate-fade-in pb-12">
       <header className="mb-6 mt-2">
-        <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">Active Medications</h1>
-        <p className="text-neutral-500 text-sm mt-1">Track your daily pill schedule and request prescription refills easily.</p>
+        <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">{t('pharmacy.active_meds')}</h1>
+        <p className="text-neutral-500 text-sm mt-1">{t('pharmacy.meds_desc')}</p>
       </header>
 
       {/* Pill Compliance Tracker */}
@@ -52,14 +55,14 @@ const Medicines: React.FC = () => {
           <Clock size={20} className="stroke-[2.25] animate-pulse" />
         </div>
         <div className="flex-1">
-          <h3 className="text-sm font-bold text-neutral-900">Compliance Streak</h3>
-          <p className="text-xs text-neutral-600 mt-0.5">You've logged your daily medications 6 days in a row. Keep it up!</p>
+          <h3 className="text-sm font-bold text-neutral-900">{t('pharmacy.compliance_streak')}</h3>
+          <p className="text-xs text-neutral-600 mt-0.5">{t('pharmacy.compliance_desc')}</p>
         </div>
       </div>
 
       {/* Active Medicines List */}
       <div className="space-y-4">
-        <h2 className="text-sm font-bold text-neutral-500 uppercase tracking-wider">Your Prescription Schedule</h2>
+        <h2 className="text-sm font-bold text-neutral-500 uppercase tracking-wider">{t('pharmacy.prescription_schedule')}</h2>
         
         <div className="grid gap-4">
           {medicines.map((med) => (
@@ -87,7 +90,7 @@ const Medicines: React.FC = () => {
                       ? 'bg-danger/10 text-danger border border-danger/20' 
                       : 'bg-neutral-100 text-neutral-500 border border-neutral-200'
                   }`}>
-                    {med.stockLeft} days left
+                    {med.stockLeft} {t('pharmacy.days_left')}
                   </span>
                 </div>
               </div>
@@ -107,7 +110,7 @@ const Medicines: React.FC = () => {
                   {med.stockLeft <= 5 && (
                     <>
                       <AlertCircle size={12} className="text-danger" />
-                      <span className="text-danger">Stock running low</span>
+                      <span className="text-danger">{t('pharmacy.stock_low')}</span>
                     </>
                   )}
                 </span>
@@ -126,15 +129,15 @@ const Medicines: React.FC = () => {
                   {refillStatus[med.id] === 'requesting' ? (
                     <>
                       <RefreshCw size={12} className="animate-spin" />
-                      <span>Requesting Refill...</span>
+                      <span>{t('pharmacy.refilling')}</span>
                     </>
                   ) : refillStatus[med.id] === 'completed' ? (
                     <>
                       <CheckCircle2 size={12} />
-                      <span>Refill Ordered!</span>
+                      <span>{t('pharmacy.refill_ordered')}</span>
                     </>
                   ) : (
-                    <span>Request Refill</span>
+                    <span>{t('pharmacy.request_refill')}</span>
                   )}
                 </button>
               </div>

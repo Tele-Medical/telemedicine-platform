@@ -19,7 +19,7 @@ describe('EncounterClosureForm Component', () => {
     const summaryInput = screen.getByLabelText(/clinical summary/i);
     fireEvent.change(summaryInput, { target: { value: 'Patient is recovering well.' } });
     
-    const finalizeButton = screen.getByRole('button', { name: /finalize encounter/i });
+    const finalizeButton = screen.getByRole('button', { name: 'clinical.finalize_encounter' });
     fireEvent.click(finalizeButton);
 
     await waitFor(() => {
@@ -33,7 +33,7 @@ describe('EncounterClosureForm Component', () => {
   it('shows validation error if summary is empty', async () => {
     render(<EncounterClosureForm encounterId="enc-1" />);
     
-    const finalizeButton = screen.getByRole('button', { name: /finalize encounter/i });
+    const finalizeButton = screen.getByRole('button', { name: 'clinical.finalize_encounter' });
     fireEvent.click(finalizeButton);
 
     await waitFor(() => {

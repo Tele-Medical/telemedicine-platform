@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { db } from '../../db/db';
 
 const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'vitals' | 'conditions' | 'allergies'>('vitals');
 
   const [vitals, setVitals] = useState({ heartRate: '', bloodPressure: '', temperature: '' });
@@ -126,7 +128,7 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden text-neutral-900">
       <div className="flex bg-gray-50 border-b border-gray-200">
         {(['vitals', 'conditions', 'allergies'] as const).map(tab => (
           <button
@@ -138,7 +140,7 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
                 : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100 border-t-2 border-transparent'
             }`}
           >
-            {tab}
+            {t(`clinical.${tab}`)}
           </button>
         ))}
       </div>
@@ -149,11 +151,11 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
         )}
 
         {activeTab === 'vitals' && (
-          <div className="space-y-5 animate-fadeIn">
-            <h4 className="text-lg font-semibold text-gray-800 border-b pb-2">Record Vitals</h4>
+          <div className="space-y-5 animate-fade-in text-neutral-900">
+            <h4 className="text-lg font-semibold text-gray-800 border-b pb-2">{t('clinical.record_vitals')}</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label htmlFor="heartRate" className="block text-sm font-medium text-gray-700 mb-1">Heart Rate (bpm)</label>
+                <label htmlFor="heartRate" className="block text-sm font-medium text-gray-700 mb-1">{t('clinical.heart_rate')}</label>
                 <div className="relative">
                   <input 
                     id="heartRate"
@@ -169,7 +171,7 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
                 </div>
               </div>
               <div>
-                <label htmlFor="bloodPressure" className="block text-sm font-medium text-gray-700 mb-1">Blood Pressure</label>
+                <label htmlFor="bloodPressure" className="block text-sm font-medium text-gray-700 mb-1">{t('clinical.blood_pressure')}</label>
                 <div className="relative">
                   <input 
                     id="bloodPressure"
@@ -190,17 +192,17 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
                 onClick={handleSaveVitals}
                 className="bg-blue-600 text-white px-5 py-2 rounded-md font-medium hover:bg-blue-700 transition-colors shadow-sm"
               >
-                Save Vitals
+                {t('clinical.save_vitals')}
               </button>
             </div>
           </div>
         )}
 
         {activeTab === 'conditions' && (
-          <div className="space-y-5 animate-fadeIn">
-            <h4 className="text-lg font-semibold text-gray-800 border-b pb-2">Record Conditions</h4>
+          <div className="space-y-5 animate-fade-in text-neutral-900">
+            <h4 className="text-lg font-semibold text-gray-800 border-b pb-2">{t('clinical.record_conditions')}</h4>
             <div>
-              <label htmlFor="condition" className="block text-sm font-medium text-gray-700 mb-1">Condition Name</label>
+              <label htmlFor="condition" className="block text-sm font-medium text-gray-700 mb-1">{t('clinical.condition_name')}</label>
               <input 
                 id="condition"
                 type="text" 
@@ -214,16 +216,16 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
               onClick={handleAddCondition}
               className="bg-blue-600 text-white px-5 py-2 rounded-md font-medium hover:bg-blue-700 transition-colors shadow-sm"
             >
-              Add Condition
+              {t('clinical.add_condition')}
             </button>
           </div>
         )}
 
         {activeTab === 'allergies' && (
-          <div className="space-y-5 animate-fadeIn">
-            <h4 className="text-lg font-semibold text-gray-800 border-b pb-2">Record Allergies</h4>
+          <div className="space-y-5 animate-fade-in text-neutral-900">
+            <h4 className="text-lg font-semibold text-gray-800 border-b pb-2">{t('clinical.record_allergies')}</h4>
             <div>
-              <label htmlFor="allergy" className="block text-sm font-medium text-gray-700 mb-1">Allergy Substance</label>
+              <label htmlFor="allergy" className="block text-sm font-medium text-gray-700 mb-1">{t('clinical.allergy_substance')}</label>
               <input 
                 id="allergy"
                 type="text" 
@@ -237,7 +239,7 @@ const ClinicalForms: React.FC<{ patientId: string }> = ({ patientId }) => {
               onClick={handleAddAllergy}
               className="bg-blue-600 text-white px-5 py-2 rounded-md font-medium hover:bg-blue-700 transition-colors shadow-sm"
             >
-              Add Allergy
+              {t('clinical.add_allergy')}
             </button>
           </div>
         )}

@@ -117,7 +117,9 @@ function App() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-50 text-neutral-900 font-sans">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-          <p className="text-neutral-500 font-semibold text-sm animate-pulse">Loading secure portal...</p>
+          <p className="text-neutral-500 font-semibold text-sm animate-pulse">
+            Sanjeevani: Loading secure portal...
+          </p>
         </div>
       </div>
     );
