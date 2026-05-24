@@ -41,7 +41,7 @@ def downgrade() -> None:
     op.drop_column('observations', 'is_active')
     op.drop_column('medication_requests', 'is_active')
     op.drop_column('encounters', 'is_active')
-    op.drop_constraint(None, 'conditions', type_='foreignkey')
+    op.drop_constraint(None, 'conditions', type_='foreignkey')  # type: ignore[arg-type]
     op.drop_column('conditions', 'updated_at')
     op.drop_column('conditions', 'updated_by_user_id')
     op.drop_column('conditions', 'record_version')

@@ -53,6 +53,7 @@ def test_request_otp_creates_challenge(db_session: Session):
 def test_request_otp_stores_hashed_not_plain(db_session: Session):
     request_otp(db_session, "+9999999998")
     challenge = db_session.query(OTPChallenge).filter_by(phone="+9999999998").first()
+    assert challenge is not None
     assert len(challenge.otp_hash) > 6
     assert challenge.otp_hash.startswith("$2")
 
@@ -72,6 +73,7 @@ def test_request_otp_normal_phone_does_not_use_fixed_code(db_session: Session):
     # but for a unit test it's acceptable.
     request_otp(db_session, "+9990001112")
     challenge = db_session.query(OTPChallenge).filter_by(phone="+9990001112").first()
+    assert challenge is not None
     from app.core.security import verify_password
     assert verify_password("123456", challenge.otp_hash) is False
 
@@ -79,6 +81,7 @@ def test_request_otp_normal_phone_does_not_use_fixed_code(db_session: Session):
 def test_request_otp_expiry_is_in_future(db_session: Session):
     request_otp(db_session, "+9999999997")
     challenge = db_session.query(OTPChallenge).filter_by(phone="+9999999997").first()
+    assert challenge is not None
     assert challenge.expires_at > datetime.now(timezone.utc)
 
 
@@ -217,6 +220,7 @@ def test_verify_otp_access_token_contains_user_id(db_session: Session):
     assert payload is not None
 
     user = db_session.query(User).filter_by(phone="+1234567893").first()
+    assert user is not None
     assert payload["sub"] == str(user.id)
 
 
@@ -225,6 +229,7 @@ def test_verify_otp_creates_session_record(db_session: Session):
     verify_otp(db_session, OTPVerify(phone="+1234567894", code="123456"))
 
     user = db_session.query(User).filter_by(phone="+1234567894").first()
+    assert user is not None
     session = db_session.query(DBSession).filter_by(user_id=user.id).first()
     assert session is not None
     assert session.refresh_token_hash is not None

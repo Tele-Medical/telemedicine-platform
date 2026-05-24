@@ -310,6 +310,8 @@ class SyncService:
             return None
         
         model_class = ENTITY_MODEL_MAP.get(conflict.entity_type)
+        if not model_class:
+            return None
         record = db.get(model_class, conflict.entity_id)
         
         if not record:

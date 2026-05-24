@@ -106,6 +106,7 @@ const RegisterProfile: React.FC<RegisterProfileProps> = ({ onComplete }) => {
                 <option value="pa">{t('profile.lang_pa')}</option>
                 <option value="hi">{t('profile.lang_hi')}</option>
                 <option value="en">{t('profile.lang_en')}</option>
+                <option value="bn">{t('profile.lang_bn')}</option>
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-neutral-400">
                 <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">

@@ -127,16 +127,16 @@ class PharmacyService:
             db.commit()
         except IntegrityError:
             db.rollback()
-            # The batch row already exists, fetch it with an update lock
-            batch = db.query(StockBatch).with_for_update().filter(
+            existing_batch = db.query(StockBatch).with_for_update().filter(
                 StockBatch.pharmacy_id == request.pharmacy_id,
                 StockBatch.medicine_id == request.medicine_id,
                 StockBatch.batch_number == request.batch_number
             ).first()
 
-            if not batch:
+            if not existing_batch:
                  raise HTTPException(status_code=500, detail="Concurrency error while recording stock intake")
 
+            batch = existing_batch
             batch.current_quantity += request.quantity_received
             batch.initial_quantity += request.quantity_received
             db.flush()
@@ -241,6 +241,8 @@ class PharmacyService:
             raise HTTPException(status_code=400, detail="Fulfillment is already completed")
 
         rx = db.query(Prescription).filter(Prescription.id == fulfillment.prescription_id).first()
+        if not rx:
+            raise HTTPException(status_code=404, detail="Prescription not found")
         
         # Pre-load valid prescription items for validation
         valid_prescription_items = {item.id: item for item in rx.items}

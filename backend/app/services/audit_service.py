@@ -13,7 +13,7 @@ class AuditService:
     Service responsible for logging secure audit trails for PHI access.
     """
     @staticmethod
-    def log_access(db: Session, target_entity_type: str, target_entity_id: uuid.UUID, actor_user_id: uuid.UUID, action: str, request: Request = None):
+    def log_access(db: Session, target_entity_type: str, target_entity_id: uuid.UUID, actor_user_id: uuid.UUID, action: str, request: Request | None = None):
         """
         Logs a read or export action for sensitive entities.
         Captures IP address and User Agent for security auditing.

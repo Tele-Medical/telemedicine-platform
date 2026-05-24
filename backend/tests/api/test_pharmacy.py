@@ -111,6 +111,7 @@ def test_inventory_stock_intake(client: TestClient, db_session: Session):
     assert movements[0].quantity_change == 500
     
     batch = db_session.query(StockBatch).filter_by(batch_number="BATCH-001").first()
+    assert batch is not None
     assert batch.current_quantity == 500
 
 def test_inventory_stock_adjustment(client: TestClient, db_session: Session):
