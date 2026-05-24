@@ -37,6 +37,11 @@ def mock_redis(monkeypatch):
     mock_pubsub.get_message = AsyncMock(return_value=None)
     mock_pubsub.aclose = AsyncMock()
 
+    async def mock_listen():
+        if False:
+            yield None
+    mock_pubsub.listen = mock_listen
+
     mock.pubsub.return_value = mock_pubsub
 
     # Patch all known references

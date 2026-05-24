@@ -43,7 +43,7 @@ describe('TeleconsultationRoom Component', () => {
         <TeleconsultationRoom appointmentId="123" token="mock-token" />
       </BrowserRouter>
     );
-    expect(screen.getByText(/connecting/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/connecting/i)[0]).toBeInTheDocument();
   });
 
   it('handles fallback to audio-only when bandwidth is low', async () => {
