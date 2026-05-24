@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_exp_minutes: int = 30
     refresh_token_exp_minutes: int = 60 * 24 * 7
+    cors_origins_str: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000"
     
     # Adapters
     sms_provider: str = "mock"

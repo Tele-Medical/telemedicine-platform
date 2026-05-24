@@ -15,7 +15,8 @@ export function useNetworkStatus() {
     // Periodically verify true internet connectivity by pinging the backend
     const checkConnection = async () => {
       try {
-        const response = await fetch('/api/v1/health', { method: 'HEAD', cache: 'no-store' });
+        const apiBase = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${apiBase}/api/v1/health`, { method: 'HEAD', cache: 'no-store' });
         setIsOnline(response.ok);
       } catch {
         setIsOnline(false);

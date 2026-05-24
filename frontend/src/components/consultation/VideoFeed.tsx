@@ -163,9 +163,18 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     // 3. Connect to WebSocket Signaling Server
     try {
       const token = localStorage.getItem('token') || '';
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      // Build dynamic WS signaling path through Vite Proxy
+      
+      const apiBase = import.meta.env.VITE_API_URL || '';
+      let protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      let host = window.location.host;
+      
+      if (apiBase) {
+        // Strip out leading http:// or https:// from VITE_API_URL
+        host = apiBase.replace(/^https?:\/\//, '');
+        protocol = apiBase.startsWith('https') ? 'wss:' : 'ws:';
+      }
+      
+      // Build dynamic WS signaling path
       const wsUrl = `${protocol}//${host}/api/v1/telemetry/ws/${appointmentId}?token=${encodeURIComponent(token)}`;
       
       const ws = new WebSocket(wsUrl);

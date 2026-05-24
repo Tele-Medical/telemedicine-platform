@@ -39,7 +39,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       }
 
       for (const op of operations) {
-        const response = await fetch('/api/v1/sync/push', {
+        const apiBase = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${apiBase}/api/v1/sync/push`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ operations: [op] })
@@ -66,7 +67,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             // Auto merge: Apply local changes on top of server data
             const merged_payload = { ...server_data, ...local_payload };
             
-            await fetch(`/api/v1/sync/conflicts/${op.operation_id}/resolve`, {
+            const apiBase = import.meta.env.VITE_API_URL || '';
+            await fetch(`${apiBase}/api/v1/sync/conflicts/${op.operation_id}/resolve`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ strategy: 'auto_merge', merged_payload })
@@ -98,7 +100,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   }, [isOnline, processOutbox]);
 
   const resolveConflict = async (conflictId: string, resolution: 'keep_local' | 'keep_server', mergedData?: Record<string, unknown>) => {
-    await fetch(`/api/v1/sync/conflicts/${conflictId}/resolve`, {
+    const apiBase = import.meta.env.VITE_API_URL || '';
+    await fetch(`${apiBase}/api/v1/sync/conflicts/${conflictId}/resolve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ strategy: resolution, merged_payload: mergedData })

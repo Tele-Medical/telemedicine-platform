@@ -17,7 +17,8 @@ const UserProfile: React.FC = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await fetch('/api/v1/auth/me');
+        const apiBase = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${apiBase}/api/v1/auth/me`);
         if (response.ok) {
           const data = await response.json();
           setUser(data);
