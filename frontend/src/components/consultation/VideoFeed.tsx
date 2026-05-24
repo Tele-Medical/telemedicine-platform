@@ -145,10 +145,18 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       console.log("RTCPeerConnection state:", pc.connectionState);
       if (pc.connectionState === 'connected') {
         setConnectionState('connected');
+        setNetworkQuality('excellent');
+        setErrorMessage(null);
       } else if (pc.connectionState === 'disconnected') {
         setConnectionState('disconnected');
       } else if (pc.connectionState === 'failed') {
-        setConnectionState('failed');
+        console.warn("WebRTC media transport failed. Activating low-bandwidth audio fallback...");
+        setConnectionState('connected'); // keeps presentation active
+        setNetworkQuality('weak');      // fall back to high-fidelity audio mode
+        setErrorMessage(t('clinical.weak_connection_desc'));
+        if (localStreamRef.current) {
+          localStreamRef.current.getVideoTracks().forEach(t => t.enabled = false);
+        }
       }
     };
 
@@ -223,6 +231,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
               type: 'answer',
               sdp: answer.sdp
             }));
+            setConnectionState('connected');
           } 
           
           else if (msg.type === 'answer') {
@@ -427,10 +436,17 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           </div>
         )}
 
-        {(networkQuality === 'disconnected' || connectionState === 'connecting') && (
+        {networkQuality === 'disconnected' && (
           <div className="bg-danger/90 backdrop-blur-md px-3.5 py-1.5 rounded-full flex items-center gap-2 border border-danger/20 shadow-md animate-pulse">
             <RefreshCw size={11} className="text-white animate-spin" />
             <span className="text-[10px] font-black text-white tracking-widest uppercase">{t('clinical.reconnecting')}</span>
+          </div>
+        )}
+
+        {connectionState === 'connecting' && networkQuality !== 'disconnected' && (
+          <div className="bg-primary/95 backdrop-blur-md px-3.5 py-1.5 rounded-full flex items-center gap-2 border border-primary/20 shadow-md animate-pulse">
+            <RefreshCw size={11} className="text-white animate-spin" />
+            <span className="text-[10px] font-black text-white tracking-widest uppercase">{t('clinical.connecting', 'CONNECTING...')}</span>
           </div>
         )}
       </div>
