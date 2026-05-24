@@ -158,20 +158,30 @@ def get_appointment_details(
     # Enforce ownership/role checks to prevent IDOR
     if current_user.default_role not in ["admin", "staff"]:
         if current_user.default_role == "patient":
-            patient = db.query(Patient).filter(Patient.created_by_user_id == current_user.id).first()
+            patient = (
+                db.query(Patient).filter(Patient.created_by_user_id == current_user.id).first()
+            )
             if not patient or appt.patient_id != patient.id:
-                raise HTTPException(status_code=403, detail="Not authorized to access this appointment")
+                raise HTTPException(
+                    status_code=403, detail="Not authorized to access this appointment"
+                )
         elif current_user.default_role in ["doctor", "practitioner"]:
-            practitioner = db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
+            practitioner = (
+                db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
+            )
             if not practitioner or appt.practitioner_id != practitioner.id:
-                raise HTTPException(status_code=403, detail="Not authorized to access this appointment")
+                raise HTTPException(
+                    status_code=403, detail="Not authorized to access this appointment"
+                )
 
     patient = db.query(Patient).filter(Patient.id == appt.patient_id).first()
     patient_name = patient.full_name if patient else "Patient"
 
     practitioner_name = "Doctor"
     if appt.practitioner_id:
-        practitioner = db.query(Practitioner).filter(Practitioner.id == appt.practitioner_id).first()
+        practitioner = (
+            db.query(Practitioner).filter(Practitioner.id == appt.practitioner_id).first()
+        )
         practitioner_name = practitioner.full_name if practitioner else "Doctor"
 
     return {

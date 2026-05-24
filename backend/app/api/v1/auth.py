@@ -46,10 +46,7 @@ def staff_login(payload: StaffLogin, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=UserResponse)
-def read_users_me(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+def read_users_me(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     Returns the profile of the currently authenticated user based on the JWT token.
     """
@@ -58,12 +55,16 @@ def read_users_me(
 
     if current_user.default_role == "patient":
         from app.models.patient import Patient
+
         patient = db.query(Patient).filter(Patient.created_by_user_id == current_user.id).first()
         if patient:
             patient_id = patient.id
     elif current_user.default_role in ["doctor", "practitioner"]:
         from app.models.practitioner import Practitioner
-        practitioner = db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
+
+        practitioner = (
+            db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
+        )
         if practitioner:
             practitioner_id = practitioner.id
 

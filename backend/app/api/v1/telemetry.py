@@ -114,6 +114,7 @@ async def get_ws_user(token: str, db: Session) -> Optional[User]:
         if not user_id:
             return None
         import uuid
+
         try:
             user_uuid = uuid.UUID(user_id)
         except ValueError:
@@ -143,6 +144,7 @@ async def signaling_endpoint(
 
     # 2. Authorization
     import uuid
+
     try:
         appt_uuid = uuid.UUID(appointment_id)
     except ValueError:
