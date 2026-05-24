@@ -13,8 +13,10 @@ import {
   WifiOff, 
   Sliders,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  Volume2
 } from 'lucide-react';
+
 
 interface VideoFeedProps {
   appointmentId?: string;
@@ -32,6 +34,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const [networkQuality, setNetworkQuality] = useState<'excellent' | 'weak' | 'disconnected'>('excellent');
   const [isSimHUDOpen, setIsSimHUDOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isAutoplayBlocked, setIsAutoplayBlocked] = useState(false);
+
 
   const navigate = useNavigate();
 
@@ -126,13 +130,32 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     // Ensure local stream is ready
     const localStream = localStreamRef.current || await startLocalMedia();
 
-    // Set up WebRTC RTCPeerConnection
-    const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-      ]
-    });
+    // Set up WebRTC RTCPeerConnection with dynamic TURN config from env/fallback
+    const turnUrl = import.meta.env.VITE_TURN_URL;
+    const turnUsername = import.meta.env.VITE_TURN_USERNAME;
+    const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL;
+
+    const iceServers: RTCIceServer[] = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' }
+    ];
+
+    if (turnUrl) {
+      iceServers.push({
+        urls: turnUrl,
+        username: turnUsername || '',
+        credential: turnCredential || ''
+      });
+    } else {
+      // Diagnostic static TURN fallback for developers behind NAT/firewalls
+      iceServers.push({
+        urls: 'turn:turn.example.com:3478?transport=udp',
+        username: 'telehealth-user',
+        credential: 'telehealth-secure-password-2026'
+      });
+    }
+
+    const pc = new RTCPeerConnection({ iceServers });
     pcRef.current = pc;
 
     // Attach local stream tracks
@@ -141,6 +164,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         pc.addTrack(track, localStream);
       });
     }
+
 
     // Monitor WebRTC Connection State changes
     pc.onconnectionstatechange = () => {
@@ -195,17 +219,27 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     pc.ontrack = (event) => {
       console.log("Received remote track:", event.track.kind);
       if (remoteVideoRef.current) {
+        const videoElement = remoteVideoRef.current;
         if (event.streams && event.streams[0]) {
-          remoteVideoRef.current.srcObject = event.streams[0];
+          videoElement.srcObject = event.streams[0];
         } else {
           // Fallback if event.streams is empty
-          if (!remoteVideoRef.current.srcObject) {
-            remoteVideoRef.current.srcObject = new MediaStream();
+          if (!videoElement.srcObject) {
+            videoElement.srcObject = new MediaStream();
           }
-          (remoteVideoRef.current.srcObject as MediaStream).addTrack(event.track);
+          (videoElement.srcObject as MediaStream).addTrack(event.track);
         }
+
+        // Explicitly trigger play when stream/tracks are attached
+        videoElement.play().catch(e => {
+          console.warn("Autoplay remote video prevented or failed during track addition:", e);
+          if (e.name === 'NotAllowedError') {
+            setIsAutoplayBlocked(true);
+          }
+        });
       }
     };
+
 
     // Helper to empty candidates queue once remote description is set
     const processCandidatesQueue = async () => {
@@ -283,15 +317,16 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
               type: 'answer',
               sdp: answer.sdp
             }));
-            setConnectionState('connected');
+            // Safe transition: connectionState is now updated via pc.onconnectionstatechange/oniceconnectionstatechange
           } 
           
           else if (msg.type === 'answer') {
             console.log("Received remote answer. Completing peer handshake...");
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
             await processCandidatesQueue();
-            setConnectionState('connected');
+            // Safe transition: connectionState is now updated via pc.onconnectionstatechange/oniceconnectionstatechange
           } 
+ 
           
           else if (msg.type === 'candidate') {
             if (msg.candidate) {
@@ -372,9 +407,21 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     }
   };
 
+  const handleResolveAutoplay = async () => {
+    if (remoteVideoRef.current) {
+      try {
+        await remoteVideoRef.current.play();
+        setIsAutoplayBlocked(false);
+      } catch (err) {
+        console.warn("Manual activation of autoplay failed:", err);
+      }
+    }
+  };
+
   const cleanupStreams = () => {
     isCleaningUpRef.current = true;
     if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+
     
     if (wsRef.current) {
       wsRef.current.close();
@@ -452,12 +499,16 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
 
   // Ensure remote stream plays automatically when connection becomes visible
   useEffect(() => {
-    if (isVideoVisible && remoteVideoRef.current) {
+    if (isVideoVisible && remoteVideoRef.current && remoteVideoRef.current.srcObject) {
       remoteVideoRef.current.play().catch(e => {
-        console.warn("Autoplay remote video prevented or failed:", e);
+        console.warn("Autoplay remote video prevented or failed on visibility change:", e);
+        if (e.name === 'NotAllowedError') {
+          setIsAutoplayBlocked(true);
+        }
       });
     }
   }, [isVideoVisible]);
+
 
   // Ensure local video stream is correctly attached and playing
   useEffect(() => {
@@ -484,11 +535,27 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
             aria-label={`Video feed of ${remotePeerName}`}
             className="w-full h-full object-cover animate-fade-in"
           />
+          {/* Autoplay Policy Block Overlay */}
+          {isAutoplayBlocked && (
+            <button 
+              onClick={handleResolveAutoplay}
+              className="absolute inset-0 bg-neutral-950/90 backdrop-blur-lg flex flex-col items-center justify-center text-center p-6 z-30 transition-all duration-300 hover:bg-neutral-950/95 group cursor-pointer border-none outline-none"
+            >
+              <div className="w-16 h-16 rounded-full bg-primary/20 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-primary/25 border border-primary/30">
+                <Volume2 className="w-8 h-8 animate-pulse text-primary" />
+              </div>
+              <h3 className="text-white font-bold text-base tracking-wide mb-2 group-hover:text-primary transition-colors">{t('clinical.click_to_join', 'Tap to Join Consultation')}</h3>
+              <p className="text-neutral-300 text-[11px] max-w-[240px] leading-relaxed">
+                {t('clinical.autoplay_notice', 'Browser security requires interaction to enable unmuted audio and video. Tap anywhere to start.')}
+              </p>
+            </button>
+          )}
           {/* Overlay Name Tag */}
           <div className="absolute bottom-20 left-4 bg-black/55 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 text-white text-xs font-semibold tracking-wide">
             {remotePeerName}
           </div>
         </div>
+
 
         {/* High-Fidelity Fallback Profile View for Weak/Disconnected/Connecting states */}
         {!isVideoVisible && (

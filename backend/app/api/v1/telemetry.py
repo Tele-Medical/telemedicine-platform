@@ -85,9 +85,8 @@ class ConnectionManager:
 
         try:
             await pubsub.subscribe(channel)
-            while True:
-                message = await pubsub.get_message(ignore_subscribe_messages=True)
-                if message:
+            async for message in pubsub.listen():
+                if message and message.get("type") == "message":
                     data = json.loads(message["data"])
                     # Filter out messages published by this specific user
                     if data.get("sender_id") != user_id:
@@ -95,7 +94,6 @@ class ConnectionManager:
                             await websocket.send_json(data)
                         except Exception:
                             break  # Connection probably closed
-                await asyncio.sleep(0.01)
         finally:
             await pubsub.unsubscribe(channel)
             await pubsub.aclose()
