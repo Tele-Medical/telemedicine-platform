@@ -20,6 +20,7 @@ RUN uv sync --frozen --no-cache
 
 # Create a non-root user for security
 RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
+RUN chown -R appuser:appgroup /app/.venv
 USER appuser
 
 # Copy the rest of the application with correct ownership
