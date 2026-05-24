@@ -36,9 +36,10 @@ const AppointmentScheduler: React.FC<{ patientId: string }> = ({ patientId }) =>
       await apiClient('/appointments', {
         method: 'POST',
         body: JSON.stringify({
-          patientId,
-          practitionerId: selectedDoctor,
-          time: appointmentDate
+          patient_id: patientId,
+          practitioner_id: selectedDoctor,
+          scheduled_for: appointmentDate,
+          channel: 'assisted'
         })
       });
       setStatus('success');

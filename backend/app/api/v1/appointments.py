@@ -142,3 +142,34 @@ def get_doctor_queue(
         }
         for appt, full_name in results
     ]
+
+
+@router.get("/{id}")
+def get_appointment_details(
+    id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """Retrieve detailed appointment information including patient and practitioner names."""
+    appt = db.query(Appointment).filter(Appointment.id == id).first()
+    if not appt:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    patient = db.query(Patient).filter(Patient.id == appt.patient_id).first()
+    patient_name = patient.full_name if patient else "Patient"
+
+    practitioner_name = "Doctor"
+    if appt.practitioner_id:
+        practitioner = db.query(Practitioner).filter(Practitioner.id == appt.practitioner_id).first()
+        practitioner_name = practitioner.full_name if practitioner else "Doctor"
+
+    return {
+        "id": str(appt.id),
+        "patient_id": str(appt.patient_id),
+        "patient_name": patient_name,
+        "practitioner_id": str(appt.practitioner_id) if appt.practitioner_id else None,
+        "practitioner_name": practitioner_name,
+        "status": appt.status,
+        "channel": appt.channel,
+        "scheduled_for": appt.scheduled_for.isoformat() if appt.scheduled_for else None,
+    }

@@ -62,7 +62,7 @@ const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = ({ appoi
       </div>
 
       <button 
-        onClick={() => navigate('/consultation')}
+        onClick={() => navigate(`/consultation?appointmentId=${appointment.id}`)}
         aria-label={t('clinical.join_call')}
         className="mt-2 w-full bg-primary hover:bg-primary-700 active:scale-[0.98] text-white py-3.5 rounded-full font-semibold text-base shadow-md shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
       >

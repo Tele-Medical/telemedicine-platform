@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { apiClient } from '../../api/client';
 import { 
   Video, 
   VideoOff, 
@@ -44,8 +45,17 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isCleaningUpRef = useRef(false);
 
-  const remotePeerName = userRole === 'patient' ? 'Dr. Ramesh Sharma' : 'Ravi Kumar (Patient)';
-  const peerInitials = userRole === 'patient' ? 'RS' : 'RK';
+  const [remotePeerName, setRemotePeerName] = useState(userRole === 'patient' ? 'Doctor' : 'Patient');
+
+  const peerInitials = React.useMemo(() => {
+    return remotePeerName
+      .split(' ')
+      .filter(n => n && !n.includes('.') && n.toLowerCase() !== 'dr')
+      .map(n => n[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || 'P';
+  }, [remotePeerName]);
 
   // 1. Capture local audio/video media
   const startLocalMedia = async () => {
@@ -339,6 +349,24 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       }
     }
   };
+
+  useEffect(() => {
+    const fetchPeerName = async () => {
+      try {
+        const data = await apiClient(`/appointments/${appointmentId}`);
+        if (data) {
+          const peerName = userRole === 'patient' ? data.practitioner_name : data.patient_name;
+          setRemotePeerName(peerName);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch appointment details for names", err);
+      }
+    };
+    
+    if (appointmentId && !appointmentId.startsWith('appt-')) {
+      fetchPeerName();
+    }
+  }, [appointmentId, userRole]);
 
   useEffect(() => {
     establishConnection();
