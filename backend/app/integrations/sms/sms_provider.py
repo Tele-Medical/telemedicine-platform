@@ -65,9 +65,9 @@ class TwilioSMSProvider(SMSProvider):
             )
             logger.info(f"TWILIO SMS successfully queued for {masked_phone}")
             return True
-        except Exception:
-            # Mask error details to prevent PII/API key leakage in logs
-            logger.error(f"Twilio API request failed for {masked_phone}")
+        except Exception as e:
+            # Print the actual exception to diagnose Twilio failures in production
+            logger.error(f"Twilio API request failed for {masked_phone}: {e}")
             return False
 
 def get_sms_provider() -> SMSProvider:
