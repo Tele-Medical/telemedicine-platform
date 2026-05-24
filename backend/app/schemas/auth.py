@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from uuid import UUID
-from typing import Literal
+from typing import Literal, Optional
 
 
 class OTPRequest(BaseModel):
@@ -56,6 +56,8 @@ class UserResponse(BaseModel):
     full_name: str | None = None
     default_role: str | None = None
     is_active: bool
+    patient_id: Optional[UUID] = None
+    practitioner_id: Optional[UUID] = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -3,6 +3,7 @@ import UpcomingAppointmentCard from './UpcomingAppointmentCard';
 import VitalsWidget from './VitalsWidget';
 import RecentRecordsList from './RecentRecordsList';
 import { appointmentService, authService } from '../../api/services';
+import { apiClient } from '../../api/client';
 import { AlertCircle, Calendar, PlusCircle, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -47,16 +48,47 @@ const PatientDashboard: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  const handleRequestCare = () => {
-    // Mock booking flow showing clean toast-like experience or optimistic scheduling
-    const newAppointment: Appointment = {
-      id: `appt-${Date.now()}`,
-      practitioner_name: 'Dr. Sharma',
-      practitioner_role: 'General Physician',
-      scheduled_for: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // in 1 hour
-      status: 'confirmed'
-    };
-    setAppointments([newAppointment]);
+  const handleRequestCare = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const currentUser = await authService.getMe();
+      const patientId = (currentUser as any).patient_id;
+      
+      if (!patientId) {
+        console.error("Patient profile not found in current user");
+        setError(t('clinical.booking_failed', 'Booking failed: patient profile not found'));
+        return;
+      }
+
+      let doctorId = 'd24c53d6-5f4a-4e62-8b0d-3d5c8a7b99d1'; // Fallback to Dr. Ramesh Sharma ID
+      try {
+        const docs = await apiClient('/practitioners');
+        if (docs && docs.length > 0) {
+          doctorId = docs[0].id;
+        }
+      } catch (err) {
+        console.warn("Failed to fetch practitioners, using fallback doctor ID", err);
+      }
+
+      await apiClient('/appointments', {
+        method: 'POST',
+        body: JSON.stringify({
+          patient_id: patientId,
+          practitioner_id: doctorId,
+          channel: 'telemedicine',
+          scheduled_for: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        })
+      });
+
+      await loadData();
+    } catch (err) {
+      console.error("Failed to book real appointment:", err);
+      setError(t('clinical.booking_failed', 'Booking failed. Please try again.'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
