@@ -40,6 +40,7 @@ def mock_redis(monkeypatch):
     async def mock_listen():
         if False:
             yield None
+
     mock_pubsub.listen = mock_listen
 
     mock.pubsub.return_value = mock_pubsub

@@ -113,7 +113,13 @@ async def get_ws_user(token: str, db: Session) -> Optional[User]:
         user_id = payload.get("sub")
         if not user_id:
             return None
-        return db.get(User, user_id)
+        import uuid
+
+        try:
+            user_uuid = uuid.UUID(user_id)
+        except ValueError:
+            return None
+        return db.get(User, user_uuid)
     except Exception as e:
         logger.error(f"WS auth error: {e}")
         return None
@@ -137,7 +143,15 @@ async def signaling_endpoint(
         return
 
     # 2. Authorization
-    appointment = db.get(Appointment, appointment_id)
+    import uuid
+
+    try:
+        appt_uuid = uuid.UUID(appointment_id)
+    except ValueError:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    appointment = db.get(Appointment, appt_uuid)
     if not appointment:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
