@@ -26,11 +26,10 @@ class MockSMSProvider(SMSProvider):
 
     def send_sms(self, to_phone: str, message: str) -> bool:
         """
-        Simulates sending an SMS by logging the event with a masked phone number.
+        Simulates sending an SMS by logging the event with the generated code.
         """
         masked_phone = "****" + to_phone[-2:] if len(to_phone) > 2 else "**"
-        logger.info(f"MOCK SMS sent to {masked_phone} (content hidden for privacy)")
-        # For local development only, developers can check the challenge table in the DB
+        logger.info(f"MOCK SMS sent to {masked_phone}. Message: {message}")
         return True
 
 class TwilioSMSProvider(SMSProvider):
