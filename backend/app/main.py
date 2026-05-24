@@ -1,9 +1,33 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import api_router
 from app.core.config import settings
 
-app = FastAPI(title="Telemedicine API", version="0.1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Run database migrations and seeding on startup in production
+    if settings.app_env == "production":
+        try:
+            print("Production environment detected. Running database migrations...")
+            from alembic.config import Config
+            from alembic import command
+            alembic_cfg = Config("alembic.ini")
+            command.upgrade(alembic_cfg, "head")
+            print("Database migrations applied successfully!")
+        except Exception as e:
+            print(f"Failed to run database migrations: {e}")
+            
+        try:
+            print("Checking and running database seeding...")
+            from seed import seed_db
+            seed_db()
+            print("Database seeding checked/applied successfully!")
+        except Exception as e:
+            print(f"Failed to run database seeding: {e}")
+    yield
+
+app = FastAPI(title="Telemedicine API", version="0.1.0", lifespan=lifespan)
 
 # Set up CORS for the frontend
 # Security Hardening: Never use allow_origins=["*"] with allow_credentials=True
