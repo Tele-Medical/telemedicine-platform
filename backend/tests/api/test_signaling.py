@@ -39,7 +39,7 @@ def test_data(db_session: Session):
     db_session.flush()
 
     patient = Patient(
-        id=patient_user.id, full_name="Patient Signaling", created_by_user_id=doctor_user.id
+        id=patient_user.id, full_name="Patient Signaling", created_by_user_id=patient_user.id
     )
     db_session.add(patient)
     db_session.flush()
