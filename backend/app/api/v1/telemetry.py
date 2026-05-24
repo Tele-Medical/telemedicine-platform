@@ -170,7 +170,7 @@ async def signaling_endpoint(
         from app.models import Patient
 
         patient = db.get(Patient, appointment.patient_id)
-        if patient and (patient.created_by_user_id == user.id or patient.id == user.id):
+        if patient and patient.created_by_user_id == user.id:
             is_patient = True
 
     if not is_practitioner and not is_patient:
