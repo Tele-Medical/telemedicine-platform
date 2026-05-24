@@ -1,4 +1,5 @@
 """Unit / integration tests for app/services/auth_service.py."""
+
 import hashlib
 import pytest
 from datetime import datetime, timedelta, timezone
@@ -14,6 +15,7 @@ from app.services.auth_service import hash_token, request_otp, verify_otp, authe
 # ---------------------------------------------------------------------------
 # hash_token
 # ---------------------------------------------------------------------------
+
 
 def test_hash_token_deterministic():
     """Same input should always produce the same SHA-256 hex digest."""
@@ -41,6 +43,7 @@ def test_hash_token_returns_string():
 # request_otp
 # ---------------------------------------------------------------------------
 
+
 def test_request_otp_creates_challenge(db_session: Session):
     result = request_otp(db_session, "+9999999999")
     assert result == {"message": "OTP sent successfully"}
@@ -53,6 +56,7 @@ def test_request_otp_creates_challenge(db_session: Session):
 def test_request_otp_stores_hashed_not_plain(db_session: Session):
     request_otp(db_session, "+9999999998")
     challenge = db_session.query(OTPChallenge).filter_by(phone="+9999999998").first()
+    assert challenge is not None
     assert len(challenge.otp_hash) > 6
     assert challenge.otp_hash.startswith("$2")
 
@@ -63,22 +67,26 @@ def test_request_otp_test_phone_uses_fixed_code(db_session: Session):
     challenge = db_session.query(OTPChallenge).filter_by(phone="+1234567890").first()
     assert challenge is not None
     from app.core.security import verify_password
+
     assert verify_password("123456", challenge.otp_hash) is True
 
 
 def test_request_otp_normal_phone_does_not_use_fixed_code(db_session: Session):
     """A normal phone should NOT get the fixed 123456 code."""
-    # Note: There is a very small (1 in 900,000) chance this fails randomly, 
+    # Note: There is a very small (1 in 900,000) chance this fails randomly,
     # but for a unit test it's acceptable.
     request_otp(db_session, "+9990001112")
     challenge = db_session.query(OTPChallenge).filter_by(phone="+9990001112").first()
+    assert challenge is not None
     from app.core.security import verify_password
+
     assert verify_password("123456", challenge.otp_hash) is False
 
 
 def test_request_otp_expiry_is_in_future(db_session: Session):
     request_otp(db_session, "+9999999997")
     challenge = db_session.query(OTPChallenge).filter_by(phone="+9999999997").first()
+    assert challenge is not None
     assert challenge.expires_at > datetime.now(timezone.utc)
 
 
@@ -93,6 +101,7 @@ def test_request_otp_multiple_challenges_same_phone(db_session: Session):
 # ---------------------------------------------------------------------------
 # verify_otp
 # ---------------------------------------------------------------------------
+
 
 def test_verify_otp_no_challenge_raises_400(db_session: Session):
     payload = OTPVerify(phone="+910000000000", code="123456")
@@ -162,9 +171,9 @@ def test_verify_otp_success_marks_challenge_verified(db_session: Session):
     payload = OTPVerify(phone="+1234567890", code="123456")
     verify_otp(db_session, payload)
 
-    challenge = db_session.query(OTPChallenge).filter_by(
-        phone="+1234567890", status="verified"
-    ).first()
+    challenge = (
+        db_session.query(OTPChallenge).filter_by(phone="+1234567890", status="verified").first()
+    )
     assert challenge is not None
     assert challenge.verified_at is not None
 
@@ -217,6 +226,7 @@ def test_verify_otp_access_token_contains_user_id(db_session: Session):
     assert payload is not None
 
     user = db_session.query(User).filter_by(phone="+1234567893").first()
+    assert user is not None
     assert payload["sub"] == str(user.id)
 
 
@@ -225,6 +235,7 @@ def test_verify_otp_creates_session_record(db_session: Session):
     verify_otp(db_session, OTPVerify(phone="+1234567894", code="123456"))
 
     user = db_session.query(User).filter_by(phone="+1234567894").first()
+    assert user is not None
     session = db_session.query(DBSession).filter_by(user_id=user.id).first()
     assert session is not None
     assert session.refresh_token_hash is not None
@@ -247,13 +258,18 @@ def test_verify_otp_refresh_token_hash_stored(db_session: Session):
 # authenticate_staff
 # ---------------------------------------------------------------------------
 
+
 def test_authenticate_staff_success(db_session: Session):
     hashed_pw = get_password_hash("correct_password")
-    user = User(username="staff_doc", hashed_password=hashed_pw, is_active=True, default_role="doctor")
+    user = User(
+        username="staff_doc", hashed_password=hashed_pw, is_active=True, default_role="doctor"
+    )
     db_session.add(user)
     db_session.commit()
 
-    result = authenticate_staff(db_session, StaffLogin(username="staff_doc", password="correct_password"))
+    result = authenticate_staff(
+        db_session, StaffLogin(username="staff_doc", password="correct_password")
+    )
     assert result.access_token
     assert result.refresh_token
     assert result.token_type == "bearer"
@@ -266,7 +282,9 @@ def test_authenticate_staff_wrong_password_raises_401(db_session: Session):
     db_session.commit()
 
     with pytest.raises(HTTPException) as exc_info:
-        authenticate_staff(db_session, StaffLogin(username="staff_wrong_pw", password="wrong_password"))
+        authenticate_staff(
+            db_session, StaffLogin(username="staff_wrong_pw", password="wrong_password")
+        )
     assert exc_info.value.status_code == 401
 
 
@@ -283,7 +301,9 @@ def test_authenticate_staff_no_password_raises_401(db_session: Session):
     db_session.commit()
 
     with pytest.raises(HTTPException) as exc_info:
-        authenticate_staff(db_session, StaffLogin(username="otp_only_user", password="any_password"))
+        authenticate_staff(
+            db_session, StaffLogin(username="otp_only_user", password="any_password")
+        )
     assert exc_info.value.status_code == 401
 
 
@@ -306,7 +326,9 @@ def test_authenticate_staff_access_token_contains_user_id(db_session: Session):
     db_session.add(user)
     db_session.commit()
 
-    result = authenticate_staff(db_session, StaffLogin(username="staff_token_check", password="password456"))
+    result = authenticate_staff(
+        db_session, StaffLogin(username="staff_token_check", password="password456")
+    )
     payload = decode_token(result.access_token)
     assert payload is not None
     assert payload["sub"] == str(user.id)

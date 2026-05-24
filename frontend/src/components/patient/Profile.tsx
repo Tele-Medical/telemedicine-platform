@@ -124,6 +124,7 @@ const Profile: React.FC<ProfileProps> = ({ onLogout }) => {
               <option value="pa">{t('profile.lang_pa')}</option>
               <option value="hi">{t('profile.lang_hi')}</option>
               <option value="en">{t('profile.lang_en')}</option>
+              <option value="bn">{t('profile.lang_bn')}</option>
             </select>
 
             {isSaved && (

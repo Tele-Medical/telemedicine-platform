@@ -1,5 +1,17 @@
 from fastapi import APIRouter
-from app.api.v1 import auth, patients, practitioners, appointments, encounters, clinical, sync, pharmacy, consent, telemetry, abdm
+from app.api.v1 import (
+    auth,
+    patients,
+    practitioners,
+    appointments,
+    encounters,
+    clinical,
+    sync,
+    pharmacy,
+    consent,
+    telemetry,
+    abdm,
+)
 
 api_router = APIRouter(prefix="/api/v1")
 

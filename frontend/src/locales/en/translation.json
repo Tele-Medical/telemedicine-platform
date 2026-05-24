@@ -89,7 +89,8 @@
     "loading": "Loading profile...",
     "lang_pa": "ਪੰਜਾਬੀ (Punjabi)",
     "lang_hi": "हिन्दी (Hindi)",
-    "lang_en": "English"
+    "lang_en": "English",
+    "lang_bn": "বাংলা (Bengali)"
   },
   "clinical": {
     "vitals": "Vitals",

@@ -3,6 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import Optional
 
+
 class PractitionerBase(BaseModel):
     full_name: str
     phone: Optional[str] = None
@@ -10,6 +11,7 @@ class PractitionerBase(BaseModel):
     registration_number: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class PractitionerRead(PractitionerBase):
     id: UUID
