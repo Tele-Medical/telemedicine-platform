@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 interface User {
   full_name?: string;
   phone?: string;
+  patient_id?: string;
 }
 
 interface Appointment {
@@ -54,7 +55,7 @@ const PatientDashboard: React.FC = () => {
       setError(null);
       
       const currentUser = await authService.getMe();
-      const patientId = (currentUser as any).patient_id;
+      const patientId = currentUser?.patient_id;
       
       if (!patientId) {
         console.error("Patient profile not found in current user");
