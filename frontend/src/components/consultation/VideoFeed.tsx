@@ -44,6 +44,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
 
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isCleaningUpRef = useRef(false);
+  const candidatesQueueRef = useRef<RTCIceCandidateInit[]>([]);
 
   const [remotePeerName, setRemotePeerName] = useState(userRole === 'patient' ? 'Doctor' : 'Patient');
 
@@ -102,6 +103,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     isCleaningUpRef.current = false;
     setConnectionState('connecting');
     setErrorMessage(null);
+    candidatesQueueRef.current = [];
 
     // Clean up any existing connection first to avoid resource leaks
     if (pcRef.current) {
@@ -142,7 +144,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
 
     // Monitor WebRTC Connection State changes
     pc.onconnectionstatechange = () => {
-      console.log("RTCPeerConnection state:", pc.connectionState);
+      console.log("RTCPeerConnection connectionState:", pc.connectionState);
       if (pc.connectionState === 'connected') {
         setConnectionState('connected');
         setNetworkQuality('excellent');
@@ -153,6 +155,25 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         console.warn("WebRTC media transport failed. Activating low-bandwidth audio fallback...");
         setConnectionState('connected'); // keeps presentation active
         setNetworkQuality('weak');      // fall back to high-fidelity audio mode
+        setErrorMessage(t('clinical.weak_connection_desc'));
+        if (localStreamRef.current) {
+          localStreamRef.current.getVideoTracks().forEach(t => t.enabled = false);
+        }
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      console.log("RTCPeerConnection iceConnectionState:", pc.iceConnectionState);
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        setConnectionState('connected');
+        setNetworkQuality('excellent');
+        setErrorMessage(null);
+      } else if (pc.iceConnectionState === 'disconnected') {
+        setConnectionState('disconnected');
+      } else if (pc.iceConnectionState === 'failed') {
+        console.warn("ICE connection failed. Activating low-bandwidth audio fallback...");
+        setConnectionState('connected');
+        setNetworkQuality('weak');
         setErrorMessage(t('clinical.weak_connection_desc'));
         if (localStreamRef.current) {
           localStreamRef.current.getVideoTracks().forEach(t => t.enabled = false);
@@ -173,8 +194,31 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     // Handle remote track addition
     pc.ontrack = (event) => {
       console.log("Received remote track:", event.track.kind);
-      if (remoteVideoRef.current && event.streams[0]) {
-        remoteVideoRef.current.srcObject = event.streams[0];
+      if (remoteVideoRef.current) {
+        if (event.streams && event.streams[0]) {
+          remoteVideoRef.current.srcObject = event.streams[0];
+        } else {
+          // Fallback if event.streams is empty
+          if (!remoteVideoRef.current.srcObject) {
+            remoteVideoRef.current.srcObject = new MediaStream();
+          }
+          (remoteVideoRef.current.srcObject as MediaStream).addTrack(event.track);
+        }
+      }
+    };
+
+    // Helper to empty candidates queue once remote description is set
+    const processCandidatesQueue = async () => {
+      console.log(`Processing ${candidatesQueueRef.current.length} queued ICE candidates`);
+      while (candidatesQueueRef.current.length > 0) {
+        const cand = candidatesQueueRef.current.shift();
+        if (cand) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(cand));
+          } catch (e) {
+            console.warn("Failed to add queued ICE candidate:", e);
+          }
+        }
       }
     };
 
@@ -212,7 +256,10 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           
           else if (msg.type === 'peer_joined') {
             console.log("Remote peer joined. Initiating offer...");
-            const offer = await pc.createOffer();
+            const offer = await pc.createOffer({
+              offerToReceiveAudio: true,
+              offerToReceiveVideo: true
+            });
             await pc.setLocalDescription(offer);
             
             ws.send(JSON.stringify({
@@ -224,7 +271,12 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           else if (msg.type === 'offer') {
             console.log("Received remote offer. Setting remote description & sending answer...");
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: msg.sdp }));
-            const answer = await pc.createAnswer();
+            await processCandidatesQueue();
+
+            const answer = await pc.createAnswer({
+              offerToReceiveAudio: true,
+              offerToReceiveVideo: true
+            });
             await pc.setLocalDescription(answer);
             
             ws.send(JSON.stringify({
@@ -237,12 +289,21 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           else if (msg.type === 'answer') {
             console.log("Received remote answer. Completing peer handshake...");
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
+            await processCandidatesQueue();
             setConnectionState('connected');
           } 
           
           else if (msg.type === 'candidate') {
             if (msg.candidate) {
-              await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
+              if (pc.remoteDescription && pc.remoteDescription.type) {
+                try {
+                  await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
+                } catch (e) {
+                  console.warn("Failed to add ICE candidate:", e);
+                }
+              } else {
+                candidatesQueueRef.current.push(msg.candidate);
+              }
             }
           } 
           
@@ -254,7 +315,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
             }
           }
         } catch (jsonErr) {
-          console.error("Failed to parse signaling message:", jsonErr);
+          console.error("Failed to parse/process signaling message:", jsonErr);
         }
       };
 
@@ -329,6 +390,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       localStreamRef.current.getTracks().forEach(track => track.stop());
       localStreamRef.current = null;
     }
+    
+    candidatesQueueRef.current = [];
   };
 
   // Network Quality Simulator Handlers (Demonstrating Premium low-bandwidth capability!)
@@ -385,36 +448,61 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appointmentId]);
 
+  const isVideoVisible = networkQuality === 'excellent' && connectionState === 'connected';
+
+  // Ensure remote stream plays automatically when connection becomes visible
+  useEffect(() => {
+    if (isVideoVisible && remoteVideoRef.current) {
+      remoteVideoRef.current.play().catch(e => {
+        console.warn("Autoplay remote video prevented or failed:", e);
+      });
+    }
+  }, [isVideoVisible]);
+
+  // Ensure local video stream is correctly attached and playing
+  useEffect(() => {
+    if (!isVideoOff && localVideoRef.current && localStreamRef.current) {
+      localVideoRef.current.srcObject = localStreamRef.current;
+      localVideoRef.current.play().catch(e => {
+        console.warn("Autoplay local video prevented or failed:", e);
+      });
+    }
+  }, [isVideoOff]);
+
   return (
     <div className="relative w-full h-[45vh] bg-neutral-950 overflow-hidden rounded-b-3xl shadow-lg border-b border-neutral-800 transition-all duration-500 font-sans">
       
       {/* Remote Video Stream */}
       <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center">
-        {networkQuality === 'excellent' && connectionState === 'connected' ? (
-          <div className="w-full h-full relative">
-            <video 
-              ref={remoteVideoRef}
-              playsInline
-              autoPlay
-              aria-label={`Video feed of ${remotePeerName}`}
-              className="w-full h-full object-cover animate-fade-in"
-            />
-            {/* Overlay Name Tag */}
-            <div className="absolute bottom-20 left-4 bg-black/55 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 text-white text-xs font-semibold tracking-wide">
-              {remotePeerName}
-            </div>
+        
+        {/* Remote Video Element - ALWAYS mounted in DOM to guarantee `remoteVideoRef.current` is not null when `pc.ontrack` fires */}
+        <div className={`w-full h-full relative ${isVideoVisible ? 'block' : 'hidden'}`}>
+          <video 
+            ref={remoteVideoRef}
+            playsInline
+            autoPlay
+            aria-label={`Video feed of ${remotePeerName}`}
+            className="w-full h-full object-cover animate-fade-in"
+          />
+          {/* Overlay Name Tag */}
+          <div className="absolute bottom-20 left-4 bg-black/55 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 text-white text-xs font-semibold tracking-wide">
+            {remotePeerName}
           </div>
-        ) : (
-          /* High-Fidelity Fallback Profile View for Weak/Disconnected states */
+        </div>
+
+        {/* High-Fidelity Fallback Profile View for Weak/Disconnected/Connecting states */}
+        {!isVideoVisible && (
           <div className="flex flex-col items-center justify-center text-center p-6 animate-scale-in">
             <div className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary text-primary flex items-center justify-center text-3xl font-extrabold shadow-lg mb-4 animate-pulse">
               {peerInitials}
             </div>
             <h3 className="text-white font-bold text-lg">{remotePeerName}</h3>
             <p className="text-neutral-400 text-xs mt-1">
-              {networkQuality === 'weak' 
-                ? t('clinical.weak_connection_desc') 
-                : t('clinical.no_signal_desc')}
+              {connectionState === 'connecting'
+                ? t('clinical.connecting', 'Connecting to secure consultation...')
+                : networkQuality === 'weak' 
+                  ? t('clinical.weak_connection_desc') 
+                  : t('clinical.no_signal_desc')}
             </p>
           </div>
         )}
