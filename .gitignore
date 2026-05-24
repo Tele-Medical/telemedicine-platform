@@ -21,7 +21,6 @@ env.bak/
 .coverage
 htmlcov/
 alembic.ini.bak
-uv.lock
 
 # Frontend (Node.js / React / PWA)
 node_modules/
