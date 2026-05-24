@@ -63,14 +63,19 @@ const PatientDashboard: React.FC = () => {
         return;
       }
 
-      let doctorId = 'd24c53d6-5f4a-4e62-8b0d-3d5c8a7b99d1'; // Fallback to Dr. Ramesh Sharma ID
+      let doctorId: string | null = null;
       try {
         const docs = await apiClient('/practitioners');
         if (docs && docs.length > 0) {
           doctorId = docs[0].id;
         }
       } catch (err) {
-        console.warn("Failed to fetch practitioners, using fallback doctor ID", err);
+        console.warn("Failed to fetch practitioners", err);
+      }
+
+      if (!doctorId) {
+        setError(t('clinical.booking_failed', 'Booking failed: no practitioner available'));
+        return;
       }
 
       await apiClient('/appointments', {
