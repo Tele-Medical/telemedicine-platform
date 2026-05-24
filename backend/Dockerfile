@@ -1,5 +1,9 @@
 FROM python:3.12-slim
 
+# Prevent Python from buffering stdout/stderr and writing pyc files
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
 WORKDIR /app
 
 # Create a non-root user for security
