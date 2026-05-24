@@ -165,7 +165,13 @@ async def signaling_endpoint(
         if practitioner and practitioner.user_id == user.id:
             is_practitioner = True
 
-    is_patient = user.id == appointment.patient_id
+    is_patient = False
+    if appointment.patient_id:
+        from app.models import Patient
+
+        patient = db.get(Patient, appointment.patient_id)
+        if patient and (patient.created_by_user_id == user.id or patient.id == user.id):
+            is_patient = True
 
     if not is_practitioner and not is_patient:
         logger.warning(f"Unauthorized signaling attempt by {user.id} for appt {appointment_id}")
