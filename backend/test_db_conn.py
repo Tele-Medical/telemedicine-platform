@@ -1,9 +1,12 @@
 import psycopg
 import sys
 
+
 def main():
     try:
-        conn = psycopg.connect("postgresql://postgres:localpassword@127.0.0.1:5432/telemedicine", connect_timeout=5)
+        conn = psycopg.connect(
+            "postgresql://postgres:localpassword@127.0.0.1:5432/telemedicine", connect_timeout=5
+        )
         print("Connection successful")
         with conn.cursor() as cur:
             cur.execute("SELECT 1")
@@ -12,6 +15,7 @@ def main():
     except Exception as e:
         print(f"Connection failed: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

@@ -39,4 +39,14 @@ line-length = 100
 asyncio_mode = "auto"
 
 [tool.mypy]
+ignore_missing_imports = false
+
+[[tool.mypy.overrides]]
+module = [
+    "boto3.*",
+    "twilio.*",
+    "passlib.*",
+    "redis.*",
+    "moto.*"
+]
 ignore_missing_imports = true

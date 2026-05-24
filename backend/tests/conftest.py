@@ -16,6 +16,7 @@ import app.api.v1.telemetry
 engine = create_engine(settings.database_url)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 # Mock Redis
 @pytest.fixture(autouse=True)
 def mock_redis(monkeypatch):
@@ -28,21 +29,22 @@ def mock_redis(monkeypatch):
     # Force publish to raise an exception so the signaling server falls back
     # to local broadcast, allowing the WebSocket tests to receive messages.
     mock.publish = AsyncMock(side_effect=Exception("Forcing local broadcast fallback for tests"))
-    
+
     # Mock PubSub lifecycle
     mock_pubsub = AsyncMock()
     mock_pubsub.subscribe = AsyncMock()
     mock_pubsub.unsubscribe = AsyncMock()
     mock_pubsub.get_message = AsyncMock(return_value=None)
     mock_pubsub.aclose = AsyncMock()
-    
+
     mock.pubsub.return_value = mock_pubsub
-    
+
     # Patch all known references
     monkeypatch.setattr(app.core.redis, "redis_client", mock)
     monkeypatch.setattr(app.api.v1.telemetry, "redis_client", mock)
-    
+
     return mock
+
 
 @pytest.fixture(autouse=True)
 def force_mock_sms_provider():
@@ -51,12 +53,14 @@ def force_mock_sms_provider():
     yield
     settings.sms_provider = original_provider
 
+
 @pytest.fixture(scope="session")
 def setup_db():
     # In a real TDD setup, you might create/drop test db here
     Base.metadata.create_all(bind=engine)
     yield
     # Base.metadata.drop_all(bind=engine)
+
 
 @pytest.fixture(scope="function")
 def db_session(setup_db):
@@ -67,12 +71,13 @@ def db_session(setup_db):
     connection = engine.connect()
     transaction = connection.begin()
     session = TestingSessionLocal(bind=connection)
-    
+
     yield session
 
     session.close()
     transaction.rollback()
     connection.close()
+
 
 @pytest.fixture(scope="function")
 def client(db_session):
@@ -80,6 +85,7 @@ def client(db_session):
     Returns a FastAPI TestClient that overrides the get_db dependency
     to use our test session.
     """
+
     def override_get_db():
         yield db_session
 

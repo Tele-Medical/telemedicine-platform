@@ -14,11 +14,13 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
 class ConnectionManager:
     """
     Manages active WebSocket connections for WebRTC signaling.
     Uses Redis Pub/Sub to synchronize messages across multiple server workers/instances.
     """
+
     def __init__(self):
         # Maps appointment_id -> list of active websockets in this specific process
         self.active_connections: Dict[str, List[WebSocket]] = {}
@@ -38,7 +40,9 @@ class ConnectionManager:
             if not self.active_connections[appointment_id]:
                 del self.active_connections[appointment_id]
 
-    async def publish_to_room(self, message: dict, appointment_id: str, exclude_socket: Optional[WebSocket] = None):
+    async def publish_to_room(
+        self, message: dict, appointment_id: str, exclude_socket: Optional[WebSocket] = None
+    ):
         """
         Publishes a message to the Redis channel for a specific appointment.
         All server instances subscribed to this channel will receive and relay the message.
@@ -51,7 +55,9 @@ class ConnectionManager:
             # Best-effort fallback: broadcast to local connections only
             await self._broadcast_locally(message, appointment_id, exclude_socket)
 
-    async def _broadcast_locally(self, message: dict, appointment_id: str, exclude_socket: Optional[WebSocket]):
+    async def _broadcast_locally(
+        self, message: dict, appointment_id: str, exclude_socket: Optional[WebSocket]
+    ):
         """Relays a message to all WebSockets connected to THIS server process."""
         if appointment_id not in self.active_connections:
             return
@@ -64,7 +70,7 @@ class ConnectionManager:
                 except Exception as e:
                     logger.warning(f"Dead connection detected in room {appointment_id}: {e}")
                     dead_connections.append(connection)
-        
+
         # Cleanup identified dead connections
         for dead_conn in dead_connections:
             self.disconnect(dead_conn, appointment_id)
@@ -76,7 +82,7 @@ class ConnectionManager:
         """
         pubsub = redis_client.pubsub()
         channel = f"telemetry:room:{appointment_id}"
-        
+
         try:
             await pubsub.subscribe(channel)
             while True:
@@ -88,13 +94,15 @@ class ConnectionManager:
                         try:
                             await websocket.send_json(data)
                         except Exception:
-                            break # Connection probably closed
+                            break  # Connection probably closed
                 await asyncio.sleep(0.01)
         finally:
             await pubsub.unsubscribe(channel)
             await pubsub.aclose()
 
+
 manager = ConnectionManager()
+
 
 async def get_ws_user(token: str, db: Session) -> Optional[User]:
     """
@@ -112,12 +120,13 @@ async def get_ws_user(token: str, db: Session) -> Optional[User]:
         logger.error(f"WS auth error: {e}")
         return None
 
+
 @router.websocket("/ws/{appointment_id}")
 async def signaling_endpoint(
     websocket: WebSocket,
     appointment_id: str,
     token: str = Query(...),
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
 ):
     """
     Stateful WebSocket endpoint for WebRTC signaling.
@@ -139,11 +148,12 @@ async def signaling_endpoint(
     is_practitioner = False
     if appointment.practitioner_id:
         from app.models import Practitioner
+
         practitioner = db.get(Practitioner, appointment.practitioner_id)
         if practitioner and practitioner.user_id == user.id:
             is_practitioner = True
 
-    is_patient = (user.id == appointment.patient_id)
+    is_patient = user.id == appointment.patient_id
 
     if not is_practitioner and not is_patient:
         logger.warning(f"Unauthorized signaling attempt by {user.id} for appt {appointment_id}")
@@ -153,38 +163,40 @@ async def signaling_endpoint(
     # 3. Connection and Lifecycle
     await manager.connect(websocket, appointment_id)
     user_id_str = str(user.id)
-    
+
     # Start the background task to listen to Redis messages for this room
     listen_task = asyncio.create_task(
         manager.subscribe_and_listen(appointment_id, websocket, user_id_str)
     )
-    
+
     try:
         # Initial Welcome
-        await websocket.send_json({
-            "type": "welcome", 
-            "message": "Joined signaling room", 
-            "user_id": user_id_str
-        })
-        
+        await websocket.send_json(
+            {"type": "welcome", "message": "Joined signaling room", "user_id": user_id_str}
+        )
+
         # Notify others via Redis
-        await manager.publish_to_room({
-            "type": "peer_joined", 
-            "user_id": user_id_str, 
-            "role": user.default_role,
-            "sender_id": user_id_str
-        }, appointment_id, exclude_socket=websocket)
+        await manager.publish_to_room(
+            {
+                "type": "peer_joined",
+                "user_id": user_id_str,
+                "role": user.default_role,
+                "sender_id": user_id_str,
+            },
+            appointment_id,
+            exclude_socket=websocket,
+        )
 
         while True:
             # Relay client-to-client signals
             data = await websocket.receive_json()
-            data["sender_id"] = user_id_str # Stamp with sender for filtering
-            
+            data["sender_id"] = user_id_str  # Stamp with sender for filtering
+
             if data.get("type") == "network_status":
                 logger.info(f"Signal quality report for {appointment_id}: {data.get('status')}")
-            
+
             await manager.publish_to_room(data, appointment_id, exclude_socket=websocket)
-            
+
     except WebSocketDisconnect:
         logger.info(f"Normal WS disconnect for user {user_id_str}")
     except Exception as e:
@@ -193,15 +205,14 @@ async def signaling_endpoint(
         # 4. Guaranteed Cleanup (fixes CodeRabbit lifecycle drift)
         listen_task.cancel()
         manager.disconnect(websocket, appointment_id)
-        await manager.publish_to_room({
-            "type": "peer_left", 
-            "user_id": user_id_str, 
-            "sender_id": user_id_str
-        }, appointment_id, exclude_socket=websocket)
+        await manager.publish_to_room(
+            {"type": "peer_left", "user_id": user_id_str, "sender_id": user_id_str},
+            appointment_id,
+            exclude_socket=websocket,
+        )
         try:
             await listen_task
         except asyncio.CancelledError:
             pass
         except Exception as e:
             logger.error(f"Error while cleaning up Redis listener task for {appointment_id}: {e}")
-

@@ -1,4 +1,5 @@
 """Unit / integration tests for app/services/identity_service.py (added in this PR)."""
+
 import uuid
 import pytest
 from fastapi import HTTPException
@@ -13,6 +14,7 @@ from app.services.identity_service import link_identifier, get_identifiers
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def make_patient(db: Session, full_name: str = "Test Patient") -> Patient:
     patient = Patient(full_name=full_name)
     db.add(patient)
@@ -24,6 +26,7 @@ def make_patient(db: Session, full_name: str = "Test Patient") -> Patient:
 # ---------------------------------------------------------------------------
 # link_identifier
 # ---------------------------------------------------------------------------
+
 
 def test_link_identifier_patient_not_found_raises_404(db_session: Session):
     missing_id = uuid.uuid4()
@@ -50,9 +53,11 @@ def test_link_identifier_persists_to_db(db_session: Session):
     payload = IdentifierCreate(identifier_type="local_clinic_id", identifier_value="LC-999")
     link_identifier(db_session, patient.id, payload)
 
-    stored = db_session.query(PatientIdentifier).filter_by(
-        patient_id=patient.id, identifier_value="LC-999"
-    ).first()
+    stored = (
+        db_session.query(PatientIdentifier)
+        .filter_by(patient_id=patient.id, identifier_value="LC-999")
+        .first()
+    )
     assert stored is not None
 
 
@@ -65,9 +70,11 @@ def test_link_identifier_duplicate_same_patient_returns_existing(db_session: Ses
 
     # Should return the same record, not create a new one
     assert first.id == second.id
-    count = db_session.query(PatientIdentifier).filter_by(
-        identifier_type="abha", identifier_value="ABHA-DUP"
-    ).count()
+    count = (
+        db_session.query(PatientIdentifier)
+        .filter_by(identifier_type="abha", identifier_value="ABHA-DUP")
+        .count()
+    )
     assert count == 1
 
 
@@ -112,6 +119,7 @@ def test_link_identifier_same_value_different_type_allowed(db_session: Session):
 # get_identifiers
 # ---------------------------------------------------------------------------
 
+
 def test_get_identifiers_empty_for_new_patient(db_session: Session):
     patient = make_patient(db_session)
     result = get_identifiers(db_session, patient.id)
@@ -120,8 +128,14 @@ def test_get_identifiers_empty_for_new_patient(db_session: Session):
 
 def test_get_identifiers_returns_all(db_session: Session):
     patient = make_patient(db_session)
-    link_identifier(db_session, patient.id, IdentifierCreate(identifier_type="abha", identifier_value="A1"))
-    link_identifier(db_session, patient.id, IdentifierCreate(identifier_type="local_clinic_id", identifier_value="L1"))
+    link_identifier(
+        db_session, patient.id, IdentifierCreate(identifier_type="abha", identifier_value="A1")
+    )
+    link_identifier(
+        db_session,
+        patient.id,
+        IdentifierCreate(identifier_type="local_clinic_id", identifier_value="L1"),
+    )
 
     result = get_identifiers(db_session, patient.id)
     assert len(result) == 2
@@ -131,8 +145,16 @@ def test_get_identifiers_only_for_requested_patient(db_session: Session):
     patient_a = make_patient(db_session, "Patient A Iso")
     patient_b = make_patient(db_session, "Patient B Iso")
 
-    link_identifier(db_session, patient_a.id, IdentifierCreate(identifier_type="abha", identifier_value="A-ONLY"))
-    link_identifier(db_session, patient_b.id, IdentifierCreate(identifier_type="abha", identifier_value="B-ONLY"))
+    link_identifier(
+        db_session,
+        patient_a.id,
+        IdentifierCreate(identifier_type="abha", identifier_value="A-ONLY"),
+    )
+    link_identifier(
+        db_session,
+        patient_b.id,
+        IdentifierCreate(identifier_type="abha", identifier_value="B-ONLY"),
+    )
 
     result = get_identifiers(db_session, patient_a.id)
     assert len(result) == 1
@@ -148,7 +170,11 @@ def test_get_identifiers_nonexistent_patient_returns_empty(db_session: Session):
 
 def test_get_identifiers_returns_correct_fields(db_session: Session):
     patient = make_patient(db_session)
-    link_identifier(db_session, patient.id, IdentifierCreate(identifier_type="abha", identifier_value="FIELD-CHECK"))
+    link_identifier(
+        db_session,
+        patient.id,
+        IdentifierCreate(identifier_type="abha", identifier_value="FIELD-CHECK"),
+    )
 
     result = get_identifiers(db_session, patient.id)
     assert len(result) == 1

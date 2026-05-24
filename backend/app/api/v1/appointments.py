@@ -12,6 +12,7 @@ from app.schemas.appointment import AppointmentCreate, AppointmentUpdate, Appoin
 
 router = APIRouter()
 
+
 @router.post("/", response_model=AppointmentResponse)
 def create_appointment(
     *,
@@ -23,28 +24,33 @@ def create_appointment(
     patient = db.query(Patient).filter(Patient.id == appt_in.patient_id).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
-        
+
     if appt_in.practitioner_id:
-        practitioner = db.query(Practitioner).filter(Practitioner.id == appt_in.practitioner_id).first()
+        practitioner = (
+            db.query(Practitioner).filter(Practitioner.id == appt_in.practitioner_id).first()
+        )
         if not practitioner:
             raise HTTPException(status_code=404, detail="Practitioner not found")
-        
+
     if current_user.default_role == "practitioner":
-        practitioner = db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
+        practitioner = (
+            db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
+        )
         if not practitioner:
             raise HTTPException(status_code=403, detail="Practitioner profile not found")
-            
+
     appt = Appointment(
         patient_id=appt_in.patient_id,
         practitioner_id=appt_in.practitioner_id,
         channel=appt_in.channel,
         scheduled_for=appt_in.scheduled_for,
-        created_by_user_id=current_user.id
+        created_by_user_id=current_user.id,
     )
     db.add(appt)
     db.commit()
     db.refresh(appt)
     return appt
+
 
 @router.get("/", response_model=List[AppointmentResponse])
 def get_appointments(
@@ -58,15 +64,18 @@ def get_appointments(
     query = db.query(Appointment)
     if patient_id:
         query = query.filter(Appointment.patient_id == patient_id)
-        
+
     if current_user.default_role == "patient":
         query = query.filter(Appointment.created_by_user_id == current_user.id)
     elif current_user.default_role == "practitioner":
-        practitioner = db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
+        practitioner = (
+            db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
+        )
         if practitioner:
             query = query.filter(Appointment.practitioner_id == practitioner.id)
 
     return query.offset(skip).limit(limit).all()
+
 
 @router.patch("/{id}", response_model=AppointmentResponse)
 def update_appointment(
@@ -80,16 +89,18 @@ def update_appointment(
     appt = db.query(Appointment).filter(Appointment.id == id).first()
     if not appt:
         raise HTTPException(status_code=404, detail="Appointment not found")
-        
+
     if current_user.default_role == "patient" and appt.created_by_user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-        
+
     if current_user.default_role == "practitioner":
-        practitioner = db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
+        practitioner = (
+            db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
+        )
         if not practitioner:
             raise HTTPException(status_code=403, detail="Practitioner profile not found")
         if appt.practitioner_id and appt.practitioner_id != practitioner.id:
-             raise HTTPException(status_code=403, detail="Not authorized to update this appointment")
+            raise HTTPException(status_code=403, detail="Not authorized to update this appointment")
 
     appt.status = appt_in.status
     appt.updated_by_user_id = current_user.id
@@ -97,6 +108,7 @@ def update_appointment(
     db.commit()
     db.refresh(appt)
     return appt
+
 
 @router.get("/queue")
 def get_doctor_queue(
@@ -106,23 +118,27 @@ def get_doctor_queue(
     """Retrieve appointments for the current doctor with patient names."""
     if current_user.default_role not in ["doctor", "practitioner", "admin"]:
         raise HTTPException(status_code=403, detail="Not authorized")
-    
+
     practitioner = db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
     if not practitioner and current_user.default_role != "admin":
         raise HTTPException(status_code=403, detail="Practitioner profile not found")
 
-    query = db.query(Appointment, Patient.full_name).join(Patient, Appointment.patient_id == Patient.id)
+    query = db.query(Appointment, Patient.full_name).join(
+        Patient, Appointment.patient_id == Patient.id
+    )
     if practitioner:
         query = query.filter(Appointment.practitioner_id == practitioner.id)
-    
+
     results = query.all()
-    
+
     return [
         {
             "id": str(appt.id),
             "patientName": full_name,
-            "time": appt.scheduled_for.isoformat() if appt.scheduled_for else appt.created_at.isoformat(),
-            "status": appt.status
+            "time": appt.scheduled_for.isoformat()
+            if appt.scheduled_for
+            else appt.created_at.isoformat(),
+            "status": appt.status,
         }
         for appt, full_name in results
     ]

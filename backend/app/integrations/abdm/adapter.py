@@ -10,19 +10,25 @@ from app.core.redis import redis_client
 
 logger = logging.getLogger(__name__)
 
+
 class ABDMError(Exception):
     """Base exception for ABDM-related errors."""
+
     pass
+
 
 class GatewayAuthError(ABDMError):
     """Raised when authentication with the ABDM Gateway fails."""
+
     pass
+
 
 class ABDMProvider(ABC):
     """
     Interface for ABDM/ABHA operations.
     Defines the contract for both real and mock adapters.
     """
+
     @abstractmethod
     async def search_abha(self, abha_id: str) -> Dict[str, Any]:
         """Searches for an ABHA ID in the NHA ecosystem."""
@@ -38,11 +44,13 @@ class ABDMProvider(ABC):
         """Confirms authentication with a 6-digit OTP."""
         pass
 
+
 class RealABDMAdapter(ABDMProvider):
     """
     Real adapter for the National Health Authority (NHA) ABDM Sandbox.
     Handles networking, authentication, and error detection for production use.
     """
+
     def __init__(self):
         self.client_id = settings.abdm_client_id
         self.client_secret = settings.abdm_client_secret
@@ -68,15 +76,14 @@ class RealABDMAdapter(ABDMProvider):
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             try:
                 response = await client.post(
-                    url, 
-                    json={"clientId": self.client_id, "clientSecret": self.client_secret}
+                    url, json={"clientId": self.client_id, "clientSecret": self.client_secret}
                 )
                 response.raise_for_status()
                 data = response.json()
                 token = data.get("accessToken")
                 if not token:
                     raise GatewayAuthError("Gateway returned success but no accessToken")
-                
+
                 await redis_client.set(cache_key, token, ex=3500)
                 return token
             except Exception as e:
@@ -90,7 +97,7 @@ class RealABDMAdapter(ABDMProvider):
             "Content-Type": "application/json",
             "X-CM-ID": self.cm_id,
             "X-Request-ID": str(uuid.uuid4()),
-            "Authorization": f"Bearer {token}"
+            "Authorization": f"Bearer {token}",
         }
 
     async def search_abha(self, abha_id: str) -> Dict[str, Any]:
@@ -104,7 +111,10 @@ class RealABDMAdapter(ABDMProvider):
                 return response.json()
             except httpx.HTTPStatusError as e:
                 logger.warning(f"ABHA Search HTTP Error: {e.response.text}")
-                return {"error": "ABHA not found or API error", "status_code": e.response.status_code}
+                return {
+                    "error": "ABHA not found or API error",
+                    "status_code": e.response.status_code,
+                }
             except Exception as e:
                 logger.error(f"ABDM Search ABHA failed: {e}")
                 return {"error": str(e)}
@@ -116,9 +126,7 @@ class RealABDMAdapter(ABDMProvider):
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             try:
                 response = await client.post(
-                    url, 
-                    json={"authMethod": auth_method, "healthid": abha_id}, 
-                    headers=headers
+                    url, json={"authMethod": auth_method, "healthid": abha_id}, headers=headers
                 )
                 response.raise_for_status()
                 return response.json()
@@ -134,9 +142,7 @@ class RealABDMAdapter(ABDMProvider):
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             try:
                 response = await client.post(
-                    url, 
-                    json={"otp": otp, "txnId": txn_id}, 
-                    headers=headers
+                    url, json={"otp": otp, "txnId": txn_id}, headers=headers
                 )
                 response.raise_for_status()
                 return response.json()
@@ -145,18 +151,20 @@ class RealABDMAdapter(ABDMProvider):
             except Exception as e:
                 return {"error": str(e)}
 
+
 class MockABDMAdapter(ABDMProvider):
     """
     Mock adapter for local development and CI.
     Allows testing the M1 flow without relying on the NHA Sandbox availability.
     """
+
     async def search_abha(self, abha_id: str) -> Dict[str, Any]:
         """Simulates an ABHA search response."""
         await asyncio.sleep(0.1)
         return {
             "status": "success",
             "authMethods": ["AADHAAR_OTP", "MOBILE_OTP"],
-            "healthId": abha_id
+            "healthId": abha_id,
         }
 
     async def init_auth(self, abha_id: str, auth_method: str = "AADHAAR_OTP") -> Dict[str, Any]:
@@ -175,15 +183,17 @@ class MockABDMAdapter(ABDMProvider):
                     "name": "Mock Nabha Patient",
                     "gender": "M",
                     "yearOfBirth": "1990",
-                    "abhaNumber": "12-3456-7890-1234"
-                }
+                    "abhaNumber": "12-3456-7890-1234",
+                },
             }
         return {"error": "Invalid Mock OTP. Use 123456.", "status_code": 401}
+
 
 def get_abdm_adapter() -> ABDMProvider:
     """Returns the configured ABDM provider based on environment settings."""
     if settings.abdm_provider.lower() == "real":
         return RealABDMAdapter()
     return MockABDMAdapter()
+
 
 abdm_adapter = get_abdm_adapter()

@@ -8,12 +8,21 @@ from app.models.patient import Patient
 from app.models.auth import User
 from app.schemas.audit import ConsentCreate, ConsentUpdate
 
+
 class AuditService:
     """
     Service responsible for logging secure audit trails for PHI access.
     """
+
     @staticmethod
-    def log_access(db: Session, target_entity_type: str, target_entity_id: uuid.UUID, actor_user_id: uuid.UUID, action: str, request: Request | None = None):
+    def log_access(
+        db: Session,
+        target_entity_type: str,
+        target_entity_id: uuid.UUID,
+        actor_user_id: uuid.UUID,
+        action: str,
+        request: Request | None = None,
+    ):
         """
         Logs a read or export action for sensitive entities.
         Captures IP address and User Agent for security auditing.
@@ -28,10 +37,11 @@ class AuditService:
             actor_user_id=actor_user_id,
             action=action,
             ip_address=ip_address,
-            user_agent=user_agent
+            user_agent=user_agent,
         )
         db.add(audit_event)
         db.flush()
+
 
 class ConsentService:
     """
@@ -47,12 +57,16 @@ class ConsentService:
         allowed_staff_roles = ["doctor", "asha", "admin", "pharmacist"]
         if current_user.default_role == "patient":
             if current_user.id != patient_id:
-                raise HTTPException(status_code=403, detail="Not authorized to access this patient's consents")
+                raise HTTPException(
+                    status_code=403, detail="Not authorized to access this patient's consents"
+                )
         elif current_user.default_role not in allowed_staff_roles:
             raise HTTPException(status_code=403, detail="Role not authorized to manage consents")
 
     @staticmethod
-    def create_consent(db: Session, patient_id: uuid.UUID, request: ConsentCreate, current_user: User) -> Consent:
+    def create_consent(
+        db: Session, patient_id: uuid.UUID, request: ConsentCreate, current_user: User
+    ) -> Consent:
         """
         Creates a new active consent for a specific purpose.
         """
@@ -67,7 +81,7 @@ class ConsentService:
             purpose=request.purpose,
             scope=request.scope,
             expires_at=request.expires_at,
-            status="active"
+            status="active",
         )
         db.add(consent)
         db.commit()
@@ -75,12 +89,22 @@ class ConsentService:
         return consent
 
     @staticmethod
-    def update_consent(db: Session, patient_id: uuid.UUID, consent_id: uuid.UUID, request: ConsentUpdate, current_user: User) -> Consent:
+    def update_consent(
+        db: Session,
+        patient_id: uuid.UUID,
+        consent_id: uuid.UUID,
+        request: ConsentUpdate,
+        current_user: User,
+    ) -> Consent:
         """
         Updates an existing consent (e.g., revoking it).
         """
         ConsentService._check_auth(patient_id, current_user)
-        consent = db.query(Consent).filter(Consent.id == consent_id, Consent.patient_id == patient_id).first()
+        consent = (
+            db.query(Consent)
+            .filter(Consent.id == consent_id, Consent.patient_id == patient_id)
+            .first()
+        )
         if not consent:
             raise HTTPException(status_code=404, detail="Consent not found")
 
@@ -90,7 +114,9 @@ class ConsentService:
         return consent
 
     @staticmethod
-    def get_patient_consents(db: Session, patient_id: uuid.UUID, current_user: User) -> List[Consent]:
+    def get_patient_consents(
+        db: Session, patient_id: uuid.UUID, current_user: User
+    ) -> List[Consent]:
         """
         Retrieves all consents associated with a specific patient.
         """
@@ -98,5 +124,5 @@ class ConsentService:
         patient = db.get(Patient, patient_id)
         if not patient:
             raise HTTPException(status_code=404, detail="Patient not found")
-            
+
         return db.query(Consent).filter(Consent.patient_id == patient_id).all()

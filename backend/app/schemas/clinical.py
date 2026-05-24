@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
+
 # Observation
 class ObservationBase(BaseModel):
     patient_id: uuid.UUID
@@ -11,8 +12,10 @@ class ObservationBase(BaseModel):
     value_string: str
     unit: Optional[str] = None
 
+
 class ObservationCreate(ObservationBase):
     pass
+
 
 class ObservationResponse(ObservationBase):
     id: uuid.UUID
@@ -20,18 +23,22 @@ class ObservationResponse(ObservationBase):
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
+
 # Allergy
 class AllergyBase(BaseModel):
     patient_id: uuid.UUID
     substance: str
     criticality: Literal["low", "high", "unable_to_assess"]
 
+
 class AllergyCreate(AllergyBase):
     pass
+
 
 class AllergyUpdate(BaseModel):
     criticality: Literal["low", "high", "unable_to_assess"]
     base_version: int = Field(..., ge=1)
+
 
 class AllergyResponse(AllergyBase):
     id: uuid.UUID
@@ -42,6 +49,7 @@ class AllergyResponse(AllergyBase):
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
+
 # Condition
 class ConditionBase(BaseModel):
     patient_id: uuid.UUID
@@ -50,14 +58,17 @@ class ConditionBase(BaseModel):
     disease_code: Optional[str] = None
     disease_name: str
 
+
 class ConditionCreate(ConditionBase):
     pass
+
 
 class ConditionResponse(ConditionBase):
     id: uuid.UUID
     created_by_user_id: uuid.UUID
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
 
 # MedicationRequest
 class MedicationRequestBase(BaseModel):
@@ -68,8 +79,10 @@ class MedicationRequestBase(BaseModel):
     duration_days: Optional[int] = Field(None, ge=1)
     status: Literal["active", "completed", "cancelled"] = "active"
 
+
 class MedicationRequestCreate(MedicationRequestBase):
     pass
+
 
 class MedicationRequestResponse(MedicationRequestBase):
     id: uuid.UUID

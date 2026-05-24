@@ -1,4 +1,5 @@
 """Integration tests for app/api/v1/patients.py (added in this PR)."""
+
 import uuid
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -11,6 +12,7 @@ from app.core.security import create_access_token
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def make_user(db: Session, phone: str = "+5550001111") -> User:
     user = User(phone=phone, is_active=True, default_role="patient")
@@ -37,6 +39,7 @@ def auth_headers(user: User) -> dict:
 # Patient CRUD
 # ---------------------------------------------------------------------------
 
+
 def test_create_patient_success(client: TestClient, db_session: Session):
     user = make_user(db_session, phone="+5550003331")
     payload = {
@@ -44,13 +47,9 @@ def test_create_patient_success(client: TestClient, db_session: Session):
         "phone": "+919876543210",
         "preferred_language": "pa",
         "gender": "male",
-        "village": "Nabha"
+        "village": "Nabha",
     }
-    response = client.post(
-        "/api/v1/patients/",
-        headers=auth_headers(user),
-        json=payload
-    )
+    response = client.post("/api/v1/patients/", headers=auth_headers(user), json=payload)
     assert response.status_code == 200
     data = response.json()
     assert data["full_name"] == "John Doe"
@@ -66,13 +65,9 @@ def test_create_patient_assisted_no_phone(client: TestClient, db_session: Sessio
         "full_name": "Child Patient",
         "phone": None,
         "emergency_contact_name": "Guardian Name",
-        "emergency_contact_phone": "+919999988888"
+        "emergency_contact_phone": "+919999988888",
     }
-    response = client.post(
-        "/api/v1/patients/",
-        headers=auth_headers(user),
-        json=payload
-    )
+    response = client.post("/api/v1/patients/", headers=auth_headers(user), json=payload)
     assert response.status_code == 200
     data = response.json()
     assert data["full_name"] == "Child Patient"
@@ -83,11 +78,8 @@ def test_create_patient_assisted_no_phone(client: TestClient, db_session: Sessio
 def test_get_patient_success(client: TestClient, db_session: Session):
     user = make_user(db_session, phone="+5550003333")
     patient = make_patient(db_session, "Fetchable Patient")
-    
-    response = client.get(
-        f"/api/v1/patients/{patient.id}",
-        headers=auth_headers(user)
-    )
+
+    response = client.get(f"/api/v1/patients/{patient.id}", headers=auth_headers(user))
     assert response.status_code == 200
     assert response.json()["full_name"] == "Fetchable Patient"
 
@@ -95,10 +87,7 @@ def test_get_patient_success(client: TestClient, db_session: Session):
 def test_get_patient_not_found(client: TestClient, db_session: Session):
     user = make_user(db_session, phone="+5550003334")
     random_id = uuid.uuid4()
-    response = client.get(
-        f"/api/v1/patients/{random_id}",
-        headers=auth_headers(user)
-    )
+    response = client.get(f"/api/v1/patients/{random_id}", headers=auth_headers(user))
     assert response.status_code == 404
 
 
@@ -107,11 +96,8 @@ def test_search_patients_success(client: TestClient, db_session: Session):
     make_patient(db_session, "Amrit Singh")
     make_patient(db_session, "Amrit Kaur")
     make_patient(db_session, "Deepak Kumar")
-    
-    response = client.get(
-        "/api/v1/patients/?q=Amrit",
-        headers=auth_headers(user)
-    )
+
+    response = client.get("/api/v1/patients/?q=Amrit", headers=auth_headers(user))
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 2
@@ -123,12 +109,10 @@ def test_search_patients_success(client: TestClient, db_session: Session):
 def test_update_patient_success(client: TestClient, db_session: Session):
     user = make_user(db_session, phone="+5550003336")
     patient = make_patient(db_session, "Original Name")
-    
+
     payload = {"full_name": "Updated Name", "village": "Patiala"}
     response = client.patch(
-        f"/api/v1/patients/{patient.id}",
-        headers=auth_headers(user),
-        json=payload
+        f"/api/v1/patients/{patient.id}", headers=auth_headers(user), json=payload
     )
     assert response.status_code == 200
     data = response.json()
@@ -141,6 +125,7 @@ def test_update_patient_success(client: TestClient, db_session: Session):
 # ---------------------------------------------------------------------------
 # GET /api/v1/patients/{id}/identifiers
 # ---------------------------------------------------------------------------
+
 
 def test_get_patient_identifiers_unauthenticated(client: TestClient, db_session: Session):
     patient = make_patient(db_session)
@@ -164,8 +149,12 @@ def test_get_patient_identifiers_with_data(client: TestClient, db_session: Sessi
     user = make_user(db_session, phone="+5550001112")
     patient = make_patient(db_session, "Patient With IDs")
 
-    id1 = PatientIdentifier(patient_id=patient.id, identifier_type="abha", identifier_value="ABHA-GET-1")
-    id2 = PatientIdentifier(patient_id=patient.id, identifier_type="local_clinic_id", identifier_value="LC-GET-2")
+    id1 = PatientIdentifier(
+        patient_id=patient.id, identifier_type="abha", identifier_value="ABHA-GET-1"
+    )
+    id2 = PatientIdentifier(
+        patient_id=patient.id, identifier_type="local_clinic_id", identifier_value="LC-GET-2"
+    )
     db_session.add_all([id1, id2])
     db_session.commit()
 
@@ -210,7 +199,9 @@ def test_get_patient_identifiers_invalid_uuid(client: TestClient, db_session: Se
     assert response.status_code == 422
 
 
-def test_get_patient_identifiers_unknown_patient_returns_empty(client: TestClient, db_session: Session):
+def test_get_patient_identifiers_unknown_patient_returns_empty(
+    client: TestClient, db_session: Session
+):
     """get_identifiers does not validate patient existence; returns empty list."""
     user = make_user(db_session, phone="+5550001115")
     random_id = uuid.uuid4()
@@ -225,6 +216,7 @@ def test_get_patient_identifiers_unknown_patient_returns_empty(client: TestClien
 # ---------------------------------------------------------------------------
 # POST /api/v1/patients/{id}/identifiers
 # ---------------------------------------------------------------------------
+
 
 def test_create_patient_identifier_unauthenticated(client: TestClient, db_session: Session):
     patient = make_patient(db_session)
@@ -261,9 +253,11 @@ def test_create_patient_identifier_persists(client: TestClient, db_session: Sess
         json={"identifier_type": "local_clinic_id", "identifier_value": "LC-PERSIST"},
     )
 
-    stored = db_session.query(PatientIdentifier).filter_by(
-        patient_id=patient.id, identifier_value="LC-PERSIST"
-    ).first()
+    stored = (
+        db_session.query(PatientIdentifier)
+        .filter_by(patient_id=patient.id, identifier_value="LC-PERSIST")
+        .first()
+    )
     assert stored is not None
 
 
@@ -278,7 +272,9 @@ def test_create_patient_identifier_patient_not_found(client: TestClient, db_sess
     assert response.status_code == 404
 
 
-def test_create_patient_identifier_duplicate_same_patient_idempotent(client: TestClient, db_session: Session):
+def test_create_patient_identifier_duplicate_same_patient_idempotent(
+    client: TestClient, db_session: Session
+):
     user = make_user(db_session, phone="+5550002224")
     patient = make_patient(db_session, "Idempotent Patient")
 
@@ -299,7 +295,9 @@ def test_create_patient_identifier_duplicate_same_patient_idempotent(client: Tes
     assert r1.json()["id"] == r2.json()["id"]
 
 
-def test_create_patient_identifier_duplicate_different_patient_rejected(client: TestClient, db_session: Session):
+def test_create_patient_identifier_duplicate_different_patient_rejected(
+    client: TestClient, db_session: Session
+):
     user = make_user(db_session, phone="+5550002225")
     patient_a = make_patient(db_session, "Conflict Patient A")
     patient_b = make_patient(db_session, "Conflict Patient B")

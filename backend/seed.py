@@ -9,8 +9,16 @@ from app.core.security import get_password_hash
 from app.models.auth import Role, User, UserRole
 from app.models.patient import Patient, PatientIdentifier
 from app.models.practitioner import Practitioner
-from app.models.pharmacy import MedicineCatalog, Pharmacy, StockBatch, StockMovement, Prescription, PrescriptionItem
+from app.models.pharmacy import (
+    MedicineCatalog,
+    Pharmacy,
+    StockBatch,
+    StockMovement,
+    Prescription,
+    PrescriptionItem,
+)
 from app.models.appointment import Appointment
+
 
 def seed_db():
     print("Connecting to database...")
@@ -28,9 +36,9 @@ def seed_db():
         "doctor": "Registered Medical Practitioner",
         "pharmacist": "Licensed Pharmacist",
         "asha_worker": "Accredited Social Health Activist",
-        "patient": "Patient User"
+        "patient": "Patient User",
     }
-    
+
     db_roles = {}
     for role_name, description in roles_data.items():
         existing_role = session.query(Role).filter(Role.name == role_name).first()
@@ -52,26 +60,26 @@ def seed_db():
             "username": "dr_sharma",
             "full_name": "Dr. Ramesh Sharma",
             "role": "doctor",
-            "phone": "+919876543210"
+            "phone": "+919876543210",
         },
         {
             "id": "f82b31c9-7d6a-4c81-8c1e-3f5b7a8e22d1",
             "username": "asha_geeta",
             "full_name": "Geeta Devi",
             "role": "asha_worker",
-            "phone": "+919876500001"
+            "phone": "+919876500001",
         },
         {
             "id": "c19d42f5-6e5b-4d73-9a0f-4e6c9b8a13e2",
             "username": "pharmacist_nabha",
             "full_name": "Nabha Central Pharmacist",
             "role": "pharmacist",
-            "phone": "+919876500002"
-        }
+            "phone": "+919876500002",
+        },
     ]
 
     hashed_pw = get_password_hash("password123")
-    
+
     for u in users_to_seed:
         existing_user = session.query(User).filter(User.username == u["username"]).first()
         if not existing_user:
@@ -83,17 +91,13 @@ def seed_db():
                 hashed_password=hashed_pw,
                 default_role=u["role"],
                 preferred_language="en",
-                is_active=True
+                is_active=True,
             )
             session.add(user)
             session.flush()
 
             # Map user to role
-            user_role = UserRole(
-                id=uuid.uuid4(),
-                user_id=user.id,
-                role_id=db_roles[u["role"]].id
-            )
+            user_role = UserRole(id=uuid.uuid4(), user_id=user.id, role_id=db_roles[u["role"]].id)
             session.add(user_role)
             print(f"Created User: {u['username']} ({u['role']})")
         else:
@@ -104,7 +108,9 @@ def seed_db():
     print("\nSeeding Practitioner details...")
     doctor_user_id = uuid.UUID("e45a29b6-8a7e-4b92-9b2f-2d6c8b9d31f0")
     practitioner_id = uuid.UUID("d24c53d6-5f4a-4e62-8b0d-3d5c8a7b99d1")
-    existing_practitioner = session.query(Practitioner).filter(Practitioner.user_id == doctor_user_id).first()
+    existing_practitioner = (
+        session.query(Practitioner).filter(Practitioner.user_id == doctor_user_id).first()
+    )
     if not existing_practitioner:
         practitioner = Practitioner(
             id=practitioner_id,
@@ -112,7 +118,7 @@ def seed_db():
             full_name="Dr. Ramesh Sharma",
             phone="+919876543210",
             specialty="General Medicine",
-            registration_number="MCI-123456"
+            registration_number="MCI-123456",
         )
         session.add(practitioner)
         print("Created Practitioner details for Dr. Ramesh Sharma")
@@ -130,7 +136,7 @@ def seed_db():
             id=pharmacy_id,
             name="Nabha Central Pharmacy",
             location_text="Nabha Main Chowk, Punjab",
-            is_active=True
+            is_active=True,
         )
         session.add(pharmacy)
         print("Created Pharmacy: Nabha Central Pharmacy")
@@ -141,38 +147,24 @@ def seed_db():
     # 5. Seed Medicine Catalog
     print("\nSeeding Medicine Catalog...")
     medicines = [
-        {
-            "name": "Dolo 650mg (Paracetamol)",
-            "type": "tablet",
-            "code": "DOLO650"
-        },
-        {
-            "name": "Novamox 500mg (Amoxicillin)",
-            "type": "capsule",
-            "code": "AMOX500"
-        },
-        {
-            "name": "Zyrtec 10mg (Cetirizine)",
-            "type": "tablet",
-            "code": "ZYR10"
-        },
-        {
-            "name": "Benadryl Cough Syrup (100ml)",
-            "type": "syrup",
-            "code": "BENA100"
-        }
+        {"name": "Dolo 650mg (Paracetamol)", "type": "tablet", "code": "DOLO650"},
+        {"name": "Novamox 500mg (Amoxicillin)", "type": "capsule", "code": "AMOX500"},
+        {"name": "Zyrtec 10mg (Cetirizine)", "type": "tablet", "code": "ZYR10"},
+        {"name": "Benadryl Cough Syrup (100ml)", "type": "syrup", "code": "BENA100"},
     ]
 
     db_medicines = {}
     for m in medicines:
-        existing_med = session.query(MedicineCatalog).filter(MedicineCatalog.code == m["code"]).first()
+        existing_med = (
+            session.query(MedicineCatalog).filter(MedicineCatalog.code == m["code"]).first()
+        )
         if not existing_med:
             med = MedicineCatalog(
                 id=uuid.uuid5(uuid.NAMESPACE_DNS, m["code"]),
                 name=m["name"],
                 type=m["type"],
                 code=m["code"],
-                is_active=True
+                is_active=True,
             )
             session.add(med)
             db_medicines[m["code"]] = med
@@ -188,16 +180,20 @@ def seed_db():
         {"med_code": "DOLO650", "batch": "DOLO-B012", "qty": 500, "expiry": date(2028, 12, 31)},
         {"med_code": "AMOX500", "batch": "AMX-B225", "qty": 200, "expiry": date(2028, 6, 30)},
         {"med_code": "ZYR10", "batch": "ZYR-B990", "qty": 300, "expiry": date(2027, 8, 15)},
-        {"med_code": "BENA100", "batch": "BEN-B404", "qty": 100, "expiry": date(2029, 1, 1)}
+        {"med_code": "BENA100", "batch": "BEN-B404", "qty": 100, "expiry": date(2029, 1, 1)},
     ]
 
     for s in stock_batches:
         med = db_medicines[s["med_code"]]
-        existing_batch = session.query(StockBatch).filter(
-            StockBatch.pharmacy_id == pharmacy_id,
-            StockBatch.medicine_id == med.id,
-            StockBatch.batch_number == s["batch"]
-        ).first()
+        existing_batch = (
+            session.query(StockBatch)
+            .filter(
+                StockBatch.pharmacy_id == pharmacy_id,
+                StockBatch.medicine_id == med.id,
+                StockBatch.batch_number == s["batch"],
+            )
+            .first()
+        )
 
         if not existing_batch:
             batch = StockBatch(
@@ -207,7 +203,7 @@ def seed_db():
                 batch_number=s["batch"],
                 expiry_date=s["expiry"],
                 initial_quantity=s["qty"],
-                current_quantity=s["qty"]
+                current_quantity=s["qty"],
             )
             session.add(batch)
             session.flush()
@@ -218,7 +214,7 @@ def seed_db():
                 pharmacy_id=pharmacy_id,
                 movement_type="intake",
                 quantity_change=s["qty"],
-                notes="Initial demo seeding"
+                notes="Initial demo seeding",
             )
             session.add(movement)
             print(f"Stocked batch {s['batch']} for {med.name} with quantity: {s['qty']}")
@@ -237,8 +233,8 @@ def seed_db():
             "village": "Nabha",
             "identifiers": [
                 {"type": "abha", "val": "91-1234-5678-9012"},
-                {"type": "local_clinic_id", "val": "NAB-2026-001"}
-            ]
+                {"type": "local_clinic_id", "val": "NAB-2026-001"},
+            ],
         },
         {
             "full_name": "Kaur Kaur",
@@ -246,10 +242,8 @@ def seed_db():
             "gender": "female",
             "pref_lang": "pa",
             "village": "Nabha",
-            "identifiers": [
-                {"type": "local_clinic_id", "val": "NAB-2026-ASHA-05"}
-            ]
-        }
+            "identifiers": [{"type": "local_clinic_id", "val": "NAB-2026-ASHA-05"}],
+        },
     ]
 
     for p in patients_data:
@@ -257,7 +251,7 @@ def seed_db():
         existing_patient = session.query(Patient).filter(Patient.id == patient_id).first()
         if not existing_patient and p["phone"]:
             existing_patient = session.query(Patient).filter(Patient.phone == p["phone"]).first()
-            
+
         if not existing_patient:
             patient = Patient(
                 id=patient_id,
@@ -267,7 +261,7 @@ def seed_db():
                 gender=p["gender"],
                 village=p["village"],
                 record_version=1,
-                is_active=True
+                is_active=True,
             )
             session.add(patient)
             session.flush()
@@ -279,7 +273,7 @@ def seed_db():
                     identifier_type=ident["type"],
                     identifier_value=ident["val"],
                     record_version=1,
-                    is_active=True
+                    is_active=True,
                 )
                 session.add(identifier)
             print(f"Created Patient: {p['full_name']}")
@@ -293,13 +287,18 @@ def seed_db():
     if ravi:
         ravi_id = ravi.id
         asha_user = session.query(User).filter(User.username == "asha_geeta").first()
-        asha_user_id = asha_user.id if asha_user else uuid.UUID("f82b31c9-7d6a-4c81-8c1e-3f5b7a8e22d1")
-        
-        existing_appt = session.query(Appointment).filter(
-            Appointment.patient_id == ravi_id,
-            Appointment.practitioner_id == practitioner_id
-        ).first()
-        
+        asha_user_id = (
+            asha_user.id if asha_user else uuid.UUID("f82b31c9-7d6a-4c81-8c1e-3f5b7a8e22d1")
+        )
+
+        existing_appt = (
+            session.query(Appointment)
+            .filter(
+                Appointment.patient_id == ravi_id, Appointment.practitioner_id == practitioner_id
+            )
+            .first()
+        )
+
         if not existing_appt:
             appt = Appointment(
                 id=uuid.uuid4(),
@@ -308,7 +307,7 @@ def seed_db():
                 status="confirmed",
                 channel="assisted",
                 scheduled_for=datetime.now(timezone.utc),
-                created_by_user_id=asha_user_id
+                created_by_user_id=asha_user_id,
             )
             session.add(appt)
             print("Created appointment for Ravi Kumar with Dr. Sharma")
@@ -319,18 +318,20 @@ def seed_db():
     # 9. Seed Prescriptions
     print("\nSeeding Demo Prescriptions...")
     if ravi:
-        existing_prescription = session.query(Prescription).filter(Prescription.patient_id == ravi.id).first()
+        existing_prescription = (
+            session.query(Prescription).filter(Prescription.patient_id == ravi.id).first()
+        )
         if not existing_prescription:
             prescription = Prescription(
                 id=uuid.uuid4(),
                 patient_id=ravi.id,
                 encounter_id=None,
                 notes="Demo prescription",
-                created_by_user_id=doctor_user_id
+                created_by_user_id=doctor_user_id,
             )
             session.add(prescription)
             session.flush()
-            
+
             dolo = session.query(MedicineCatalog).filter(MedicineCatalog.code == "DOLO650").first()
             if dolo:
                 item = PrescriptionItem(
@@ -339,7 +340,7 @@ def seed_db():
                     medicine_id=dolo.id,
                     dosage="1-0-1 after food",
                     duration_days=5,
-                    quantity_prescribed=10
+                    quantity_prescribed=10,
                 )
                 session.add(item)
                 print("Created prescription for Ravi Kumar with Dolo 650mg")
@@ -349,6 +350,7 @@ def seed_db():
 
     print("\nDatabase seeding completed successfully!")
     session.close()
+
 
 if __name__ == "__main__":
     seed_db()

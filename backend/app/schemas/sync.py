@@ -4,10 +4,12 @@ from typing import List, Optional
 from pydantic import BaseModel, model_validator
 from enum import Enum
 
+
 class SyncAction(str, Enum):
     CREATE = "create"
     UPDATE = "update"
     DELETE = "delete"
+
 
 class SyncOperation(BaseModel):
     operation_id: uuid.UUID
@@ -20,8 +22,10 @@ class SyncOperation(BaseModel):
     device_id: Optional[uuid.UUID] = None
     created_at: datetime
 
+
 class SyncPushRequest(BaseModel):
     operations: List[SyncOperation]
+
 
 class SyncPushResponse(BaseModel):
     success_count: int = 0
@@ -30,15 +34,18 @@ class SyncPushResponse(BaseModel):
     error_count: int = 0
     errors: List[dict] = []
 
+
 class SyncPullResponse(BaseModel):
     changes: List[SyncOperation]
     new_cursor: str
     has_more: bool = False
 
+
 class ConflictResolutionStrategy(str, Enum):
     CLIENT_WINS = "client_wins"
     SERVER_WINS = "server_wins"
     MANUAL_MERGE = "manual_merge"
+
 
 class ConflictResolutionRequest(BaseModel):
     strategy: ConflictResolutionStrategy

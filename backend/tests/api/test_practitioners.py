@@ -20,7 +20,7 @@ def make_practitioner(db: Session, full_name: str, user_id: uuid.UUID) -> Practi
         full_name=full_name,
         user_id=user_id,
         specialty="General Medicine",
-        registration_number=f"MCI-{uuid.uuid4().hex[:6].upper()}"
+        registration_number=f"MCI-{uuid.uuid4().hex[:6].upper()}",
     )
     db.add(practitioner)
     db.commit()
@@ -36,17 +36,14 @@ def auth_headers(user: User) -> dict:
 def test_list_practitioners_success(client: TestClient, db_session: Session):
     user = make_user(db_session)
     make_practitioner(db_session, "Dr. Aman Deep", user.id)
-    
+
     # Create another practitioner
     user2 = User(phone="+5550004445", is_active=True, default_role="doctor")
     db_session.add(user2)
     db_session.commit()
     make_practitioner(db_session, "Dr. Preet Kaur", user2.id)
 
-    response = client.get(
-        "/api/v1/practitioners/",
-        headers=auth_headers(user)
-    )
+    response = client.get("/api/v1/practitioners/", headers=auth_headers(user))
     assert response.status_code == 200
     data = response.json()
     assert len(data) >= 2
@@ -58,11 +55,8 @@ def test_list_practitioners_success(client: TestClient, db_session: Session):
 def test_get_practitioner_success(client: TestClient, db_session: Session):
     user = make_user(db_session, phone="+5550004446")
     practitioner = make_practitioner(db_session, "Dr. Specific", user.id)
-    
-    response = client.get(
-        f"/api/v1/practitioners/{practitioner.id}",
-        headers=auth_headers(user)
-    )
+
+    response = client.get(f"/api/v1/practitioners/{practitioner.id}", headers=auth_headers(user))
     assert response.status_code == 200
     assert response.json()["full_name"] == "Dr. Specific"
     assert response.json()["specialty"] == "General Medicine"
@@ -71,10 +65,7 @@ def test_get_practitioner_success(client: TestClient, db_session: Session):
 def test_get_practitioner_not_found(client: TestClient, db_session: Session):
     user = make_user(db_session, phone="+5550004447")
     random_id = uuid.uuid4()
-    response = client.get(
-        f"/api/v1/practitioners/{random_id}",
-        headers=auth_headers(user)
-    )
+    response = client.get(f"/api/v1/practitioners/{random_id}", headers=auth_headers(user))
     assert response.status_code == 404
 
 

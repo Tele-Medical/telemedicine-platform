@@ -4,6 +4,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+
 class SMSProvider(ABC):
     """
     Abstract Base Class for SMS delivery.
@@ -17,6 +18,7 @@ class SMSProvider(ABC):
         Returns True if the provider accepted the request, False otherwise.
         """
         pass
+
 
 class MockSMSProvider(SMSProvider):
     """
@@ -32,20 +34,22 @@ class MockSMSProvider(SMSProvider):
         logger.info(f"MOCK SMS sent to {masked_phone}. Message: {message}")
         return True
 
+
 class TwilioSMSProvider(SMSProvider):
     """
     Real Twilio SMS implementation.
     """
+
     def __init__(self):
         from twilio.rest import Client
+
         self.account_sid = settings.twilio_account_sid
         self.auth_token = settings.twilio_auth_token
         self.from_number = settings.twilio_from_number
 
         if not self.account_sid or not self.auth_token or not self.from_number:
             logger.warning(
-                "Twilio config missing (account_sid/auth_token/from_number). "
-                "SMS sending will fail."
+                "Twilio config missing (account_sid/auth_token/from_number). SMS sending will fail."
             )
             raise ValueError("Twilio config missing")
 
@@ -58,11 +62,7 @@ class TwilioSMSProvider(SMSProvider):
         """
         masked_phone = "****" + to_phone[-2:] if len(to_phone) > 2 else "**"
         try:
-            self.client.messages.create(
-                body=message,
-                from_=self.from_number,
-                to=to_phone
-            )
+            self.client.messages.create(body=message, from_=self.from_number, to=to_phone)
             logger.info(f"TWILIO SMS successfully queued for {masked_phone}")
             return True
         except Exception as e:
@@ -70,13 +70,14 @@ class TwilioSMSProvider(SMSProvider):
             logger.error(f"Twilio API request failed for {masked_phone}: {e}")
             return False
 
+
 def get_sms_provider() -> SMSProvider:
     """
     Returns the appropriate SMS provider based on environment configuration.
     This prevents hardcoding 'Mock' or 'Twilio' in the business logic.
     """
     provider_type = (settings.sms_provider or "mock").lower()
-    
+
     if provider_type == "twilio":
         return TwilioSMSProvider()
     if provider_type == "mock":

@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 from pydantic import model_validator
 
+
 class Settings(BaseSettings):
     app_env: str = "development"
     database_url: str
@@ -11,13 +12,13 @@ class Settings(BaseSettings):
     access_token_exp_minutes: int = 30
     refresh_token_exp_minutes: int = 60 * 24 * 7
     cors_origins_str: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000"
-    
+
     # Adapters
     sms_provider: str = "mock"
     ai_provider: str = "mock"
     storage_provider: str = "local"
     abdm_provider: str = "mock"
-    
+
     # Twilio specific settings (only required if sms_provider == 'twilio')
     twilio_account_sid: Optional[str] = None
     twilio_auth_token: Optional[str] = None
@@ -43,5 +44,6 @@ class Settings(BaseSettings):
         return self
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
 
 settings = Settings()  # type: ignore[call-arg]

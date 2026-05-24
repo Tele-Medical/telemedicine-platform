@@ -6,10 +6,8 @@ from app.api.router import api_router
 from app.core.config import settings
 
 # Configure logging to output INFO level and above to stdout
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,20 +17,23 @@ async def lifespan(app: FastAPI):
             print("Production environment detected. Running database migrations...")
             from alembic.config import Config
             from alembic import command
+
             alembic_cfg = Config("alembic.ini")
             command.upgrade(alembic_cfg, "head")
             print("Database migrations applied successfully!")
         except Exception as e:
             print(f"Failed to run database migrations: {e}")
-            
+
         try:
             print("Checking and running database seeding...")
             from seed import seed_db
+
             seed_db()
             print("Database seeding checked/applied successfully!")
         except Exception as e:
             print(f"Failed to run database seeding: {e}")
     yield
+
 
 app = FastAPI(title="Telemedicine API", version="0.1.0", lifespan=lifespan)
 
@@ -49,6 +50,7 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
+
 
 @app.get("/health/live")
 async def live():

@@ -3,13 +3,16 @@ from datetime import datetime
 from typing import Optional, Literal
 import uuid
 
+
 class ConsentCreate(BaseModel):
     purpose: str
     scope: str = "all"
     expires_at: Optional[datetime] = None
 
+
 class ConsentUpdate(BaseModel):
     status: Literal["active", "revoked", "expired"]
+
 
 class ConsentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

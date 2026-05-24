@@ -13,12 +13,14 @@ from app.integrations.sms.sms_provider import (
 )
 from app.integrations.storage.storage_provider import LocalStorageProvider, S3StorageProvider
 
+
 def test_mock_sms_provider():
     provider = MockSMSProvider()
-    
+
     # Should not raise any exceptions
     success = provider.send_sms(to_phone="+919876543210", message="Your OTP is 123456")
     assert success is True
+
 
 @patch("app.integrations.sms.sms_provider.MockSMSProvider.send_sms")
 def test_sms_provider_interface(mock_send):
@@ -48,29 +50,33 @@ def test_twilio_provider_requires_from_number(mock_client, monkeypatch):
 
     mock_client.assert_not_called()
 
+
 def test_local_storage_provider(tmp_path):
     # tmp_path is a pytest fixture that provides a temporary directory unique to the test invocation
     provider = LocalStorageProvider(base_path=str(tmp_path))
-    
+
     file_content = b"test file content"
     file_name = f"test_{uuid.uuid4()}.txt"
-    
+
     # Upload
-    file_url = provider.upload_file(file_name=file_name, file_data=file_content, content_type="text/plain")
+    file_url = provider.upload_file(
+        file_name=file_name, file_data=file_content, content_type="text/plain"
+    )
     assert file_url is not None
     assert str(tmp_path) in file_url
-    
+
     # Download
     downloaded_content = provider.download_file(file_url)
     assert downloaded_content == file_content
-    
+
     # Delete
     success = provider.delete_file(file_url)
     assert success is True
-    
+
     # Download after delete should fail or return None
     with pytest.raises(FileNotFoundError):
         provider.download_file(file_url)
+
 
 @mock_aws
 def test_s3_storage_provider(monkeypatch):
@@ -80,23 +86,25 @@ def test_s3_storage_provider(monkeypatch):
     monkeypatch.setattr(settings, "aws_region_name", "us-east-1")
 
     # Moto requires us to create the bucket before using it
-    s3 = boto3.client('s3', region_name="us-east-1")
+    s3 = boto3.client("s3", region_name="us-east-1")
     s3.create_bucket(Bucket="test-bucket")
 
     provider = S3StorageProvider()
-    
+
     file_content = b"test s3 file content"
     file_name = "test_s3_file.txt"
-    
+
     # Upload
-    file_uri = provider.upload_file(file_name=file_name, file_data=file_content, content_type="text/plain")
+    file_uri = provider.upload_file(
+        file_name=file_name, file_data=file_content, content_type="text/plain"
+    )
     assert file_uri.startswith("s3://test-bucket/")
     assert "test_s3_file.txt" in file_uri
-    
+
     # Download
     downloaded_content = provider.download_file(file_uri)
     assert downloaded_content == file_content
-    
+
     # Generate Signed URL
     signed_url = provider.get_signed_url(file_uri, expiration_seconds=60)
     assert signed_url is not None
@@ -106,4 +114,3 @@ def test_s3_storage_provider(monkeypatch):
     # Delete
     success = provider.delete_file(file_uri)
     assert success is True
-
