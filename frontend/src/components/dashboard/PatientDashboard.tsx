@@ -65,7 +65,7 @@ const PatientDashboard: React.FC = () => {
 
       let doctorId: string | null = null;
       try {
-        const docs = await apiClient('/practitioners');
+        const docs = await apiClient('/practitioners/');
         if (docs && docs.length > 0) {
           doctorId = docs[0].id;
         }
@@ -78,7 +78,7 @@ const PatientDashboard: React.FC = () => {
         return;
       }
 
-      await apiClient('/appointments', {
+      await apiClient('/appointments/', {
         method: 'POST',
         body: JSON.stringify({
           patient_id: patientId,
@@ -126,7 +126,7 @@ const PatientDashboard: React.FC = () => {
         <div className="mb-6 p-4 bg-danger/10 border border-danger/20 text-danger rounded-2xl flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <AlertCircle size={20} className="shrink-0" />
-            <span className="text-sm font-semibold">{t('app.sync_failed')}</span>
+            <span className="text-sm font-semibold">{error}</span>
           </div>
           <button 
             onClick={loadData}

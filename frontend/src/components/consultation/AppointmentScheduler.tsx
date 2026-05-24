@@ -18,7 +18,7 @@ const AppointmentScheduler: React.FC<{ patientId: string }> = ({ patientId }) =>
   useEffect(() => {
     const fetchDocs = async () => {
       try {
-        const data = await apiClient('/practitioners');
+        const data = await apiClient('/practitioners/');
         setPractitioners(data || []);
       } catch {
         console.error('Failed to fetch practitioners');
@@ -33,7 +33,7 @@ const AppointmentScheduler: React.FC<{ patientId: string }> = ({ patientId }) =>
 
     setStatus('loading');
     try {
-      await apiClient('/appointments', {
+      await apiClient('/appointments/', {
         method: 'POST',
         body: JSON.stringify({
           patient_id: patientId,
