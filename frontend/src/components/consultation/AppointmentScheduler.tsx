@@ -7,8 +7,10 @@ import { User } from 'lucide-react';
 
 interface Practitioner {
   id: string;
-  name: string;
-  specialization: string;
+  name?: string;
+  full_name?: string;
+  specialization?: string;
+  specialty?: string;
 }
 
 interface Patient {
@@ -31,6 +33,7 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
   const [selectedDoctor, setSelectedDoctor] = useState('');
   const [appointmentDate, setAppointmentDate] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
 
   // New states for dynamic patient selection fallback
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -101,6 +104,7 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
     if (!selectedDoctor || !appointmentDate || !selectedPatientId) return;
 
     setStatus('loading');
+    setErrorMsg('');
     try {
       await apiClient('/appointments/', {
         method: 'POST',
@@ -113,8 +117,14 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
       });
       setStatus('success');
       setTimeout(() => setStatus('idle'), 3000);
-    } catch {
-      console.error('Failed to book appointment');
+    } catch (err) {
+      const error = err as Error;
+      console.error('Failed to book appointment', error);
+      if (error?.message === 'Patient not found') {
+        setErrorMsg('Failed to book: This patient is currently in your offline queue and has not been synced online yet. Please synchronize your database first.');
+      } else {
+        setErrorMsg(t('clinical.booking_failed'));
+      }
       setStatus('error');
     }
   };
@@ -168,7 +178,7 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
             <option value="" disabled>-- {t('clinical.select_doctor')} --</option>
             {practitioners.map(doc => (
               <option key={doc.id} value={doc.id}>
-                {doc.name} - {doc.specialization}
+                {doc.full_name || doc.name || 'Unknown Doctor'} - {doc.specialty || doc.specialization || 'Generalist'}
               </option>
             ))}
           </select>
@@ -201,7 +211,7 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
         </div>
         
         {status === 'error' && (
-          <p className="text-sm text-danger font-bold text-center mt-2">{t('clinical.booking_failed')}</p>
+          <p className="text-sm text-danger font-bold text-center mt-2">{errorMsg || t('clinical.booking_failed')}</p>
         )}
       </form>
     </div>
