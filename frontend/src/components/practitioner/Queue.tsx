@@ -32,6 +32,7 @@ const Queue: React.FC = () => {
       if (Array.isArray(data)) {
         const normalized = data.map((item: {
           id?: string;
+          patientId?: string;
           name?: string;
           age?: number;
           gender?: string;
@@ -42,7 +43,7 @@ const Queue: React.FC = () => {
           appointmentId?: string;
         }): QueuePatient => {
           return {
-            id: String(item?.id || ''),
+            id: String(item?.patientId || item?.id || ''),
             name: String(item?.name || 'Unknown Patient'),
             age: Number(item?.age ?? 0),
             gender: String(item?.gender || 'Unknown'),
