@@ -30,6 +30,15 @@ export class TelemedicineDB extends Dexie {
       medication_requests: 'id, patient_id',
       outbox: '++id, operation_id, entity_type'
     });
+    this.version(2).stores({
+      patients: 'id, full_name, phone',
+      appointments: 'id, patient_id, triage_priority',
+      observations: 'id, patient_id',
+      allergies: 'id, patient_id',
+      conditions: 'id, patient_id',
+      medication_requests: 'id, patient_id',
+      outbox: '++id, operation_id, entity_type'
+    });
   }
 }
 

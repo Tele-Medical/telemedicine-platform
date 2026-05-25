@@ -45,6 +45,9 @@ def create_appointment(
         channel=appt_in.channel,
         scheduled_for=appt_in.scheduled_for,
         created_by_user_id=current_user.id,
+        chief_complaint=appt_in.chief_complaint,
+        triage_priority=appt_in.triage_priority,
+        notes=appt_in.notes,
     )
     db.add(appt)
     db.commit()
@@ -116,6 +119,8 @@ def get_doctor_queue(
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """Retrieve appointments for the current doctor with patient names."""
+    from datetime import datetime, date, timezone
+
     if current_user.default_role not in ["doctor", "practitioner", "admin"]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
@@ -123,28 +128,49 @@ def get_doctor_queue(
     if not practitioner and current_user.default_role != "admin":
         raise HTTPException(status_code=403, detail="Practitioner profile not found")
 
-    query = db.query(Appointment, Patient.full_name).join(
-        Patient, Appointment.patient_id == Patient.id
-    )
+    query = db.query(Appointment, Patient).join(Patient, Appointment.patient_id == Patient.id)
     if practitioner:
         query = query.filter(Appointment.practitioner_id == practitioner.id)
 
     # Filter out completed and cancelled appointments to keep the queue clean
     query = query.filter(Appointment.status.notin_(["completed", "cancelled"]))
 
+    query = query.order_by(Appointment.created_at.asc(), Appointment.id.asc())
     results = query.all()
+    now = datetime.now(timezone.utc)
 
-    return [
-        {
-            "id": str(appt.id),
-            "patientName": full_name,
-            "time": appt.scheduled_for.isoformat()
-            if appt.scheduled_for
-            else appt.created_at.isoformat(),
-            "status": appt.status,
-        }
-        for appt, full_name in results
-    ]
+    queue_list = []
+    for appt, patient in results:
+        # Calculate age dynamically
+        age = 0
+        if patient.date_of_birth:
+            dob = patient.date_of_birth
+            today = date.today()
+            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
+        # Calculate wait time in minutes
+        delta = now - appt.created_at
+        minutes = int(delta.total_seconds() / 60)
+        wait_time = f"{minutes} mins" if minutes > 0 else "0 mins"
+
+        # Gender standardisation (capitalize)
+        gender = patient.gender.capitalize() if patient.gender else "Unknown"
+
+        queue_list.append(
+            {
+                "id": str(patient.id),
+                "name": patient.full_name,
+                "age": age,
+                "gender": gender,
+                "complaint": appt.chief_complaint or "No complaint specified",
+                "triage": appt.triage_priority or "Standard",
+                "waitTime": wait_time,
+                "status": "Waiting" if appt.status == "requested" else "In Consultation",
+                "appointmentId": str(appt.id),
+            }
+        )
+
+    return queue_list
 
 
 @router.get("/{id}")
@@ -196,4 +222,7 @@ def get_appointment_details(
         "status": appt.status,
         "channel": appt.channel,
         "scheduled_for": appt.scheduled_for.isoformat() if appt.scheduled_for else None,
+        "chief_complaint": appt.chief_complaint,
+        "triage_priority": appt.triage_priority,
+        "notes": appt.notes,
     }

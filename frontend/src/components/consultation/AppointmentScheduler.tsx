@@ -34,6 +34,8 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
   const [appointmentDate, setAppointmentDate] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [chiefComplaint, setChiefComplaint] = useState('');
+  const [triagePriority, setTriagePriority] = useState('Standard');
 
   // New states for dynamic patient selection fallback
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -112,10 +114,14 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
           patient_id: selectedPatientId,
           practitioner_id: selectedDoctor,
           scheduled_for: appointmentDate,
-          channel: 'assisted'
+          channel: 'assisted',
+          chief_complaint: chiefComplaint,
+          triage_priority: triagePriority
         })
       });
       setStatus('success');
+      setChiefComplaint('');
+      setTriagePriority('Standard');
       setTimeout(() => setStatus('idle'), 3000);
     } catch (err) {
       const error = err as Error;
@@ -194,6 +200,39 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
             onChange={(e) => setAppointmentDate(e.target.value)}
             className="block w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 text-neutral-800 text-sm font-medium"
           />
+        </div>
+
+        {/* Chief Complaint / Symptoms */}
+        <div>
+          <label htmlFor="chiefComplaint" className="block text-sm font-semibold text-gray-700 mb-1">
+            {t('clinical.chief_complaint', 'Chief Complaint / Symptoms')}
+          </label>
+          <textarea
+            id="chiefComplaint"
+            value={chiefComplaint}
+            onChange={(e) => setChiefComplaint(e.target.value)}
+            rows={3}
+            maxLength={500}
+            placeholder={t('clinical.chief_complaint_placeholder', 'Describe patient symptoms or main complaint...')}
+            className="block w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 text-neutral-800 text-sm font-medium bg-white"
+          />
+        </div>
+
+        {/* Triage Urgency Level */}
+        <div>
+          <label htmlFor="triagePriority" className="block text-sm font-semibold text-gray-700 mb-1">
+            {t('clinical.triage_urgency', 'Triage Urgency Level')}
+          </label>
+          <select
+            id="triagePriority"
+            value={triagePriority}
+            onChange={(e) => setTriagePriority(e.target.value)}
+            className="block w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white text-neutral-800 text-sm font-medium"
+          >
+            <option value="Standard">{t('clinical.standard', 'Standard')}</option>
+            <option value="Urgent">{t('clinical.urgent', 'Urgent')}</option>
+            <option value="Critical">{t('clinical.critical', 'Critical')}</option>
+          </select>
         </div>
 
         <div className="pt-2">
