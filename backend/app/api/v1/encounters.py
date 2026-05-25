@@ -119,8 +119,9 @@ def submit_encounter_summary(
     # Cascade status update to associated parent appointment if linked
     if enc.appointment_id:
         appt = db.query(Appointment).filter(Appointment.id == enc.appointment_id).first()
-        if appt:
+        if appt and appt.status not in ("completed", "cancelled"):
             appt.status = "completed"
+            appt.updated_by_user_id = current_user.id
             db.add(appt)
 
     db.add(enc)

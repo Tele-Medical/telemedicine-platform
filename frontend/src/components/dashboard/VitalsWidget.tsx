@@ -37,6 +37,20 @@ const VitalsWidget: React.FC<VitalsWidgetProps> = ({ isDemo = false, patientId }
   const pulseValue = showMock ? "72" : (dbVitals?.pulse || null);
   const tempValue = showMock ? "98.6" : (dbVitals?.temperature || null);
 
+  const pulseNum = pulseValue ? parseInt(pulseValue, 10) : null;
+  let pulseStatusLabel = t('clinical.normal', 'Normal');
+  let pulseStatusClass = 'bg-success/10 text-success border border-success/20';
+
+  if (pulseNum !== null && !isNaN(pulseNum)) {
+    if (pulseNum < 60) {
+      pulseStatusLabel = t('clinical.low', 'Low');
+      pulseStatusClass = 'bg-warning/10 text-warning border border-warning/20';
+    } else if (pulseNum > 100) {
+      pulseStatusLabel = t('clinical.high', 'High');
+      pulseStatusClass = 'bg-danger/10 text-danger border border-danger/20';
+    }
+  }
+
   if (!bpValue && !pulseValue && !tempValue) {
     return (
       <div className="mt-6 bg-white rounded-2xl p-6 shadow-[0_1px_2px_rgba(15,23,42,.08)] border border-neutral-200/60 text-center flex flex-col items-center gap-4">
@@ -93,8 +107,8 @@ const VitalsWidget: React.FC<VitalsWidgetProps> = ({ isDemo = false, patientId }
                 </div>
                 <span className="text-xs font-bold text-neutral-500 tracking-wide uppercase">{t('clinical.pulse')}</span>
               </div>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-success/10 text-success border border-success/20">
-                {t('clinical.normal')}
+              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase ${pulseStatusClass}`}>
+                {pulseStatusLabel}
               </span>
             </div>
             <div>

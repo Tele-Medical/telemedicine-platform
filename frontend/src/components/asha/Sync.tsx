@@ -54,28 +54,30 @@ const Sync: React.FC = () => {
               const oldId = String(payload.id);
               const newId = response.id;
 
-              const patientData = await db.patients.get(oldId);
-              if (patientData) {
-                await db.patients.delete(oldId);
-                const updatedPatient = {
-                  ...patientData,
-                  id: newId
-                };
-                await db.patients.put(updatedPatient);
-              }
-
-              // Reconcile references in appointments
-              const appointments = await db.appointments.where('patient_id').equals(oldId).toArray();
-              for (const appt of appointments) {
-                if (appt.id) {
-                  await db.appointments.delete(String(appt.id));
-                  const updatedAppt = {
-                    ...appt,
-                    patient_id: newId
+              await db.transaction('rw', [db.patients, db.appointments], async () => {
+                const patientData = await db.patients.get(oldId);
+                if (patientData) {
+                  const updatedPatient = {
+                    ...patientData,
+                    id: newId
                   };
-                  await db.appointments.put(updatedAppt);
+                  await db.patients.put(updatedPatient);
+                  await db.patients.delete(oldId);
                 }
-              }
+
+                // Reconcile references in appointments
+                const appointments = await db.appointments.where('patient_id').equals(oldId).toArray();
+                for (const appt of appointments) {
+                  if (appt.id) {
+                    const updatedAppt = {
+                      ...appt,
+                      patient_id: newId
+                    };
+                    await db.appointments.put(updatedAppt);
+                    await db.appointments.delete(String(appt.id));
+                  }
+                }
+              });
             }
             success = true;
           } else if (item.entity_type === 'observation') {

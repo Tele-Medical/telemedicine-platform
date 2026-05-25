@@ -70,16 +70,28 @@ const ClinicalForms: React.FC = () => {
         await db.observations.put(payload);
 
         if (isOnline) {
-          await apiClient('/observations', {
-            method: 'POST',
-            body: JSON.stringify({
-              patient_id: payload.patient_id,
-              encounter_id: payload.encounter_id,
-              code: payload.code,
-              value_string: payload.value_string,
-              unit: payload.unit
-            }),
-          });
+          try {
+            await apiClient('/observations', {
+              method: 'POST',
+              body: JSON.stringify({
+                patient_id: payload.patient_id,
+                encounter_id: payload.encounter_id,
+                code: payload.code,
+                value_string: payload.value_string,
+                unit: payload.unit
+              }),
+            });
+          } catch (err) {
+            console.error('Failed to sync observation online, falling back to outbox queue', err);
+            await db.outbox.add({
+              operation_id: crypto.randomUUID(),
+              entity_type: 'observation',
+              entity_id: payload.id,
+              action: 'CREATE',
+              payload,
+              created_at: new Date().toISOString(),
+            });
+          }
         } else {
           await db.outbox.add({
             operation_id: crypto.randomUUID(),
@@ -118,16 +130,28 @@ const ClinicalForms: React.FC = () => {
       await db.conditions.put(payload);
 
       if (isOnline) {
-        await apiClient('/conditions', {
-          method: 'POST',
-          body: JSON.stringify({
-            patient_id: payload.patient_id,
-            encounter_id: payload.encounter_id,
-            clinical_status: payload.clinical_status,
-            disease_code: payload.disease_code,
-            disease_name: payload.disease_name
-          }),
-        });
+        try {
+          await apiClient('/conditions', {
+            method: 'POST',
+            body: JSON.stringify({
+              patient_id: payload.patient_id,
+              encounter_id: payload.encounter_id,
+              clinical_status: payload.clinical_status,
+              disease_code: payload.disease_code,
+              disease_name: payload.disease_name
+            }),
+          });
+        } catch (err) {
+          console.error('Failed to sync condition online, falling back to outbox queue', err);
+          await db.outbox.add({
+            operation_id: crypto.randomUUID(),
+            entity_type: 'condition',
+            entity_id: id,
+            action: 'CREATE',
+            payload,
+            created_at: new Date().toISOString(),
+          });
+        }
       } else {
         await db.outbox.add({
           operation_id: crypto.randomUUID(),
@@ -164,14 +188,26 @@ const ClinicalForms: React.FC = () => {
       await db.allergies.put(payload);
 
       if (isOnline) {
-        await apiClient('/allergies', {
-          method: 'POST',
-          body: JSON.stringify({
-            patient_id: payload.patient_id,
-            substance: payload.substance,
-            criticality: payload.criticality
-          }),
-        });
+        try {
+          await apiClient('/allergies', {
+            method: 'POST',
+            body: JSON.stringify({
+              patient_id: payload.patient_id,
+              substance: payload.substance,
+              criticality: payload.criticality
+            }),
+          });
+        } catch (err) {
+          console.error('Failed to sync allergy online, falling back to outbox queue', err);
+          await db.outbox.add({
+            operation_id: crypto.randomUUID(),
+            entity_type: 'allergy',
+            entity_id: id,
+            action: 'CREATE',
+            payload,
+            created_at: new Date().toISOString(),
+          });
+        }
       } else {
         await db.outbox.add({
           operation_id: crypto.randomUUID(),

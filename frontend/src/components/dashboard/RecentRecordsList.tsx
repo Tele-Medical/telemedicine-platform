@@ -26,6 +26,7 @@ const RecentRecordsList: React.FC<RecentRecordsListProps> = ({ isDemo = false, p
       title: String(c.disease_name || ''),
       subtitle: t('clinical.conditions', 'Active Condition'),
       date: c.created_at ? new Date(String(c.created_at)).toLocaleDateString() : 'Just now',
+      sortDate: c.created_at ? new Date(String(c.created_at)).getTime() : Date.now(),
       type: 'condition'
     }));
 
@@ -34,12 +35,13 @@ const RecentRecordsList: React.FC<RecentRecordsListProps> = ({ isDemo = false, p
       title: String(a.substance || ''),
       subtitle: t('clinical.allergies', 'Allergy Intolerance'),
       date: a.created_at ? new Date(String(a.created_at)).toLocaleDateString() : 'Just now',
+      sortDate: a.created_at ? new Date(String(a.created_at)).getTime() : Date.now(),
       type: 'allergy'
     }));
 
     const combined = [...formattedConds, ...formattedAllgs];
-    // Sort by date descending
-    combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Sort by date descending using robust numeric timestamps
+    combined.sort((a, b) => b.sortDate - a.sortDate);
     return combined;
   }, [patientId]) || [];
 
