@@ -8,6 +8,11 @@ describe('PatientRepository', () => {
     await db.patients.clear();
     await db.outbox.clear();
     vi.stubGlobal('navigator', { onLine: true });
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ id: 'p-1' })
+    });
   });
 
   afterEach(() => {

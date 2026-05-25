@@ -19,7 +19,7 @@ class PatientBase(BaseModel):
 
 
 class PatientCreate(PatientBase):
-    pass
+    id: Optional[UUID] = None
 
 
 class PatientUpdate(BaseModel):

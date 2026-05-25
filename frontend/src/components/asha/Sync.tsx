@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { apiClient } from '../../api/client';
 
 const Sync: React.FC = () => {
   const { t } = useTranslation();
@@ -29,8 +30,22 @@ const Sync: React.FC = () => {
     
     setSyncStatus('syncing');
     try {
-      // Simulate pushing operations to central telemedicine APIs
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      // Synchronize outbox patient records online
+      for (const item of outboxItems) {
+        if (item.entity_type === 'patients') {
+          const payload = (item.payload || {}) as Record<string, any>;
+          await apiClient('/patients/', {
+            method: 'POST',
+            body: JSON.stringify({
+              id: payload.id,
+              full_name: payload.full_name,
+              phone: payload.phone || payload.guardian_phone || null,
+              preferred_language: 'en',
+              village: 'Nabha Sub-centre'
+            })
+          });
+        }
+      }
       
       // Successfully clear outbox queue after synchronizing
       await db.outbox.clear();
@@ -38,7 +53,8 @@ const Sync: React.FC = () => {
       
       // Reset back to idle status after showing success visual for 3.5s
       setTimeout(() => setSyncStatus('idle'), 3500);
-    } catch {
+    } catch (err) {
+      console.error('Failed to sync offline outbox cache:', err);
       setSyncStatus('error');
     }
   };
