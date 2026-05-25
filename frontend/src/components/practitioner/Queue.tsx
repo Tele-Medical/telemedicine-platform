@@ -47,13 +47,13 @@ const Queue: React.FC = () => {
             age: Number(item?.age ?? 0),
             gender: String(item?.gender || 'Unknown'),
             complaint: String(item?.complaint || 'No complaint specified'),
-            triage: (['Critical', 'Urgent', 'Standard'].includes(item?.triage)
-              ? item.triage
-              : 'Standard') as 'Critical' | 'Urgent' | 'Standard',
+            triage: (['Critical', 'Urgent', 'Standard'].includes(item?.triage || '')
+              ? (item.triage as 'Critical' | 'Urgent' | 'Standard')
+              : 'Standard'),
             waitTime: String(item?.waitTime || '0 mins'),
-            status: (['Waiting', 'In Consultation', 'Completed'].includes(item?.status)
-              ? item.status
-              : 'Waiting') as 'Waiting' | 'In Consultation' | 'Completed',
+            status: (['Waiting', 'In Consultation', 'Completed'].includes(item?.status || '')
+              ? (item.status as 'Waiting' | 'In Consultation' | 'Completed')
+              : 'Waiting'),
             appointmentId: String(item?.appointmentId || '')
           };
         });
