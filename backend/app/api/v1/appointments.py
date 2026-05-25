@@ -158,15 +158,20 @@ def get_doctor_queue(
 
         queue_list.append(
             {
-                "id": str(patient.id),
+                "id": str(appt.id),
+                "patientId": str(patient.id),
+                "appointmentId": str(appt.id),
                 "name": patient.full_name,
+                "patientName": patient.full_name,
+                "time": appt.scheduled_for.isoformat()
+                if appt.scheduled_for
+                else appt.created_at.isoformat(),
                 "age": age,
                 "gender": gender,
                 "complaint": appt.chief_complaint or "No complaint specified",
                 "triage": appt.triage_priority or "Standard",
                 "waitTime": wait_time,
                 "status": "Waiting" if appt.status == "requested" else "In Consultation",
-                "appointmentId": str(appt.id),
             }
         )
 
