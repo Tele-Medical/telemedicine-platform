@@ -135,6 +135,7 @@ def get_doctor_queue(
     # Filter out completed and cancelled appointments to keep the queue clean
     query = query.filter(Appointment.status.notin_(["completed", "cancelled"]))
 
+    query = query.order_by(Appointment.created_at.asc(), Appointment.id.asc())
     results = query.all()
     now = datetime.now(timezone.utc)
 

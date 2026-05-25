@@ -205,14 +205,15 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
         {/* Chief Complaint / Symptoms */}
         <div>
           <label htmlFor="chiefComplaint" className="block text-sm font-semibold text-gray-700 mb-1">
-            Chief Complaint / Symptoms
+            {t('clinical.chief_complaint', 'Chief Complaint / Symptoms')}
           </label>
           <textarea
             id="chiefComplaint"
             value={chiefComplaint}
             onChange={(e) => setChiefComplaint(e.target.value)}
             rows={3}
-            placeholder="Describe patient symptoms or main complaint..."
+            maxLength={500}
+            placeholder={t('clinical.chief_complaint_placeholder', 'Describe patient symptoms or main complaint...')}
             className="block w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 text-neutral-800 text-sm font-medium bg-white"
           />
         </div>
@@ -220,7 +221,7 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
         {/* Triage Urgency Level */}
         <div>
           <label htmlFor="triagePriority" className="block text-sm font-semibold text-gray-700 mb-1">
-            Triage Urgency Level
+            {t('clinical.triage_urgency', 'Triage Urgency Level')}
           </label>
           <select
             id="triagePriority"
@@ -228,9 +229,9 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
             onChange={(e) => setTriagePriority(e.target.value)}
             className="block w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white text-neutral-800 text-sm font-medium"
           >
-            <option value="Standard">Standard</option>
-            <option value="Urgent">Urgent</option>
-            <option value="Critical">Critical</option>
+            <option value="Standard">{t('clinical.standard', 'Standard')}</option>
+            <option value="Urgent">{t('clinical.urgent', 'Urgent')}</option>
+            <option value="Critical">{t('clinical.critical', 'Critical')}</option>
           </select>
         </div>
 

@@ -29,7 +29,39 @@ const Queue: React.FC = () => {
     setError(null);
     try {
       const data = await apiClient('/appointments/queue');
-      setPatients(data || []);
+      if (Array.isArray(data)) {
+        const normalized = data.map((item: {
+          id?: string;
+          name?: string;
+          age?: number;
+          gender?: string;
+          complaint?: string;
+          triage?: string;
+          waitTime?: string;
+          status?: string;
+          appointmentId?: string;
+        }): QueuePatient => {
+          return {
+            id: String(item?.id || ''),
+            name: String(item?.name || 'Unknown Patient'),
+            age: Number(item?.age ?? 0),
+            gender: String(item?.gender || 'Unknown'),
+            complaint: String(item?.complaint || 'No complaint specified'),
+            triage: (['Critical', 'Urgent', 'Standard'].includes(item?.triage)
+              ? item.triage
+              : 'Standard') as 'Critical' | 'Urgent' | 'Standard',
+            waitTime: String(item?.waitTime || '0 mins'),
+            status: (['Waiting', 'In Consultation', 'Completed'].includes(item?.status)
+              ? item.status
+              : 'Waiting') as 'Waiting' | 'In Consultation' | 'Completed',
+            appointmentId: String(item?.appointmentId || '')
+          };
+        });
+        setPatients(normalized);
+      } else {
+        console.warn('API returned non-array payload for queue:', data);
+        setPatients([]);
+      }
     } catch (err) {
       console.error('Failed to fetch doctor queue:', err);
       setError('Failed to fetch the active patient queue. Please verify your connection.');
@@ -63,7 +95,7 @@ const Queue: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-neutral-900 font-sans">
         <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
-        <p className="text-neutral-500 font-medium">Loading active doctor queue...</p>
+        <p className="text-neutral-500 font-medium">{t('clinical.loading_queue', 'Loading active doctor queue...')}</p>
       </div>
     );
   }
@@ -74,14 +106,14 @@ const Queue: React.FC = () => {
         <div className="w-12 h-12 rounded-full bg-danger/10 text-danger flex items-center justify-center mb-4">
           <AlertCircle size={24} className="stroke-[2.25]" />
         </div>
-        <h3 className="text-lg font-bold text-neutral-900 mb-2">Failed to Load Queue</h3>
+        <h3 className="text-lg font-bold text-neutral-900 mb-2">{t('clinical.failed_load_queue', 'Failed to Load Queue')}</h3>
         <p className="text-neutral-500 text-sm mb-6">{error}</p>
         <button
           onClick={fetchQueue}
           className="flex items-center gap-2 bg-primary hover:bg-primary-700 active:scale-[0.98] transition-all text-white font-bold text-sm px-6 py-3 rounded-full shadow-md shadow-primary/10"
         >
           <RefreshCw size={16} className="shrink-0" />
-          <span>Retry Loading</span>
+          <span>{t('clinical.retry_loading', 'Retry Loading')}</span>
         </button>
       </div>
     );

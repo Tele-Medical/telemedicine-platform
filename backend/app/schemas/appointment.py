@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Literal, Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AppointmentBase(BaseModel):
@@ -11,8 +11,8 @@ class AppointmentBase(BaseModel):
     practitioner_id: Optional[uuid.UUID] = None
     channel: Literal["telemedicine", "assisted"]
     scheduled_for: Optional[datetime] = None
-    chief_complaint: Optional[str] = None
-    triage_priority: Optional[str] = "Standard"
+    chief_complaint: Optional[str] = Field(default=None, max_length=500)
+    triage_priority: Literal["Critical", "Urgent", "Standard"] = "Standard"
     notes: Optional[str] = None
 
 

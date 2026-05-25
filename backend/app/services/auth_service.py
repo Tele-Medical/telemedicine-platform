@@ -31,7 +31,9 @@ def request_otp(db: Session, phone: str) -> dict:
 
     # 3. Send OTP using Provider
     sms_provider = get_sms_provider()  # Dynamically loaded based on settings.sms_provider
-    sms_provider.send_sms(to_phone=phone, message=f"Your Sanjeevani OTP is {otp_code}")
+    success = sms_provider.send_sms(to_phone=phone, message=f"Your Sanjeevani OTP is {otp_code}")
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to send SMS OTP")
 
     # 4. Create the challenge
     expires = datetime.now(timezone.utc) + timedelta(minutes=5)
