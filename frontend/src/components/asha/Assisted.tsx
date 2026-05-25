@@ -27,9 +27,20 @@ const Assisted: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Live queries to Dexie local database
-  const localPatients = useLiveQuery(() => db.patients.toArray()) || [];
+  const rawPatients = useLiveQuery(() => db.patients.toArray()) || [];
   const outboxItems = useLiveQuery(() => db.outbox.toArray()) || [];
   const appointments = useLiveQuery(() => db.appointments.toArray()) || [];
+
+  // Typecast raw patients to support safe TypeScript building
+  const localPatients = rawPatients.map(p => ({
+    id: String(p.id || ''),
+    full_name: String(p.full_name || ''),
+    phone: p.phone ? String(p.phone) : undefined,
+    has_phone: Boolean(p.has_phone),
+    guardian_name: p.guardian_name ? String(p.guardian_name) : undefined,
+    guardian_phone: p.guardian_phone ? String(p.guardian_phone) : undefined,
+    created_at: p.created_at ? String(p.created_at) : undefined,
+  }));
 
   const handleOpenRegistration = () => {
     navigate('/register');
