@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import AppointmentScheduler from '../AppointmentScheduler';
 
 global.fetch = vi.fn();
@@ -7,7 +8,11 @@ global.fetch = vi.fn();
 describe('AppointmentScheduler Component', () => {
   it('fetches and displays practitioner directory', async () => {
     (global as any).mockFetchJson([{ id: 'doc-1', name: 'Dr. Watson', specialization: 'GP' }]);
-    render(<AppointmentScheduler patientId="p-1" />);
+    render(
+      <MemoryRouter>
+        <AppointmentScheduler patientId="p-1" />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText(/Dr. Watson/i)).toBeInTheDocument();
     });
@@ -15,7 +20,11 @@ describe('AppointmentScheduler Component', () => {
 
   it('can schedule an appointment', async () => {
     (global as any).mockFetchJson([{ id: 'doc-1', name: 'Dr. Watson', specialization: 'GP' }]);
-    render(<AppointmentScheduler patientId="p-1" />);
+    render(
+      <MemoryRouter>
+        <AppointmentScheduler patientId="p-1" />
+      </MemoryRouter>
+    );
     await waitFor(() => {
       expect(screen.getByText(/Dr. Watson/i)).toBeInTheDocument();
     });

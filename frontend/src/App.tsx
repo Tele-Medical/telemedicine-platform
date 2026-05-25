@@ -160,7 +160,8 @@ function App() {
                     <Routes>
                       <Route path="/" element={<Assisted />} />
                       <Route path="/register" element={<AssistedOnboardingWizard />} />
-                      <Route path="/schedule" element={<AppointmentScheduler patientId="" />} />
+                      <Route path="/schedule" element={<AppointmentScheduler />} />
+                      <Route path="/schedule/:patientId" element={<AppointmentScheduler />} />
                       <Route path="/patients" element={<Patients />} />
                       <Route path="/appointments" element={<Queue />} />
                       <Route path="/sync" element={<Sync />} />
