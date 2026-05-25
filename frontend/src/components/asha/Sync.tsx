@@ -34,7 +34,7 @@ const Sync: React.FC = () => {
       for (const item of outboxItems) {
         if (item.entity_type === 'patients') {
           const payload = (item.payload || {}) as Record<string, unknown>;
-          await apiClient('/patients/', {
+          const response = await apiClient('/patients/', {
             method: 'POST',
             body: JSON.stringify({
               id: payload.id ? String(payload.id) : undefined,
@@ -43,7 +43,37 @@ const Sync: React.FC = () => {
               preferred_language: 'en',
               village: 'Nabha Sub-centre'
             })
-          });
+          }) as { id?: string } | null | undefined;
+
+          // ID Reconciliation: if the backend returned a different ID (e.g. running old code), reconcile local DB
+          if (response && response.id && response.id !== String(payload.id)) {
+            console.log(`Reconciling patient ID during sync: updating local ${payload.id} to backend ${response.id}`);
+            const oldId = String(payload.id);
+            const newId = response.id;
+
+            const patientData = await db.patients.get(oldId);
+            if (patientData) {
+              await db.patients.delete(oldId);
+              const updatedPatient = {
+                ...patientData,
+                id: newId
+              };
+              await db.patients.put(updatedPatient);
+            }
+
+            // Reconcile references in appointments
+            const appointments = await db.appointments.where('patient_id').equals(oldId).toArray();
+            for (const appt of appointments) {
+              if (appt.id) {
+                await db.appointments.delete(String(appt.id));
+                const updatedAppt = {
+                  ...appt,
+                  patient_id: newId
+                };
+                await db.appointments.put(updatedAppt);
+              }
+            }
+          }
         }
       }
       

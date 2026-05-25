@@ -27,7 +27,7 @@ export class PatientRepository {
       await PatientRepository.queueOutbox(patientData);
     } else {
       try {
-        await apiClient('/patients/', {
+        const response = await apiClient('/patients/', {
           method: 'POST',
           body: JSON.stringify({
             id: patientData.id,
@@ -37,6 +37,18 @@ export class PatientRepository {
             village: 'Nabha Sub-centre'
           })
         });
+
+        // ID Reconciliation: if the backend returned a different ID (e.g. running old code), reconcile local DB
+        if (response && response.id && response.id !== patientData.id) {
+          console.log(`Reconciling patient ID: updating local ${patientData.id} to backend ${response.id}`);
+          await db.patients.delete(patientData.id);
+          const updatedPatient = {
+            ...patientData,
+            id: response.id
+          };
+          await db.patients.put(updatedPatient);
+          return updatedPatient;
+        }
       } catch (err) {
         console.warn('Failed to register patient immediately online. Queuing locally.', err);
         await PatientRepository.queueOutbox(patientData);
