@@ -22,18 +22,19 @@ export function ABHALink({ patientId }: Props) {
     try {
       await apiClient('/abdm/search', {
         method: 'POST',
-        body: JSON.stringify({ abha_address: abhaAddress })
+        body: JSON.stringify({ abha_id: abhaAddress })
       });
       
       // Auto-trigger OTP if found
       const otpData = await apiClient('/abdm/init-auth', {
         method: 'POST',
-        body: JSON.stringify({ authMethod: 'OTP', abha_address: abhaAddress })
+        body: JSON.stringify({ method: 'AADHAAR_OTP', abha_id: abhaAddress })
       });
       
-      if (!otpData.txnId) throw new Error('Failed to initiate OTP');
+      const resolvedTxnId = otpData.txn_id || otpData.txnId;
+      if (!resolvedTxnId) throw new Error('Failed to initiate OTP');
       
-      setTxnId(otpData.txnId);
+      setTxnId(resolvedTxnId);
       setStep(2);
     } catch {
       console.error('ABHA search failed');
@@ -50,7 +51,7 @@ export function ABHALink({ patientId }: Props) {
     try {
       await apiClient('/abdm/confirm-auth', {
         method: 'POST',
-        body: JSON.stringify({ txnId, otp })
+        body: JSON.stringify({ txn_id: txnId, otp })
       });
       setStep(3);
     } catch {

@@ -116,6 +116,13 @@ def submit_encounter_summary(
     enc.record_version += 1
     enc.updated_by_user_id = current_user.id
 
+    # Cascade status update to associated parent appointment if linked
+    if enc.appointment_id:
+        appt = db.query(Appointment).filter(Appointment.id == enc.appointment_id).first()
+        if appt:
+            appt.status = "completed"
+            db.add(appt)
+
     db.add(enc)
     db.commit()
     db.refresh(enc)
