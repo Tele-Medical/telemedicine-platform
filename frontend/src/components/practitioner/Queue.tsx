@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Clock, AlertCircle, ArrowRight, Play, CheckCircle } from 'lucide-react';
+import { Users, Clock, AlertCircle, ArrowRight, Play, CheckCircle, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { apiClient } from '../../api/client';
 
 interface QueuePatient {
   id: string;
@@ -18,52 +19,28 @@ interface QueuePatient {
 const Queue: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [patients] = useState<QueuePatient[]>([
-    {
-      id: 'P001',
-      name: 'Ravi Kumar',
-      age: 42,
-      gender: 'Male',
-      complaint: 'Persistent dry cough and mild fever (100.2°F)',
-      triage: 'Urgent',
-      waitTime: '12 mins',
-      status: 'Waiting',
-      appointmentId: 'A101',
-    },
-    {
-      id: 'P002',
-      name: 'Sunita Devi',
-      age: 58,
-      gender: 'Female',
-      complaint: 'Follow-up for type-2 diabetes management',
-      triage: 'Standard',
-      waitTime: '25 mins',
-      status: 'Waiting',
-      appointmentId: 'A102',
-    },
-    {
-      id: 'P003',
-      name: 'Baldev Singh',
-      age: 65,
-      gender: 'Male',
-      complaint: 'Severe chest discomfort and shortness of breath',
-      triage: 'Critical',
-      waitTime: '2 mins',
-      status: 'Waiting',
-      appointmentId: 'A103',
-    },
-    {
-      id: 'P004',
-      name: 'Pooja Sharma',
-      age: 29,
-      gender: 'Female',
-      complaint: 'Skin rash and allergic reaction on forearm',
-      triage: 'Standard',
-      waitTime: '40 mins',
-      status: 'Waiting',
-      appointmentId: 'A104',
-    },
-  ]);
+  
+  const [patients, setPatients] = useState<QueuePatient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchQueue = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiClient('/appointments/queue');
+      setPatients(data || []);
+    } catch (err) {
+      console.error('Failed to fetch doctor queue:', err);
+      setError('Failed to fetch the active patient queue. Please verify your connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQueue();
+  }, []);
 
   const handleStartConsult = (appointmentId: string) => {
     // Navigate to live consult WebRTC page
@@ -81,6 +58,34 @@ const Queue: React.FC = () => {
         return 'bg-primary/10 text-primary border-primary/20';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-neutral-900 font-sans">
+        <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
+        <p className="text-neutral-500 font-medium">Loading active doctor queue...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-2xl border border-neutral-200/60 p-8 text-center max-w-md mx-auto mt-12 text-neutral-900 font-sans shadow-sm">
+        <div className="w-12 h-12 rounded-full bg-danger/10 text-danger flex items-center justify-center mb-4">
+          <AlertCircle size={24} className="stroke-[2.25]" />
+        </div>
+        <h3 className="text-lg font-bold text-neutral-900 mb-2">Failed to Load Queue</h3>
+        <p className="text-neutral-500 text-sm mb-6">{error}</p>
+        <button
+          onClick={fetchQueue}
+          className="flex items-center gap-2 bg-primary hover:bg-primary-700 active:scale-[0.98] transition-all text-white font-bold text-sm px-6 py-3 rounded-full shadow-md shadow-primary/10"
+        >
+          <RefreshCw size={16} className="shrink-0" />
+          <span>Retry Loading</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in pb-12 text-neutral-900">

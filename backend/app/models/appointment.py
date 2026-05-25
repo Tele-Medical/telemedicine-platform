@@ -26,6 +26,12 @@ class Appointment(Base):
         DateTime(timezone=True), nullable=True, index=True
     )
 
+    chief_complaint: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    triage_priority: Mapped[str] = mapped_column(
+        String(50), default="Standard", server_default="Standard"
+    )
+    notes: Mapped[str | None] = mapped_column(String, nullable=True)
+
     # Audit & Sync Standards
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id")
@@ -49,5 +55,9 @@ class Appointment(Base):
         ),
         CheckConstraint(
             "channel IN ('telemedicine', 'assisted')", name="appointments_channel_check"
+        ),
+        CheckConstraint(
+            "triage_priority IN ('Critical', 'Urgent', 'Standard')",
+            name="appointments_triage_priority_check",
         ),
     )

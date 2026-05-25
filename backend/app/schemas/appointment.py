@@ -11,6 +11,9 @@ class AppointmentBase(BaseModel):
     practitioner_id: Optional[uuid.UUID] = None
     channel: Literal["telemedicine", "assisted"]
     scheduled_for: Optional[datetime] = None
+    chief_complaint: Optional[str] = None
+    triage_priority: Optional[str] = "Standard"
+    notes: Optional[str] = None
 
 
 class AppointmentCreate(AppointmentBase):
