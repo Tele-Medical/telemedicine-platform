@@ -33,13 +33,13 @@ const Sync: React.FC = () => {
       // Synchronize outbox patient records online
       for (const item of outboxItems) {
         if (item.entity_type === 'patients') {
-          const payload = (item.payload || {}) as Record<string, any>;
+          const payload = (item.payload || {}) as Record<string, unknown>;
           await apiClient('/patients/', {
             method: 'POST',
             body: JSON.stringify({
-              id: payload.id,
-              full_name: payload.full_name,
-              phone: payload.phone || payload.guardian_phone || null,
+              id: payload.id ? String(payload.id) : undefined,
+              full_name: payload.full_name ? String(payload.full_name) : '',
+              phone: (payload.phone || payload.guardian_phone) ? String(payload.phone || payload.guardian_phone) : null,
               preferred_language: 'en',
               village: 'Nabha Sub-centre'
             })
