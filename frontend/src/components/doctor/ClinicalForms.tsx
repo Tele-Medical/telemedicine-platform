@@ -26,38 +26,87 @@ const ClinicalForms: React.FC = () => {
   const handleSaveVitals = async () => {
     if (!patientId) return;
     setIsSubmitting(true);
-    const id = crypto.randomUUID();
-    const payload = {
-      id,
-      patient_id: patientId,
-      heart_rate: vitals.heartRate,
-      blood_pressure: vitals.bloodPressure,
-      temperature: vitals.temperature,
-      created_at: new Date().toISOString(),
-    };
 
     try {
-      await db.observations.put(payload);
-
-      if (isOnline) {
-        await apiClient('/observations', {
-          method: 'POST',
-          body: JSON.stringify(payload),
+      const recordsToSave = [];
+      
+      if (vitals.heartRate) {
+        recordsToSave.push({
+          id: crypto.randomUUID(),
+          patient_id: patientId,
+          encounter_id: null,
+          code: '8867-4',
+          value_string: vitals.heartRate,
+          unit: 'bpm',
+          created_at: new Date().toISOString(),
         });
-      } else {
-        await db.outbox.add({
-          operation_id: crypto.randomUUID(),
-          entity_type: 'observation',
-          entity_id: id,
-          action: 'CREATE',
-          payload,
+      }
+      
+      if (vitals.bloodPressure) {
+        recordsToSave.push({
+          id: crypto.randomUUID(),
+          patient_id: patientId,
+          encounter_id: null,
+          code: '85354-9',
+          value_string: vitals.bloodPressure,
+          unit: 'mmHg',
+          created_at: new Date().toISOString(),
+        });
+      }
+      
+      if (vitals.temperature) {
+        recordsToSave.push({
+          id: crypto.randomUUID(),
+          patient_id: patientId,
+          encounter_id: null,
+          code: '8310-5',
+          value_string: vitals.temperature,
+          unit: 'F',
           created_at: new Date().toISOString(),
         });
       }
 
+      for (const payload of recordsToSave) {
+        await db.observations.put(payload);
+
+        if (isOnline) {
+          try {
+            await apiClient('/observations', {
+              method: 'POST',
+              body: JSON.stringify({
+                patient_id: payload.patient_id,
+                encounter_id: payload.encounter_id,
+                code: payload.code,
+                value_string: payload.value_string,
+                unit: payload.unit
+              }),
+            });
+          } catch (err) {
+            console.error('Failed to sync observation online, falling back to outbox queue', err);
+            await db.outbox.add({
+              operation_id: crypto.randomUUID(),
+              entity_type: 'observation',
+              entity_id: payload.id,
+              action: 'CREATE',
+              payload,
+              created_at: new Date().toISOString(),
+            });
+          }
+        } else {
+          await db.outbox.add({
+            operation_id: crypto.randomUUID(),
+            entity_type: 'observation',
+            entity_id: payload.id,
+            action: 'CREATE',
+            payload,
+            created_at: new Date().toISOString(),
+          });
+        }
+      }
+
       showSuccess(t('auth.saved'));
-    } catch {
-      console.error('Failed to save vitals');
+    } catch (err) {
+      console.error('Failed to save vitals', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -70,7 +119,10 @@ const ClinicalForms: React.FC = () => {
     const payload = {
       id,
       patient_id: patientId,
-      name: condition,
+      encounter_id: null,
+      clinical_status: 'active' as const,
+      disease_code: null,
+      disease_name: condition,
       created_at: new Date().toISOString(),
     };
 
@@ -78,10 +130,28 @@ const ClinicalForms: React.FC = () => {
       await db.conditions.put(payload);
 
       if (isOnline) {
-        await apiClient('/conditions', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
+        try {
+          await apiClient('/conditions', {
+            method: 'POST',
+            body: JSON.stringify({
+              patient_id: payload.patient_id,
+              encounter_id: payload.encounter_id,
+              clinical_status: payload.clinical_status,
+              disease_code: payload.disease_code,
+              disease_name: payload.disease_name
+            }),
+          });
+        } catch (err) {
+          console.error('Failed to sync condition online, falling back to outbox queue', err);
+          await db.outbox.add({
+            operation_id: crypto.randomUUID(),
+            entity_type: 'condition',
+            entity_id: id,
+            action: 'CREATE',
+            payload,
+            created_at: new Date().toISOString(),
+          });
+        }
       } else {
         await db.outbox.add({
           operation_id: crypto.randomUUID(),
@@ -110,6 +180,7 @@ const ClinicalForms: React.FC = () => {
       id,
       patient_id: patientId,
       substance: allergy,
+      criticality: 'unable_to_assess' as const,
       created_at: new Date().toISOString(),
     };
 
@@ -117,10 +188,26 @@ const ClinicalForms: React.FC = () => {
       await db.allergies.put(payload);
 
       if (isOnline) {
-        await apiClient('/allergies', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
+        try {
+          await apiClient('/allergies', {
+            method: 'POST',
+            body: JSON.stringify({
+              patient_id: payload.patient_id,
+              substance: payload.substance,
+              criticality: payload.criticality
+            }),
+          });
+        } catch (err) {
+          console.error('Failed to sync allergy online, falling back to outbox queue', err);
+          await db.outbox.add({
+            operation_id: crypto.randomUUID(),
+            entity_type: 'allergy',
+            entity_id: id,
+            action: 'CREATE',
+            payload,
+            created_at: new Date().toISOString(),
+          });
+        }
       } else {
         await db.outbox.add({
           operation_id: crypto.randomUUID(),

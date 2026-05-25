@@ -163,8 +163,8 @@ const PatientDashboard: React.FC = () => {
           </div>
         )}
         
-        <VitalsWidget isDemo={isDemoUser} />
-        <RecentRecordsList isDemo={isDemoUser} />
+        <VitalsWidget isDemo={isDemoUser} patientId={user?.patient_id} />
+        <RecentRecordsList isDemo={isDemoUser} patientId={user?.patient_id} />
       </main>
     </div>
   );

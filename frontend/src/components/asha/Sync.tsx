@@ -30,55 +30,103 @@ const Sync: React.FC = () => {
     
     setSyncStatus('syncing');
     try {
-      // Synchronize outbox patient records online
+      // Loop through outbox items and sync them
       for (const item of outboxItems) {
-        if (item.entity_type === 'patients') {
-          const payload = (item.payload || {}) as Record<string, unknown>;
-          const response = await apiClient('/patients/', {
-            method: 'POST',
-            body: JSON.stringify({
-              id: payload.id ? String(payload.id) : undefined,
-              full_name: payload.full_name ? String(payload.full_name) : '',
-              phone: (payload.phone || payload.guardian_phone) ? String(payload.phone || payload.guardian_phone) : null,
-              preferred_language: 'en',
-              village: 'Nabha Sub-centre'
-            })
-          }) as { id?: string } | null | undefined;
+        const payload = (item.payload || {}) as Record<string, unknown>;
+        let success = false;
 
-          // ID Reconciliation: if the backend returned a different ID (e.g. running old code), reconcile local DB
-          if (response && response.id && response.id !== String(payload.id)) {
-            console.log(`Reconciling patient ID during sync: updating local ${payload.id} to backend ${response.id}`);
-            const oldId = String(payload.id);
-            const newId = response.id;
+        try {
+          if (item.entity_type === 'patients') {
+            const response = await apiClient('/patients/', {
+              method: 'POST',
+              body: JSON.stringify({
+                id: payload.id ? String(payload.id) : undefined,
+                full_name: payload.full_name ? String(payload.full_name) : '',
+                phone: (payload.phone || payload.guardian_phone) ? String(payload.phone || payload.guardian_phone) : null,
+                preferred_language: 'en',
+                village: 'Nabha Sub-centre'
+              })
+            }) as { id?: string } | null | undefined;
 
-            const patientData = await db.patients.get(oldId);
-            if (patientData) {
-              await db.patients.delete(oldId);
-              const updatedPatient = {
-                ...patientData,
-                id: newId
-              };
-              await db.patients.put(updatedPatient);
+            // ID Reconciliation: if the backend returned a different ID (e.g. running old code), reconcile local DB
+            if (response && response.id && response.id !== String(payload.id)) {
+              console.log(`Reconciling patient ID during sync: updating local ${payload.id} to backend ${response.id}`);
+              const oldId = String(payload.id);
+              const newId = response.id;
+
+              await db.transaction('rw', [db.patients, db.appointments], async () => {
+                const patientData = await db.patients.get(oldId);
+                if (patientData) {
+                  const updatedPatient = {
+                    ...patientData,
+                    id: newId
+                  };
+                  await db.patients.put(updatedPatient);
+                  await db.patients.delete(oldId);
+                }
+
+                // Reconcile references in appointments
+                const appointments = await db.appointments.where('patient_id').equals(oldId).toArray();
+                for (const appt of appointments) {
+                  if (appt.id) {
+                    const updatedAppt = {
+                      ...appt,
+                      patient_id: newId
+                    };
+                    await db.appointments.put(updatedAppt);
+                    await db.appointments.delete(String(appt.id));
+                  }
+                }
+              });
             }
-
-            // Reconcile references in appointments
-            const appointments = await db.appointments.where('patient_id').equals(oldId).toArray();
-            for (const appt of appointments) {
-              if (appt.id) {
-                await db.appointments.delete(String(appt.id));
-                const updatedAppt = {
-                  ...appt,
-                  patient_id: newId
-                };
-                await db.appointments.put(updatedAppt);
-              }
-            }
+            success = true;
+          } else if (item.entity_type === 'observation') {
+            await apiClient('/observations', {
+              method: 'POST',
+              body: JSON.stringify({
+                patient_id: payload.patient_id,
+                encounter_id: payload.encounter_id || null,
+                code: payload.code,
+                value_string: payload.value_string,
+                unit: payload.unit || null
+              })
+            });
+            success = true;
+          } else if (item.entity_type === 'condition') {
+            await apiClient('/conditions', {
+              method: 'POST',
+              body: JSON.stringify({
+                patient_id: payload.patient_id,
+                encounter_id: payload.encounter_id || null,
+                clinical_status: payload.clinical_status || 'active',
+                disease_code: payload.disease_code || null,
+                disease_name: payload.disease_name
+              })
+            });
+            success = true;
+          } else if (item.entity_type === 'allergy') {
+            await apiClient('/allergies', {
+              method: 'POST',
+              body: JSON.stringify({
+                patient_id: payload.patient_id,
+                substance: payload.substance,
+                criticality: payload.criticality || 'unable_to_assess'
+              })
+            });
+            success = true;
           }
+
+          // Transactional Cleanup: Delete only this item from outbox upon successful sync
+          if (success && item.id !== undefined) {
+            await db.outbox.delete(item.id);
+          }
+        } catch (itemErr) {
+          console.error(`Failed to synchronize outbox item ${item.id} (${item.entity_type}):`, itemErr);
+          // Do not delete the outbox item, let it remain to be retried
+          throw itemErr; // Break the sync loop to show error state to user
         }
       }
       
-      // Successfully clear outbox queue after synchronizing
-      await db.outbox.clear();
       setSyncStatus('synced');
       
       // Reset back to idle status after showing success visual for 3.5s

@@ -22,9 +22,9 @@ const EncounterClosureForm: React.FC = () => {
     setError(null);
 
     try {
-      await apiClient(`/encounters/${encounterId}/close`, {
+      await apiClient(`/encounters/${encounterId}/summary`, {
         method: 'POST',
-        body: JSON.stringify({ summary, outcome }),
+        body: JSON.stringify({ clinical_summary: summary, outcome }),
       });
       setIsSuccess(true);
     } catch {

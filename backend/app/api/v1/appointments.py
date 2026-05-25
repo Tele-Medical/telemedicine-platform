@@ -129,6 +129,9 @@ def get_doctor_queue(
     if practitioner:
         query = query.filter(Appointment.practitioner_id == practitioner.id)
 
+    # Filter out completed and cancelled appointments to keep the queue clean
+    query = query.filter(Appointment.status.notin_(["completed", "cancelled"]))
+
     results = query.all()
 
     return [
