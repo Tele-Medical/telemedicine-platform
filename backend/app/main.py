@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Telemedicine API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Sanjeevani API", version="0.1.0", lifespan=lifespan)
 
 # Set up CORS for the frontend
 # Security Hardening: Never use allow_origins=["*"] with allow_credentials=True

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Nabha Telemedicine Platform - Phase 4 E2E Workflows', () => {
+test.describe('Sanjeevani Telemedicine Platform - Phase 4 E2E Workflows', () => {
   
   test('1. ASHA Worker Onboarding, Offline Mode, & Reconnect Sync Journey', async ({ page, context }) => {
     // 1. Log in as ASHA worker

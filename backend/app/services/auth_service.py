@@ -32,7 +32,7 @@ def request_otp(db: Session, phone: str) -> dict:
     # 3. Send OTP using Provider
     sms_provider = get_sms_provider()  # Dynamically loaded based on settings.sms_provider
     sms_provider.send_sms(
-        to_phone=phone, message=f"Your Rural Telemedicine Platform OTP is {otp_code}"
+        to_phone=phone, message=f"Your Sanjeevani OTP is {otp_code}"
     )
 
     # 4. Create the challenge

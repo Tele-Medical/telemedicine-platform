@@ -11,9 +11,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       devOptions: { enabled: true },
       manifest: {
-        name: 'Telemedicine Platform',
-        short_name: 'Telemed',
-        description: 'Offline-First Telemedicine Platform for Rural Healthcare',
+        name: 'Sanjeevani',
+        short_name: 'Sanjeevani',
+        description: 'Sanjeevani: Offline-First Telemedicine Platform for Rural Healthcare',
         theme_color: '#ffffff',
         display: 'standalone',
         icons: [
