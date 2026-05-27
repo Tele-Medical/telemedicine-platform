@@ -45,6 +45,12 @@ def create_patient(db: Session, obj_in: PatientCreate, creator_id: UUID) -> Pati
             db.add(user)
             db.flush() # flush to get user.id
         user_id = user.id
+    else:
+        # If no phone number is provided, automatically link this patient profile to the creator
+        # so it becomes part of their family profiles and appears in /me/family
+        creator = db.query(User).filter(User.id == creator_id).first()
+        if creator and creator.default_role == "patient":
+            user_id = creator_id
 
     patient_data = obj_in.model_dump(exclude_unset=True)
     if user_id:
