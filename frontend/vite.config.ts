@@ -51,6 +51,7 @@ export default defineConfig({
     globals: true,
     setupFiles: './src/setupTests.ts',
     exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
+    pool: 'forks',
   },
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any)
