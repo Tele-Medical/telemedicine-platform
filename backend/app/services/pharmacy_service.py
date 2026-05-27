@@ -101,12 +101,14 @@ class PharmacyService:
         return rx
 
     @staticmethod
-    def get_prescriptions(db: Session, patient_id: uuid.UUID = None, current_user: User = None) -> list[Prescription]:
+    def get_prescriptions(db: Session, patient_id: uuid.UUID | None = None, current_user: User | None = None) -> list[Prescription]:
         query = db.query(Prescription)
         if patient_id:
             query = query.filter(Prescription.patient_id == patient_id)
         # If practitioner/patient specific logic is needed, add here
         return query.order_by(Prescription.created_at.desc()).all()
+
+    @staticmethod
     def get_availability(db: Session, medicine_id: uuid.UUID):
         """
         Queries nearby pharmacies for available stock of a given medicine.

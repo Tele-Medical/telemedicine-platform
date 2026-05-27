@@ -106,6 +106,7 @@ def test_create_appointment_with_symptoms(client: TestClient, db_session: Sessio
     # The triage engine should have auto-assigned a cardiologist
     # (It might be the one we created or another one in the test DB)
     assigned_doc = db_session.query(Practitioner).get(data["practitioner_id"])
+    assert assigned_doc is not None
     assert assigned_doc.specialty_category == "Cardiology"
     assert data["status"] == "requested"
 

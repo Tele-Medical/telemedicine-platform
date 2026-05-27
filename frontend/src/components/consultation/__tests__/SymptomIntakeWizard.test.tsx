@@ -28,10 +28,6 @@ describe('SymptomIntakeWizard', () => {
     expect(screen.getByText(/What are your main symptoms\? Please be descriptive\./)).toBeInTheDocument();
     const input = screen.getByPlaceholderText(/e.g. I have had a severe headache/);
     fireEvent.change(input, { target: { value: 'Severe chest pain and palpitations' } });
-    
-    const nextBtn = screen.getByText('Continue');
-    fireEvent.click(nextBtn);
-
     // Step 2: Details
     expect(screen.getByText(/How severe are your symptoms\?/)).toBeInTheDocument();
     const severeBtn = screen.getByText('Severe');
