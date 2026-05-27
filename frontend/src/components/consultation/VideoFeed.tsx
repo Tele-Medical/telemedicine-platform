@@ -326,6 +326,10 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           }
           
           else if (msg.type === 'offer') {
+            if (pc.signalingState !== 'stable') {
+              console.warn("Ignoring remote offer in state:", pc.signalingState);
+              return;
+            }
             console.log("Received remote offer. Setting remote description & sending answer...");
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: msg.sdp }));
             await processCandidatesQueue();
@@ -344,6 +348,10 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           } 
           
           else if (msg.type === 'answer') {
+            if (pc.signalingState !== 'have-local-offer') {
+              console.warn("Ignoring remote answer in state:", pc.signalingState);
+              return;
+            }
             console.log("Received remote answer. Completing peer handshake...");
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
             await processCandidatesQueue();
@@ -573,21 +581,23 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     if (registerSendChat) {
       registerSendChat((text: string) => {
         const msg = {
-          id: Math.random().toString(),
-          senderId: userRole,
-          senderName: t('common.you', 'You'),
+          type: 'chat',
           text,
-          timestamp: Date.now()
+          senderId: userRole,
+          timestamp: new Date().toISOString(),
         };
-        
-        if (onChatMessage) onChatMessage(msg);
-        
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-          wsRef.current.send(JSON.stringify({
-            type: 'chat',
-            ...msg,
-            senderRole: userRole
-          }));
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify(msg));
+        }
+
+        // Add the message locally so the sender can see it
+        if (onChatMessage) {
+          onChatMessage({
+            id: Math.random().toString(36).substring(7),
+            text: text,
+            sender: 'me',
+            timestamp: msg.timestamp,
+          });
         }
       });
     }

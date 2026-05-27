@@ -13,7 +13,7 @@ vi.mock('../../api/client', () => ({
 
 // Mock WebRTC and WebSocket
 let websocketInstance: any = null;
-global.WebSocket = vi.fn().mockImplementation(() => {
+const MockWebSocket = vi.fn().mockImplementation(() => {
   const ws = {
     send: vi.fn(),
     close: vi.fn(),
@@ -25,7 +25,12 @@ global.WebSocket = vi.fn().mockImplementation(() => {
   };
   websocketInstance = ws;
   return ws;
-}) as unknown as any;
+});
+(MockWebSocket as any).OPEN = 1;
+(MockWebSocket as any).CONNECTING = 0;
+(MockWebSocket as any).CLOSING = 2;
+(MockWebSocket as any).CLOSED = 3;
+global.WebSocket = MockWebSocket as unknown as any;
 
 let peerConnectionInstance: any = null;
 global.RTCPeerConnection = vi.fn().mockImplementation((config) => {
