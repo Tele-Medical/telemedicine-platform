@@ -1,8 +1,8 @@
-import React from 'react';
+
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { ProfileSelection } from '../ProfileSelection';
-import { vi } from 'vitest';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {

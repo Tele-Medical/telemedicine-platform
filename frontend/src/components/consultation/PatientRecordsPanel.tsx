@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../api/client';
-import { Search, Upload, FileText, Download, Activity, Plus, X } from 'lucide-react';
-import { db } from '../../db/db';
+import { Download, FileText, Search, Activity, Upload, Plus, X } from 'lucide-react';
 
 interface Observation {
   id: string;
@@ -91,10 +90,9 @@ const PatientRecordsPanel: React.FC<PatientRecordsPanelProps> = ({ patientId, ap
     e.preventDefault();
     if (!patientId) return;
 
-    const now = new Date().toISOString();
-    const ops = [];
+    const ops: any[] = [];
 
-    const addObs = (code: string, value: string, display: string, unit: string) => {
+    const addObs = (code: string, value: string, _display: string, unit: string) => {
       ops.push(apiClient('/observations', {
         method: 'POST',
         body: JSON.stringify({

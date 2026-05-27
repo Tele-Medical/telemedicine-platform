@@ -332,7 +332,8 @@ describe('VideoFeed Component', () => {
     // Expect it to trigger the local onChatMessage callback
     expect(mockOnChatMessage).toHaveBeenCalledWith(expect.objectContaining({
       text: "Hello World",
-      sender: "me",
+      senderId: "doctor",
+      senderName: "You",
     }));
   });
 });

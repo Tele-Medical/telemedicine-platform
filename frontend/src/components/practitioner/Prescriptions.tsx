@@ -27,7 +27,7 @@ const Prescriptions: React.FC = () => {
             patientName: p.patient_id.substring(0, 8), // Assuming patient info isn't embedded, fallback to ID
             date: new Date(p.created_at).toLocaleDateString(),
             medicationsCount: p.items?.length || 0,
-            status: p.status === 'dispensed' ? 'Dispensed' : 'Pending Dispensation',
+            status: (p.status === 'dispensed' ? 'Dispensed' : 'Pending Dispensation') as "Pending Dispensation" | "Dispensed",
             clinic: 'Virtual Clinic'
           }));
           setPrescriptions(formatted);

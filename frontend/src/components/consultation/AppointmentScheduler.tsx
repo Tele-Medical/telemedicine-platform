@@ -213,7 +213,7 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
             <div className="bg-blue-50 border border-blue-200 rounded-xl px-3.5 py-3 shadow-sm flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold text-blue-900">Auto-Routing Enabled</p>
-                <p className="text-xs text-blue-700">Doctor will be assigned based on symptoms: {symptomIntake.symptoms.join(', ')}</p>
+                <p className="text-xs text-blue-700">Doctor will be assigned based on symptoms: {symptomIntake.symptoms?.join(', ')}</p>
               </div>
               <button type="button" onClick={() => setSymptomIntake(null)} className="text-xs text-red-600 hover:text-red-800 bg-white px-2 py-1 border rounded">Cancel</button>
             </div>

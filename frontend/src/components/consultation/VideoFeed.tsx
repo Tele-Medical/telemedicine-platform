@@ -595,8 +595,9 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           onChatMessage({
             id: Math.random().toString(36).substring(7),
             text: text,
-            sender: 'me',
-            timestamp: msg.timestamp,
+            senderId: userRole,
+            senderName: 'You',
+            timestamp: Date.now(),
           });
         }
       });

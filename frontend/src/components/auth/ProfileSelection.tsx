@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlusCircle, User, Loader2, X, AlertCircle } from 'lucide-react';
+import { PlusCircle, Loader2, X, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../api/client';
 
