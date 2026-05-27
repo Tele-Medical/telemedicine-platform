@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Globe, LogOut, CheckCircle2 } from 'lucide-react';
+import { Shield, Globe, LogOut, CheckCircle2, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { authService } from '../../api/services';
 
@@ -96,6 +96,35 @@ const Profile: React.FC<ProfileProps> = ({ onLogout }) => {
               </svg>
             </div>
           </div>
+        </div>
+      {/* Family Profiles / Accounts */}
+      <section className="bg-white rounded-2xl p-5 shadow-[0_1px_3px_rgba(15,23,42,0.06)] border border-neutral-200/60 mb-6 space-y-4">
+        <h2 className="text-sm font-bold text-neutral-500 uppercase tracking-wider">Family Accounts</h2>
+        
+        <div className="flex items-center justify-between gap-4 py-1">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-primary">
+              <Users size={18} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-neutral-900">Switch / Manage Members</h3>
+              <p className="text-xs text-neutral-500">
+                Active member: <span className="font-bold text-primary">{localStorage.getItem('active_patient_name') || profile?.full_name}</span>
+              </p>
+            </div>
+          </div>
+          
+          <button 
+            type="button"
+            onClick={() => {
+              localStorage.removeItem('active_patient_id');
+              localStorage.removeItem('active_patient_name');
+              window.location.href = '/';
+            }}
+            className="bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-xl px-4 py-2 text-xs font-bold text-neutral-700 transition-all active:scale-[0.98]"
+          >
+            Switch Profile
+          </button>
         </div>
       </section>
 
