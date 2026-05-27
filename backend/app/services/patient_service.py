@@ -10,6 +10,7 @@ from fastapi import HTTPException, status
 from app.repositories import patient_repo
 from app.schemas.patient import PatientCreate, PatientUpdate
 from app.models.patient import Patient
+from app.models.auth import User
 
 
 def get_patient(db: Session, patient_id: UUID) -> Patient:
@@ -21,9 +22,6 @@ def get_patient(db: Session, patient_id: UUID) -> Patient:
     if not patient:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
     return patient
-
-
-from app.models.auth import User
 
 def create_patient(db: Session, obj_in: PatientCreate, creator_id: UUID) -> Patient:
     """

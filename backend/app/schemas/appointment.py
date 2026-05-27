@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
+from app.schemas.symptom_intake import SymptomIntakeBase
 
 
 class AppointmentBase(BaseModel):
@@ -14,9 +15,6 @@ class AppointmentBase(BaseModel):
     chief_complaint: Optional[str] = Field(default=None, max_length=500)
     triage_priority: Literal["Critical", "Urgent", "Standard"] = "Standard"
     notes: Optional[str] = None
-
-
-from app.schemas.symptom_intake import SymptomIntakeBase
 
 class AppointmentCreate(AppointmentBase):
     """Schema for creating a new appointment."""

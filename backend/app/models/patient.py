@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -22,6 +23,9 @@ class Patient(Base):
     address_text: Mapped[str | None] = mapped_column(String, nullable=True)
     emergency_contact_name: Mapped[str | None] = mapped_column(String, nullable=True)
     emergency_contact_phone: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    if TYPE_CHECKING:
+        from app.models.auth import User
 
     # User Account Linkage (Family Account model)
     user_id: Mapped[uuid.UUID | None] = mapped_column(

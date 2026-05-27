@@ -9,12 +9,10 @@ from app.models.patient import Patient
 from app.models.practitioner import Practitioner
 from app.models.appointment import Appointment
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate, AppointmentResponse
-
-router = APIRouter()
-
-
 from app.services.triage_service import evaluate_symptoms_and_route
 from app.models.symptom_intake import SymptomIntake
+
+router = APIRouter()
 
 @router.post("/", response_model=AppointmentResponse)
 def create_appointment(

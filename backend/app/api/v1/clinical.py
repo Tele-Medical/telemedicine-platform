@@ -7,6 +7,7 @@ Ensures strict provenance tracking and role-based access control.
 import uuid
 from typing import Any, List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi.responses import FileResponse
 import os
 import shutil
 from sqlalchemy.orm import Session
@@ -303,9 +304,6 @@ def get_documents(
 
     docs = db.query(DocumentReference).filter(DocumentReference.patient_id == patient_id).all()
     return docs
-
-
-from fastapi.responses import FileResponse
 
 @router.get("/documents/{document_id}/download")
 def download_document(
