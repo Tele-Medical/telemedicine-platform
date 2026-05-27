@@ -39,7 +39,7 @@ def get_family_patients(
     Returns all patient profiles linked to the current logged-in user (Family Account).
     """
     from app.models.patient import Patient
-    return db.query(Patient).filter(Patient.user_id == current_user.id, Patient.is_active == True).all()
+    return db.query(Patient).filter(Patient.user_id == current_user.id, Patient.is_active).all()
 
 @router.get("/", response_model=List[PatientRead])
 def search_patients(

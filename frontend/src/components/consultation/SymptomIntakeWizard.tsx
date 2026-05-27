@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Loader2, AlertCircle, Activity } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface SymptomIntakeWizardProps {
   onComplete: (intakeData: { raw_text: string, symptoms: string[], severity: string, duration: string }) => void;
@@ -7,9 +8,9 @@ interface SymptomIntakeWizardProps {
 }
 
 export function SymptomIntakeWizard({ onComplete, onCancel }: SymptomIntakeWizardProps) {
-  const [step, setStep] = useState(1);
+  const { t } = useTranslation();
   const [complaint, setComplaint] = useState('');
-  const [severity, setSeverity] = useState('moderate');
+  const [severity, setSeverity] = useState('Moderate');
   const [duration, setDuration] = useState('1-3 days');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -45,117 +46,118 @@ export function SymptomIntakeWizard({ onComplete, onCancel }: SymptomIntakeWizar
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg">
-              <Activity className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+    <div className="fixed inset-0 bg-neutral-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full border border-neutral-100 overflow-hidden flex flex-col transform transition-all duration-300">
+        
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-neutral-100 bg-neutral-50/50">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center border border-primary/20 shrink-0">
+              <Activity className="w-6 h-6" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              Symptom Checker
-            </h2>
+            <div>
+              <h2 className="text-xl font-bold text-neutral-900">
+                {t('clinical.intake_title')}
+              </h2>
+              <p className="mt-1 text-xs text-neutral-500">
+                {t('clinical.intake_desc')}
+              </p>
+            </div>
           </div>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Tell us how you're feeling and our intelligent system will route you to the right specialist.
-          </p>
         </div>
 
-        <div className="p-6 flex-1 overflow-y-auto">
-          {step === 1 && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  What are your main symptoms? Please be descriptive.
-                </label>
-                <textarea
-                  value={complaint}
-                  onChange={(e) => setComplaint(e.target.value)}
-                  placeholder="e.g. I have had a severe headache and dizziness since yesterday morning..."
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 min-h-[120px]"
-                />
-              </div>
-              <button
-                disabled={complaint.length < 5}
-                onClick={() => setStep(2)}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg py-3 font-medium transition-colors"
+        {/* Body */}
+        <div className="p-6 flex-1 overflow-y-auto space-y-6">
+          {/* Main Symptoms */}
+          <div>
+            <label className="block text-sm font-semibold text-neutral-700 mb-1.5">
+              {t('clinical.main_symptoms')} <span className="text-danger">*</span>
+            </label>
+            <textarea
+              value={complaint}
+              onChange={(e) => setComplaint(e.target.value)}
+              placeholder={t('clinical.symptoms_placeholder')}
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-neutral-900 placeholder-neutral-400 text-sm min-h-[100px] resize-y"
+            />
+          </div>
+
+          {/* Severity */}
+          <div>
+            <label className="block text-sm font-semibold text-neutral-700 mb-1.5">
+              {t('clinical.severity_q')} <span className="text-danger">*</span>
+            </label>
+            <div className="grid grid-cols-3 gap-2 bg-neutral-100/70 p-1 rounded-xl border border-neutral-200/50">
+              {['Mild', 'Moderate', 'Severe'].map((sev) => (
+                <button
+                  key={sev}
+                  onClick={() => setSeverity(sev)}
+                  className={`py-2 text-sm font-bold rounded-lg transition-all ${
+                    severity === sev 
+                      ? 'bg-primary text-white shadow-sm' 
+                      : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50/50'
+                  }`}
+                >
+                  {t(`clinical.${sev.toLowerCase()}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Duration */}
+          <div>
+            <label className="block text-sm font-semibold text-neutral-700 mb-1.5">
+              {t('clinical.duration_q')} <span className="text-danger">*</span>
+            </label>
+            <div className="relative">
+              <select
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-neutral-900 text-sm appearance-none font-medium cursor-pointer"
               >
-                Continue
-              </button>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  How severe are your symptoms?
-                </label>
-                <div className="grid grid-cols-3 gap-3">
-                  {['Mild', 'Moderate', 'Severe'].map((sev) => (
-                    <button
-                      key={sev}
-                      onClick={() => setSeverity(sev)}
-                      className={`py-2 px-3 rounded-lg border font-medium text-sm transition-all
-                        ${severity === sev 
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/20' 
-                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'}`}
-                    >
-                      {sev}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  How long have you felt this way?
-                </label>
-                <select
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                >
-                  <option>Less than 24 hours</option>
-                  <option>1-3 days</option>
-                  <option>1 week</option>
-                  <option>More than a week</option>
-                </select>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setStep(1)}
-                  className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleAnalyzeAndSubmit}
-                  disabled={isAnalyzing}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg py-3 font-medium transition-colors flex items-center justify-center gap-2"
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Analyzing Symptoms...
-                    </>
-                  ) : (
-                    'Find Specialist'
-                  )}
-                </button>
+                <option value="Less than 24 hours">{t('clinical.dur_24h')}</option>
+                <option value="1-3 days">{t('clinical.dur_3d')}</option>
+                <option value="1 week">{t('clinical.dur_1w')}</option>
+                <option value="More than a week">{t('clinical.dur_more_1w')}</option>
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-neutral-400">
+                <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+                  <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                </svg>
               </div>
             </div>
-          )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex pt-2">
+            <button
+              onClick={handleAnalyzeAndSubmit}
+              disabled={isAnalyzing || complaint.length < 5}
+              className="w-full bg-primary hover:bg-primary-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full py-3.5 font-semibold text-sm shadow-md shadow-primary/20 transition-all flex items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{t('clinical.analyzing')}</span>
+                </>
+              ) : (
+                <span>{t('clinical.find_specialist')}</span>
+              )}
+            </button>
+          </div>
         </div>
         
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
-          <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-500">
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-neutral-100 flex justify-between items-center bg-neutral-50/50">
+          <div className="flex items-center gap-2 text-xs font-semibold text-danger">
             <AlertCircle className="w-4 h-4" />
-            <span>If this is a medical emergency, call emergency services immediately.</span>
+            <span>{t('clinical.emergency_warning')}</span>
           </div>
-          <button onClick={onCancel} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm font-medium">
-            Cancel
+          <button 
+            onClick={onCancel} 
+            disabled={isAnalyzing}
+            className="text-neutral-500 hover:text-neutral-800 disabled:opacity-50 text-sm font-bold transition-colors px-2 py-1"
+          >
+            {t('nav.cancel')}
           </button>
         </div>
       </div>

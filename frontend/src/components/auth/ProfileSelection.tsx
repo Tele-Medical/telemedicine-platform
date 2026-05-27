@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlusCircle, User, Loader2, X, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { apiClient } from '../../api/client';
 
 interface PatientProfile {
   id: string;
@@ -35,16 +36,8 @@ export function ProfileSelection() {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/v1/patients/me/family', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setProfiles(data);
-      }
+      const data = await apiClient('/patients/me/family');
+      setProfiles(data || []);
     } catch (error) {
       console.error("Failed to fetch family profiles:", error);
     } finally {
@@ -93,12 +86,8 @@ export function ProfileSelection() {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/v1/patients/', {
+      const newPatient = await apiClient('/patients/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
           full_name: trimmedName,
           gender: gender,
@@ -108,18 +97,17 @@ export function ProfileSelection() {
         })
       });
 
-      if (response.ok) {
-        const newPatient = await response.json();
-        
+      if (newPatient) {
         // Auto-select the newly created profile and navigate to dashboard
         selectProfile(newPatient);
-      } else {
-        const errorData = await response.json();
-        setModalError(errorData.detail || 'Failed to create family profile. Please try again.');
       }
     } catch (error) {
       console.error("Failed to create family profile:", error);
-      setModalError('Failed to connect to the server. Please try again.');
+      if (error instanceof Error) {
+        setModalError(error.message);
+      } else {
+        setModalError('Failed to connect to the server. Please try again.');
+      }
     } finally {
       setModalLoading(false);
     }

@@ -102,7 +102,16 @@ def get_appointments(
         if practitioner:
             query = query.filter(Appointment.practitioner_id == practitioner.id)
 
-    return query.offset(skip).limit(limit).all()
+    results = query.offset(skip).limit(limit).all()
+    for appt in results:
+        appt.practitioner_name = None
+        appt.practitioner_role = None
+        if appt.practitioner_id:
+            practitioner = db.query(Practitioner).filter(Practitioner.id == appt.practitioner_id).first()
+            if practitioner:
+                appt.practitioner_name = practitioner.full_name
+                appt.practitioner_role = practitioner.specialty_category
+    return results
 
 
 @router.patch("/{id}", response_model=AppointmentResponse)
@@ -218,9 +227,11 @@ def get_appointment_details(
     if current_user.default_role not in ["admin", "staff"]:
         if current_user.default_role == "patient":
             patient = (
-                db.query(Patient).filter(Patient.created_by_user_id == current_user.id).first()
+                db.query(Patient)
+                .filter(Patient.created_by_user_id == current_user.id, Patient.id == appt.patient_id)
+                .first()
             )
-            if not patient or appt.patient_id != patient.id:
+            if not patient:
                 raise HTTPException(
                     status_code=403, detail="Not authorized to access this appointment"
                 )

@@ -83,7 +83,7 @@ def test_create_appointment_with_symptoms(client: TestClient, db_session: Sessio
     patient = make_patient(db_session, full_name="Symptom Patient")
     doc_user = make_user(db_session, phone="+919000000092", role="doctor")
     # Make a cardiologist so the triage engine can route to them
-    cardiologist = make_practitioner(db_session, doc_user, specialty="Cardiology")
+    make_practitioner(db_session, doc_user, specialty="Cardiology")
 
     payload = {
         "patient_id": str(patient.id),
@@ -214,3 +214,32 @@ def test_update_appointment_invalid_status(client: TestClient, db_session: Sessi
     )
 
     assert patch_resp.status_code == 422  # Pydantic validation failure expected for enums
+
+
+def test_get_appointment_with_multiple_family_profiles(client: TestClient, db_session: Session):
+    # Setup user
+    user = make_user(db_session, phone="+919000000009", role="patient")
+    
+    # Setup two patients for the same user
+    patient1 = make_patient(db_session, full_name="Family Member 1")
+    patient1.created_by_user_id = user.id
+    patient2 = make_patient(db_session, full_name="Family Member 2")
+    patient2.created_by_user_id = user.id
+    db_session.commit()
+
+    # Create Appt for the SECOND patient
+    create_resp = client.post(
+        "/api/v1/appointments/",
+        headers=auth_headers(user),
+        json={"patient_id": str(patient2.id), "channel": "telemedicine"},
+    )
+    assert create_resp.status_code == 200
+    appt_id = create_resp.json()["id"]
+
+    # Try to GET the appointment details
+    get_resp = client.get(
+        f"/api/v1/appointments/{appt_id}",
+        headers=auth_headers(user),
+    )
+    assert get_resp.status_code == 200
+    assert get_resp.json()["patient_name"] == "Family Member 2"

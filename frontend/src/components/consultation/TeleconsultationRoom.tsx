@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import VideoFeed from './VideoFeed';
 import PatientRecordsPanel from './PatientRecordsPanel';
 import PrescriptionComposer from './PrescriptionComposer';
+import InCallChat, { type ChatMessage } from './InCallChat';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -26,17 +27,46 @@ const TeleconsultationRoom: React.FC<TeleconsultationRoomProps> = ({
     );
   });
   
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [sendMessageCallback, setSendMessageCallback] = useState<((text: string) => void) | null>(null);
+  
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [sendSignalCallback, setSendSignalCallback] = useState<((type: string, payload: any) => void) | null>(null);
+
   const patientId = searchParams.get('patientId');
 
+  const handleChatMessage = useCallback((msg: ChatMessage) => {
+    setChatMessages(prev => [...prev, msg]);
+  }, []);
+
+  const handleRegisterSendChat = useCallback((sendFn: (text: string) => void) => {
+    setSendMessageCallback(() => sendFn);
+  }, []);
+
+  const handleAppSignal = useCallback((type: string) => {
+    if (type === 'data_refresh') setRefreshTrigger(prev => prev + 1);
+  }, []);
+
+  const handleRegisterSendSignal = useCallback((sendFn: (type: string, payload: any) => void) => {
+    setSendSignalCallback(() => sendFn);
+  }, []);
+
   return (
-    <div className="flex flex-col h-[100dvh] bg-neutral-50 text-neutral-900 font-sans">
-      {/* Top Section - Video Call */}
-      <div className="flex-none">
-        <VideoFeed appointmentId={appointmentId} userRole={userRole} />
+    <div className="flex flex-col lg:flex-row h-[100dvh] bg-neutral-950 text-neutral-900 font-sans">
+      {/* Top/Left Section - Video Call */}
+      <div className="flex-none lg:flex-1 lg:h-full relative overflow-hidden">
+        <VideoFeed 
+          appointmentId={appointmentId} 
+          userRole={userRole} 
+          onChatMessage={handleChatMessage}
+          registerSendChat={handleRegisterSendChat}
+          onAppSignal={handleAppSignal}
+          registerSendSignal={handleRegisterSendSignal}
+        />
       </div>
 
-      {/* Bottom Section - Interactive Panel */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Bottom/Right Section - Interactive Panel */}
+      <div className="flex-1 lg:w-[420px] lg:flex-none flex flex-col overflow-hidden bg-neutral-50 border-t lg:border-t-0 lg:border-l border-white/10 lg:border-neutral-200">
         {/* Tab Navigation */}
         <div
           role="tablist"
@@ -73,18 +103,39 @@ const TeleconsultationRoom: React.FC<TeleconsultationRoomProps> = ({
               {t('clinical.prescription')}
             </button>
           )}
+          <button
+            id="tab-chat"
+            role="tab"
+            aria-selected={activeTab === 'chat' as any}
+            aria-controls="panel-chat"
+            onClick={() => setActiveTab('chat' as any)}
+            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${
+              activeTab === 'chat' as any
+                ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
+            }`}
+          >
+            {t('clinical.chat', 'Chat')}
+          </button>
         </div>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {activeTab === 'records' && (
+        <div className="flex-1 overflow-hidden">
+          {activeTab === 'records' as any && (
             <div
               id="panel-records"
               role="tabpanel"
               aria-labelledby="tab-records"
-              className="animate-fade-in"
+              className="animate-fade-in h-full"
             >
-              <PatientRecordsPanel patientId={patientId || undefined} />
+              <PatientRecordsPanel 
+                patientId={patientId || undefined} 
+                appointmentId={appointmentId}
+                refreshTrigger={refreshTrigger}
+                onDataUpdated={() => {
+                  if (sendSignalCallback) sendSignalCallback('data_refresh', {});
+                }}
+              />
             </div>
           )}
           {userRole !== 'patient' && activeTab === 'prescription' && (
@@ -92,9 +143,27 @@ const TeleconsultationRoom: React.FC<TeleconsultationRoomProps> = ({
               id="panel-prescription"
               role="tabpanel"
               aria-labelledby="tab-prescription"
-              className="animate-fade-in"
+              className="animate-fade-in h-full"
             >
               <PrescriptionComposer appointmentId={appointmentId} patientId={patientId || undefined} />
+            </div>
+          )}
+          {activeTab === 'chat' as any && (
+            <div
+              id="panel-chat"
+              role="tabpanel"
+              aria-labelledby="tab-chat"
+              className="animate-fade-in h-full"
+            >
+              <InCallChat 
+                messages={chatMessages} 
+                currentUserId={userRole} 
+                onSendMessage={(text) => {
+                  if (sendMessageCallback) {
+                    sendMessageCallback(text);
+                  }
+                }} 
+              />
             </div>
           )}
         </div>

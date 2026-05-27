@@ -126,7 +126,27 @@ def seed_db():
             "full_name": "Dr. Amit Patel",
             "specialty_category": "Pediatrics",
             "specialty": "Child Specialist",
-        }
+        },
+        { "id": uuid.uuid4(), "full_name": "Dr. Kavita Singh", "specialty_category": "Neurology", "specialty": "Brain Specialist" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Rajesh Khanna", "specialty_category": "Cardiology", "specialty": "Interventional Cardiologist" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Anjali Desai", "specialty_category": "Pediatrics", "specialty": "Neonatologist" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Vikram Sethi", "specialty_category": "Orthopedics", "specialty": "Joint Replacement" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Meena Iyer", "specialty_category": "Dermatology", "specialty": "Skin Specialist" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Sanjay Verma", "specialty_category": "General Medicine", "specialty": "Family Physician" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Priya Reddy", "specialty_category": "Neurology", "specialty": "Neurosurgeon" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Arjun Nair", "specialty_category": "Orthopedics", "specialty": "Sports Medicine" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Ritu Kapoor", "specialty_category": "Dermatology", "specialty": "Cosmetologist" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Sameer Joshi", "specialty_category": "Cardiology", "specialty": "Electrophysiologist" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Neha Sharma", "specialty_category": "Pediatrics", "specialty": "Pediatric Surgeon" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Rohan Das", "specialty_category": "General Medicine", "specialty": "Internal Medicine" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Sneha Patil", "specialty_category": "Neurology", "specialty": "Epilepsy Specialist" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Manish Tiwari", "specialty_category": "Orthopedics", "specialty": "Spine Surgeon" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Pooja Agarwal", "specialty_category": "Dermatology", "specialty": "Pediatric Dermatologist" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Vivek Chawla", "specialty_category": "Cardiology", "specialty": "Heart Failure Specialist" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Aisha Khan", "specialty_category": "Pediatrics", "specialty": "Child Psychologist" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Karan Bhatia", "specialty_category": "General Medicine", "specialty": "Geriatrician" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Shalini Menon", "specialty_category": "Neurology", "specialty": "Stroke Specialist" },
+        { "id": uuid.uuid4(), "full_name": "Dr. Rahul Gupta", "specialty_category": "Orthopedics", "specialty": "Trauma Surgeon" },
     ]
 
     for p_data in practitioners_data:

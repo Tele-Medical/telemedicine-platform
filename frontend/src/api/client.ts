@@ -37,9 +37,16 @@ export const apiClient = async (endpoint: string, options: RequestInit = {}) => 
   }
 
   // Handle empty responses (like 204 No Content)
-  const contentType = response.headers.get('content-type');
+  const contentType = response.headers?.get?.('content-type');
   if (contentType && contentType.includes('application/json')) {
     return response.json();
+  }
+  if (response.ok && typeof response.json === 'function') {
+    try {
+      return await response.json();
+    } catch {
+      return null;
+    }
   }
   return null;
 };

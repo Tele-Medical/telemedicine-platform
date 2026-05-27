@@ -1,7 +1,28 @@
 from typing import Dict, Any
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from app.models.practitioner import Practitioner
+from app.models.appointment import Appointment
 from app.schemas.symptom_intake import SymptomIntakeBase
+
+def get_least_loaded_practitioner(db: Session, specialty: str):
+    """Finds the least loaded active practitioner for a given specialty."""
+    result = (
+        db.query(Practitioner.id)
+        .outerjoin(
+            Appointment,
+            (Appointment.practitioner_id == Practitioner.id)
+            & (Appointment.status.notin_(["completed", "cancelled"]))
+        )
+        .filter(
+            Practitioner.specialty_category == specialty,
+            Practitioner.is_active
+        )
+        .group_by(Practitioner.id)
+        .order_by(func.count(Appointment.id).asc())
+        .first()
+    )
+    return result[0] if result else None
 
 def evaluate_symptoms_and_route(db: Session, intake: SymptomIntakeBase) -> Dict[str, Any]:
     """
@@ -36,22 +57,23 @@ def evaluate_symptoms_and_route(db: Session, intake: SymptomIntakeBase) -> Dict[
     if any(k in s for s in symptoms_lower for k in peds_keywords) or (intake.raw_text and any(k in intake.raw_text.lower() for k in peds_keywords)):
         specialty = "Pediatrics"
 
-    # Try to find an available practitioner for the specialty
-    practitioner = db.query(Practitioner).filter(
-        Practitioner.specialty_category == specialty,
-        Practitioner.is_active == True
-    ).first()
-    
-    practitioner_id = practitioner.id if practitioner else None
+    # Dermatolgy Rules
+    derm_keywords = ["rash", "skin", "itch", "acne", "hive"]
+    if any(k in s for s in symptoms_lower for k in derm_keywords) or (intake.raw_text and any(k in intake.raw_text.lower() for k in derm_keywords)):
+        specialty = "Dermatology"
+
+    # Orthopedics Rules
+    ortho_keywords = ["bone", "joint", "fracture", "knee", "back pain", "muscle"]
+    if any(k in s for s in symptoms_lower for k in ortho_keywords) or (intake.raw_text and any(k in intake.raw_text.lower() for k in ortho_keywords)):
+        specialty = "Orthopedics"
+
+    # Try to find an available practitioner for the specialty using Least-Loaded assignment
+    practitioner_id = get_least_loaded_practitioner(db, specialty)
     
     # Fallback to General Medicine if no specialist is available
     if not practitioner_id and specialty != "General Medicine":
         specialty = "General Medicine"
-        fallback = db.query(Practitioner).filter(
-            Practitioner.specialty_category == "General Medicine",
-            Practitioner.is_active == True
-        ).first()
-        practitioner_id = fallback.id if fallback else None
+        practitioner_id = get_least_loaded_practitioner(db, specialty)
         
     return {
         "specialty_category": specialty,

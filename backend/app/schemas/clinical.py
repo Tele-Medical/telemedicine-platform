@@ -92,3 +92,20 @@ class MedicationRequestResponse(MedicationRequestBase):
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+
+# DocumentReference
+class DocumentReferenceBase(BaseModel):
+    patient_id: uuid.UUID
+    appointment_id: Optional[uuid.UUID] = None
+    document_type: str
+
+
+class DocumentReferenceResponse(DocumentReferenceBase):
+    id: uuid.UUID
+    file_name: str
+    file_path: str
+    content_type: str
+    uploaded_by_user_id: uuid.UUID
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)

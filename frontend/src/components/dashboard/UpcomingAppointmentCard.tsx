@@ -65,7 +65,7 @@ const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = ({ appoi
         onClick={() => appointment.id && navigate(`/consultation?appointmentId=${encodeURIComponent(appointment.id)}`)}
         disabled={!appointment.id}
         aria-label={t('clinical.join_call')}
-        className="mt-2 w-full bg-primary hover:bg-primary-700 active:scale-[0.98] text-white py-3.5 rounded-full font-semibold text-base shadow-md shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+        className="mt-2 w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-700 active:scale-[0.98] text-white py-3.5 rounded-full font-semibold text-base shadow-md shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
       >
         <span>{t('clinical.join_call')}</span>
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>

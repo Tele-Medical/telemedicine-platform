@@ -107,7 +107,13 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
 
   const handleBook = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!selectedDoctor && !symptomIntake) || !appointmentDate || !selectedPatientId) return;
+    if (!appointmentDate || !selectedPatientId) return;
+
+    // Force clinical details capture before booking
+    if (!symptomIntake) {
+      setShowWizard(true);
+      return;
+    }
 
     setStatus('loading');
     setErrorMsg('');
@@ -116,7 +122,7 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
         method: 'POST',
         body: JSON.stringify({
           patient_id: selectedPatientId,
-          practitioner_id: selectedDoctor,
+          practitioner_id: selectedDoctor || null,
           scheduled_for: appointmentDate,
           channel: 'assisted',
           chief_complaint: chiefComplaint || (symptomIntake?.raw_text || ''),
@@ -126,6 +132,7 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
       });
       setStatus('success');
       setChiefComplaint('');
+      setSymptomIntake(null); // Reset after successful booking
       setTriagePriority('Standard');
       setTimeout(() => setStatus('idle'), 3000);
     } catch (err) {
@@ -275,13 +282,15 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
         <div className="pt-2">
           <button
             type="submit"
-            disabled={status === 'loading' || (!selectedDoctor && !symptomIntake) || !appointmentDate || !selectedPatientId}
+            disabled={status === 'loading' || !appointmentDate || !selectedPatientId}
             className={`w-full text-white px-4 py-3 rounded-xl font-bold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-md ${status === 'success'
               ? 'bg-success hover:bg-success-700 focus:ring-success/30'
+              : status === 'error'
+              ? 'bg-danger hover:bg-danger-700 focus:ring-danger/30'
               : 'bg-primary hover:bg-primary-700 focus:ring-primary/30 disabled:bg-neutral-300 disabled:cursor-not-allowed'
               }`}
           >
-            {status === 'loading' ? t('auth.sending') : status === 'success' ? `${t('common.success')} ✓` : t('clinical.book_appointment')}
+            {status === 'loading' ? t('auth.sending') : status === 'success' ? `${t('common.success')} ✓` : status === 'error' ? 'Retry Booking' : t('clinical.book_appointment')}
           </button>
         </div>
 
