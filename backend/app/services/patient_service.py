@@ -33,24 +33,38 @@ def create_patient(db: Session, obj_in: PatientCreate, creator_id: UUID) -> Pati
     and link this Patient to that User.
     """
     user_id = None
-    if obj_in.phone:
-        user = db.query(User).filter(User.phone == obj_in.phone).first()
-        if not user:
-            # Create a new user account for this phone
-            user = User(
-                phone=obj_in.phone,
-                full_name=obj_in.full_name,
-                default_role="patient"
-            )
-            db.add(user)
-            db.flush() # flush to get user.id
-        user_id = user.id
+    creator = db.query(User).filter(User.id == creator_id).first()
+
+    if creator and creator.default_role == "patient":
+        # If the creator is a patient, all patients they create are family members,
+        # so they must be grouped under the creator's family account user ID to appear in /me/family.
+        user_id = creator_id
+        
+        # If a phone was provided, still ensure a User exists for optional future independent logins
+        if obj_in.phone:
+            user = db.query(User).filter(User.phone == obj_in.phone).first()
+            if not user:
+                user = User(
+                    phone=obj_in.phone,
+                    full_name=obj_in.full_name,
+                    default_role="patient"
+                )
+                db.add(user)
+                db.flush()
     else:
-        # If no phone number is provided, automatically link this patient profile to the creator
-        # so it becomes part of their family profiles and appears in /me/family
-        creator = db.query(User).filter(User.id == creator_id).first()
-        if creator and creator.default_role == "patient":
-            user_id = creator_id
+        # Standard workflow for staff/ASHA workers: link to independent user account if phone is provided
+        if obj_in.phone:
+            user = db.query(User).filter(User.phone == obj_in.phone).first()
+            if not user:
+                # Create a new user account for this phone
+                user = User(
+                    phone=obj_in.phone,
+                    full_name=obj_in.full_name,
+                    default_role="patient"
+                )
+                db.add(user)
+                db.flush() # flush to get user.id
+            user_id = user.id
 
     patient_data = obj_in.model_dump(exclude_unset=True)
     if user_id:
