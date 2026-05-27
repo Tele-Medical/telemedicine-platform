@@ -90,7 +90,7 @@ const PatientRecordsPanel: React.FC<PatientRecordsPanelProps> = ({ patientId, ap
     e.preventDefault();
     if (!patientId) return;
 
-    const ops: any[] = [];
+    const ops: Promise<unknown>[] = [];
 
     const addObs = (code: string, value: string, _display: string, unit: string) => {
       ops.push(apiClient('/observations', {

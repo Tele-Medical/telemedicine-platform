@@ -58,8 +58,8 @@ const VitalsWidget: React.FC<VitalsWidgetProps> = ({ isDemo = false, patientId }
     if (!patientId) return;
 
     const now = new Date().toISOString();
-    const ops: any[] = [];
-    const outboxOps: any[] = [];
+    const ops: Promise<unknown>[] = [];
+    const outboxOps: Promise<unknown>[] = [];
 
     const addObs = (code: string, value: string, display: string, unit: string) => {
       const obsId = crypto.randomUUID();
