@@ -1,8 +1,39 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { apiClient } from '../../api/client';
 
-const PatientRecordsPanel: React.FC = () => {
+interface Observation {
+  id: string;
+  code: string;
+  value_numeric: number;
+  value_string: string;
+  unit: string;
+}
+
+interface PatientRecordsPanelProps {
+  patientId?: string;
+}
+
+const PatientRecordsPanel: React.FC<PatientRecordsPanelProps> = ({ patientId }) => {
   const { t } = useTranslation();
+  const [observations, setObservations] = useState<Observation[]>([]);
+
+  useEffect(() => {
+    if (!patientId) return;
+    apiClient(`/observations/?patient_id=${patientId}`)
+      .then((data) => {
+        if (data && Array.isArray(data)) {
+          setObservations(data);
+        }
+      })
+      .catch((err) => console.error("Failed to fetch observations", err));
+  }, [patientId]);
+
+  const getObservation = (code: string) => {
+    const obs = observations.find(o => o.code === code);
+    if (!obs) return { value: '--', unit: '' };
+    return { value: obs.value_string || obs.value_numeric, unit: obs.unit || '' };
+  };
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in pb-8 text-neutral-900 font-sans">
@@ -12,19 +43,19 @@ const PatientRecordsPanel: React.FC = () => {
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
             <span className="text-xs text-neutral-500 font-semibold block">{t('clinical.blood_pressure')}</span>
-            <span className="text-lg font-black text-neutral-900 tracking-tight">120/80 <span className="text-[10px] font-bold text-neutral-400">mmHg</span></span>
+            <span className="text-lg font-black text-neutral-900 tracking-tight">{getObservation('BP').value} <span className="text-[10px] font-bold text-neutral-400">{getObservation('BP').unit || 'mmHg'}</span></span>
           </div>
           <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
             <span className="text-xs text-neutral-500 font-semibold block">{t('clinical.pulse')}</span>
-            <span className="text-lg font-black text-neutral-900 tracking-tight">72 <span className="text-[10px] font-bold text-neutral-400">{t('clinical.bpm')}</span></span>
+            <span className="text-lg font-black text-neutral-900 tracking-tight">{getObservation('HR').value} <span className="text-[10px] font-bold text-neutral-400">{getObservation('HR').unit || 'bpm'}</span></span>
           </div>
           <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
             <span className="text-xs text-neutral-500 font-semibold block">{t('clinical.temp')}</span>
-            <span className="text-lg font-black text-neutral-900 tracking-tight">98.6 <span className="text-[10px] font-bold text-neutral-400">°F</span></span>
+            <span className="text-lg font-black text-neutral-900 tracking-tight">{getObservation('TEMP').value} <span className="text-[10px] font-bold text-neutral-400">{getObservation('TEMP').unit || '°F'}</span></span>
           </div>
           <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
             <span className="text-xs text-neutral-500 font-semibold block">{t('clinical.spo2')}</span>
-            <span className="text-lg font-black text-neutral-900 tracking-tight">99 <span className="text-[10px] font-bold text-neutral-400">%</span></span>
+            <span className="text-lg font-black text-neutral-900 tracking-tight">{getObservation('SPO2').value} <span className="text-[10px] font-bold text-neutral-400">{getObservation('SPO2').unit || '%'}</span></span>
           </div>
         </div>
       </div>

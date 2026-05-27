@@ -113,9 +113,10 @@ class PrescriptionItem(Base):
     prescription_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("prescriptions.id"), index=True
     )
-    medicine_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("medicine_catalog.id"), index=True
+    medicine_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("medicine_catalog.id"), index=True, nullable=True
     )
+    medicine_name: Mapped[str | None] = mapped_column(String, nullable=True)
 
     dosage: Mapped[str] = mapped_column(String)
     duration_days: Mapped[int | None] = mapped_column(BigInteger, nullable=True)

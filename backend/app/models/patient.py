@@ -23,6 +23,12 @@ class Patient(Base):
     emergency_contact_name: Mapped[str | None] = mapped_column(String, nullable=True)
     emergency_contact_phone: Mapped[str | None] = mapped_column(String, nullable=True)
 
+    # User Account Linkage (Family Account model)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True
+    )
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+
     # Extensible Identity (This makes us ABHA-ready!)
     identifiers: Mapped[list["PatientIdentifier"]] = relationship(
         "PatientIdentifier", back_populates="patient"

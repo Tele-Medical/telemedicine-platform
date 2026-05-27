@@ -25,6 +25,8 @@ const TeleconsultationRoom: React.FC<TeleconsultationRoomProps> = ({
         : Math.random().toString(36).substring(2) + '-' + Date.now()
     );
   });
+  
+  const patientId = searchParams.get('patientId');
 
   return (
     <div className="flex flex-col h-[100dvh] bg-neutral-50 text-neutral-900 font-sans">
@@ -82,7 +84,7 @@ const TeleconsultationRoom: React.FC<TeleconsultationRoomProps> = ({
               aria-labelledby="tab-records"
               className="animate-fade-in"
             >
-              <PatientRecordsPanel />
+              <PatientRecordsPanel patientId={patientId || undefined} />
             </div>
           )}
           {userRole !== 'patient' && activeTab === 'prescription' && (
@@ -92,7 +94,7 @@ const TeleconsultationRoom: React.FC<TeleconsultationRoomProps> = ({
               aria-labelledby="tab-prescription"
               className="animate-fade-in"
             >
-              <PrescriptionComposer appointmentId={appointmentId} />
+              <PrescriptionComposer appointmentId={appointmentId} patientId={patientId || undefined} />
             </div>
           )}
         </div>

@@ -43,7 +43,7 @@ def test_create_prescription(client: TestClient, db_session: Session):
     db_session.add(medicine)
     db_session.commit()
 
-    # 3. Create Prescription
+    # 3. Create Prescription with medicine_id
     payload = {
         "patient_id": str(patient_id),
         "notes": "Take after meals",
@@ -53,6 +53,12 @@ def test_create_prescription(client: TestClient, db_session: Session):
                 "dosage": "1 tablet twice a day",
                 "duration_days": 5,
                 "quantity_prescribed": 10,
+            },
+            {
+                "medicine_name": "Free text medicine",
+                "dosage": "1x daily",
+                "duration_days": 2,
+                "quantity_prescribed": 2,
             }
         ],
     }
@@ -61,7 +67,7 @@ def test_create_prescription(client: TestClient, db_session: Session):
     assert response.status_code == 201
     data = response.json()
     assert data["patient_id"] == str(patient_id)
-    assert len(data["items"]) == 1
+    assert len(data["items"]) == 2
     assert data["status"] == "pending"
 
 
@@ -95,6 +101,28 @@ def test_get_prescription(client: TestClient, db_session: Session):
     assert response.status_code == 200
     assert response.json()["id"] == str(rx.id)
     assert len(response.json()["items"]) == 1
+
+def test_get_prescriptions_list(client: TestClient, db_session: Session):
+    headers, doctor = get_auth_headers(db_session)
+    from app.models.patient import Patient
+    from app.models.pharmacy import Prescription
+
+    patient = Patient(full_name="Get Rx List Patient", record_version=1)
+    db_session.add(patient)
+    db_session.flush()
+
+    rx = Prescription(patient_id=patient.id, created_by_user_id=doctor.id, notes="Test note 2")
+    db_session.add(rx)
+    db_session.commit()
+
+    response = client.get("/api/v1/prescriptions", headers=headers)
+    assert response.status_code == 200
+    assert len(response.json()) >= 1
+    
+    response_filter = client.get(f"/api/v1/prescriptions?patient_id={patient.id}", headers=headers)
+    assert response_filter.status_code == 200
+    assert len(response_filter.json()) == 1
+    assert response_filter.json()[0]["id"] == str(rx.id)
 
 
 def test_inventory_stock_intake(client: TestClient, db_session: Session):

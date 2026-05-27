@@ -16,10 +16,12 @@ class AppointmentBase(BaseModel):
     notes: Optional[str] = None
 
 
+from app.schemas.symptom_intake import SymptomIntakeBase
+
 class AppointmentCreate(AppointmentBase):
     """Schema for creating a new appointment."""
 
-    pass
+    symptom_intake: Optional[SymptomIntakeBase] = None
 
 
 class AppointmentUpdate(BaseModel):

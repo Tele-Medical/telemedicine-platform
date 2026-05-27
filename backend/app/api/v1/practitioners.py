@@ -13,12 +13,13 @@ router = APIRouter()
 
 @router.get("/", response_model=List[PractitionerRead])
 def list_practitioners(
+    specialty: str | None = Query(None, description="Filter by specialty_category"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return practitioner_service.list_practitioners(db, skip=skip, limit=limit)
+    return practitioner_service.list_practitioners(db, specialty=specialty, skip=skip, limit=limit)
 
 
 @router.get("/{id}", response_model=PractitionerRead)

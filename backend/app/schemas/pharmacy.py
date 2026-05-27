@@ -5,7 +5,8 @@ import uuid
 
 
 class PrescriptionItemCreate(BaseModel):
-    medicine_id: uuid.UUID
+    medicine_id: Optional[uuid.UUID] = None
+    medicine_name: Optional[str] = None
     dosage: str
     duration_days: Optional[int] = None
     quantity_prescribed: int
@@ -22,7 +23,8 @@ class PrescriptionItemResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    medicine_id: uuid.UUID
+    medicine_id: Optional[uuid.UUID]
+    medicine_name: Optional[str] = None
     dosage: str
     duration_days: Optional[int]
     quantity_prescribed: int

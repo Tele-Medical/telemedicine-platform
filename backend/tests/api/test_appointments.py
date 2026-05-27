@@ -31,7 +31,7 @@ def make_patient(db: Session, full_name: str = "Test Patient") -> Patient:
 
 def make_practitioner(db: Session, user: User, specialty: str = "General") -> Practitioner:
     practitioner = Practitioner(
-        user_id=user.id, full_name="Dr. Test Practitioner", specialty=specialty
+        user_id=user.id, full_name="Dr. Test Practitioner", specialty=specialty, specialty_category=specialty
     )
     db.add(practitioner)
     db.commit()
@@ -76,6 +76,38 @@ def test_create_appointment_success(client: TestClient, db_session: Session):
     assert data["status"] == "requested"
     assert data["channel"] == "telemedicine"
     assert data["created_by_user_id"] == str(patient_user.id)
+
+
+def test_create_appointment_with_symptoms(client: TestClient, db_session: Session):
+    patient_user = make_user(db_session, phone="+919000000091", role="patient")
+    patient = make_patient(db_session, full_name="Symptom Patient")
+    doc_user = make_user(db_session, phone="+919000000092", role="doctor")
+    # Make a cardiologist so the triage engine can route to them
+    cardiologist = make_practitioner(db_session, doc_user, specialty="Cardiology")
+
+    payload = {
+        "patient_id": str(patient.id),
+        "channel": "telemedicine",
+        "symptom_intake": {
+            "raw_text": "Severe chest pain and palpitations",
+            "symptoms": ["chest pain", "palpitations"],
+            "severity": "Severe",
+            "duration": "2 hours"
+        }
+    }
+
+    response = client.post(
+        "/api/v1/appointments/", headers=auth_headers(patient_user), json=payload
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "id" in data
+    # The triage engine should have auto-assigned a cardiologist
+    # (It might be the one we created or another one in the test DB)
+    assigned_doc = db_session.query(Practitioner).get(data["practitioner_id"])
+    assert assigned_doc.specialty_category == "Cardiology"
+    assert data["status"] == "requested"
 
 
 def test_create_appointment_assisted_flow(client: TestClient, db_session: Session):

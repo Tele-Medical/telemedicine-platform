@@ -13,6 +13,9 @@ from app.schemas.appointment import AppointmentCreate, AppointmentUpdate, Appoin
 router = APIRouter()
 
 
+from app.services.triage_service import evaluate_symptoms_and_route
+from app.models.symptom_intake import SymptomIntake
+
 @router.post("/", response_model=AppointmentResponse)
 def create_appointment(
     *,
@@ -25,9 +28,18 @@ def create_appointment(
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 
-    if appt_in.practitioner_id:
+    practitioner_id = appt_in.practitioner_id
+    triage_priority = appt_in.triage_priority
+
+    # If no practitioner is provided but we have symptom intake, auto-route
+    if not practitioner_id and appt_in.symptom_intake:
+        routing = evaluate_symptoms_and_route(db, appt_in.symptom_intake)
+        practitioner_id = routing["practitioner_id"]
+        triage_priority = routing["triage_priority"]
+
+    if practitioner_id:
         practitioner = (
-            db.query(Practitioner).filter(Practitioner.id == appt_in.practitioner_id).first()
+            db.query(Practitioner).filter(Practitioner.id == practitioner_id).first()
         )
         if not practitioner:
             raise HTTPException(status_code=404, detail="Practitioner not found")
@@ -41,17 +53,30 @@ def create_appointment(
 
     appt = Appointment(
         patient_id=appt_in.patient_id,
-        practitioner_id=appt_in.practitioner_id,
+        practitioner_id=practitioner_id,
         channel=appt_in.channel,
         scheduled_for=appt_in.scheduled_for,
         created_by_user_id=current_user.id,
         chief_complaint=appt_in.chief_complaint,
-        triage_priority=appt_in.triage_priority,
+        triage_priority=triage_priority,
         notes=appt_in.notes,
     )
     db.add(appt)
     db.commit()
     db.refresh(appt)
+
+    # Save SymptomIntake if provided
+    if appt_in.symptom_intake:
+        intake = SymptomIntake(
+            appointment_id=appt.id,
+            raw_text=appt_in.symptom_intake.raw_text,
+            symptoms=appt_in.symptom_intake.symptoms,
+            duration=appt_in.symptom_intake.duration,
+            severity=appt_in.symptom_intake.severity
+        )
+        db.add(intake)
+        db.commit()
+
     return appt
 
 

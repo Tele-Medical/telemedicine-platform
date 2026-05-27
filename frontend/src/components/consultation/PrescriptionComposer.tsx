@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiClient } from '../../api/client';
 import { Plus, Trash2, CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,9 +11,10 @@ interface Medicine {
 
 interface PrescriptionComposerProps {
   appointmentId?: string;
+  patientId?: string;
 }
 
-const PrescriptionComposer: React.FC<PrescriptionComposerProps> = ({ appointmentId }) => {
+const PrescriptionComposer: React.FC<PrescriptionComposerProps> = ({ appointmentId, patientId }) => {
   const { t } = useTranslation();
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [currentName, setCurrentName] = useState('');
@@ -71,7 +73,7 @@ const PrescriptionComposer: React.FC<PrescriptionComposerProps> = ({ appointment
     setMedicines(medicines.filter((_, i) => i !== index));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Compile final list including any ongoing input if filled
     const finalMedicines = [...medicines];
     if (currentName.trim()) {
@@ -93,10 +95,34 @@ const PrescriptionComposer: React.FC<PrescriptionComposerProps> = ({ appointment
     try {
       localStorage.setItem(draftKey, JSON.stringify(draft));
       setMedicines(finalMedicines);
+      
+      if (!patientId) {
+        setErrorMsg('Patient ID is required to save prescription online. Draft saved locally.');
+        return;
+      }
+
+      // Submit to backend
+      const payload = {
+        patient_id: patientId,
+        notes: notes,
+        items: finalMedicines.map(med => ({
+          medicine_name: med.name,
+          dosage: med.dosage,
+          duration_days: parseInt(med.duration) || 1,
+          quantity_prescribed: (parseInt(med.duration) || 1) * 2 // Dummy calculation
+        }))
+      };
+
+      await apiClient('/prescriptions', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
       setSaveSuccess(true);
+      localStorage.removeItem(draftKey);
     } catch (e) {
-      console.error('Failed to save prescription draft:', e);
-      setErrorMsg('Failed to save draft local storage.');
+      console.error('Failed to save prescription:', e);
+      setErrorMsg('Failed to save prescription to server. Draft saved locally.');
     }
   };
 

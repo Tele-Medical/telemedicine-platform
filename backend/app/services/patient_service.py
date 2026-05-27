@@ -23,15 +23,41 @@ def get_patient(db: Session, patient_id: UUID) -> Patient:
     return patient
 
 
+from app.models.auth import User
+
 def create_patient(db: Session, obj_in: PatientCreate, creator_id: UUID) -> Patient:
     """
     Creates a new patient record in the system.
     Supports both standard self-registration and assisted registration (e.g. for children).
+    Family Account model: If a phone number is provided, ensure a User exists for that phone,
+    and link this Patient to that User.
     """
-    # Assisted Rule: If phone is missing, we must ensure name is valid (already checked by Pydantic)
-    # In a real scenario, we might check for guardian info here if phone is None
-    # For MVP, we allow creation if name is present.
-    return patient_repo.create(db, obj_in, created_by_id=creator_id)
+    user_id = None
+    if obj_in.phone:
+        user = db.query(User).filter(User.phone == obj_in.phone).first()
+        if not user:
+            # Create a new user account for this phone
+            user = User(
+                phone=obj_in.phone,
+                full_name=obj_in.full_name,
+                default_role="patient"
+            )
+            db.add(user)
+            db.flush() # flush to get user.id
+        user_id = user.id
+
+    patient_data = obj_in.model_dump(exclude_unset=True)
+    if user_id:
+        patient_data["user_id"] = user_id
+
+    # Create patient via repo
+    db_obj = Patient(**patient_data)
+    db_obj.created_by_user_id = creator_id
+    db_obj.updated_by_user_id = creator_id
+    db.add(db_obj)
+    db.commit()
+    db.refresh(db_obj)
+    return db_obj
 
 
 def update_patient(

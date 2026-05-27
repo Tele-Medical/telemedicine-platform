@@ -1,3 +1,4 @@
+import random
 import uuid
 from datetime import date, datetime, timezone
 from sqlalchemy import create_engine
@@ -107,24 +108,56 @@ def seed_db():
     # 3. Seed Practitioner Details
     print("\nSeeding Practitioner details...")
     doctor_user_id = uuid.UUID("e45a29b6-8a7e-4b92-9b2f-2d6c8b9d31f0")
-    practitioner_id = uuid.UUID("d24c53d6-5f4a-4e62-8b0d-3d5c8a7b99d1")
-    existing_practitioner = (
-        session.query(Practitioner).filter(Practitioner.user_id == doctor_user_id).first()
-    )
-    if not existing_practitioner:
-        practitioner = Practitioner(
-            id=practitioner_id,
-            user_id=doctor_user_id,
-            full_name="Dr. Ramesh Sharma",
-            phone="+919876543210",
-            specialty="General Medicine",
-            registration_number="MCI-123456",
-        )
-        session.add(practitioner)
-        print("Created Practitioner details for Dr. Ramesh Sharma")
-    else:
-        practitioner_id = existing_practitioner.id
-        print("Practitioner details already exist.")
+    practitioners_data = [
+        {
+            "id": uuid.UUID("d24c53d6-5f4a-4e62-8b0d-3d5c8a7b99d1"),
+            "full_name": "Dr. Ramesh Sharma",
+            "specialty_category": "General Medicine",
+            "specialty": "Internal Medicine",
+        },
+        {
+            "id": uuid.uuid4(),
+            "full_name": "Dr. Sunita Gupta",
+            "specialty_category": "Cardiology",
+            "specialty": "Heart Specialist",
+        },
+        {
+            "id": uuid.uuid4(),
+            "full_name": "Dr. Amit Patel",
+            "specialty_category": "Pediatrics",
+            "specialty": "Child Specialist",
+        }
+    ]
+
+    for p_data in practitioners_data:
+        existing = session.query(Practitioner).filter(Practitioner.full_name == p_data["full_name"]).first()
+        if not existing:
+            # Create dummy user for the additional doctors if it's not the main one
+            doc_user_id = doctor_user_id if p_data["full_name"] == "Dr. Ramesh Sharma" else uuid.uuid4()
+            if doc_user_id != doctor_user_id:
+                new_doc_user = User(
+                    id=doc_user_id,
+                    phone=f"+91{random.randint(9000000000, 9999999999)}",
+                    full_name=p_data["full_name"],
+                    default_role="practitioner",
+                    hashed_password=hashed_pw
+                )
+                session.add(new_doc_user)
+                
+            practitioner = Practitioner(
+                id=p_data["id"],
+                user_id=doc_user_id,
+                full_name=p_data["full_name"],
+                phone=f"+91{random.randint(9000000000, 9999999999)}",
+                specialty_category=p_data["specialty_category"],
+                specialty=p_data["specialty"],
+                registration_number=f"MCI-{random.randint(100000, 999999)}",
+            )
+            session.add(practitioner)
+            print(f"Created Practitioner: {p_data['full_name']}")
+        else:
+            print(f"Practitioner {p_data['full_name']} already exists.")
+            
     session.commit()
 
     # 4. Seed Pharmacy
@@ -290,6 +323,12 @@ def seed_db():
         asha_user_id = (
             asha_user.id if asha_user else uuid.UUID("f82b31c9-7d6a-4c81-8c1e-3f5b7a8e22d1")
         )
+
+        doctor = session.query(Practitioner).filter(Practitioner.full_name == "Dr. Ramesh Sharma").first()
+        if doctor:
+            practitioner_id = doctor.id
+        else:
+            practitioner_id = uuid.UUID("d24c53d6-5f4a-4e62-8b0d-3d5c8a7b99d1")
 
         existing_appt = (
             session.query(Appointment)

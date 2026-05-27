@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import uuid
 
 from app.api.deps import get_db, get_current_user
@@ -38,6 +38,14 @@ def get_prescription(
     current_user: User = Depends(get_current_user),
 ):
     return PharmacyService.get_prescription(db, prescription_id)
+
+@router.get("/prescriptions", response_model=List[PrescriptionResponse])
+def get_prescriptions(
+    patient_id: Optional[uuid.UUID] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return PharmacyService.get_prescriptions(db, patient_id, current_user)
 
 
 @router.get("/pharmacies/availability", response_model=List[PharmacyAvailabilityResponse])
