@@ -68,6 +68,11 @@ export function ProfileSelection() {
     } else {
       navigate('/dashboard/patient');
     }
+
+    // Force hard reload to base path in actual browser to refresh the App shell and mount the dashboard
+    if (typeof window !== 'undefined' && !navigator.userAgent.includes('jsdom')) {
+      window.location.href = '/';
+    }
   };
 
   const handleAddProfile = async (e: React.FormEvent) => {
