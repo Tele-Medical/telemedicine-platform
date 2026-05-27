@@ -159,3 +159,30 @@ class MedicationRequest(Base):
             "duration_days IS NULL OR duration_days > 0", name="medication_requests_duration_check"
         ),
     )
+
+
+class DocumentReference(Base):
+    """Stores metadata for uploaded documents (lab reports, prescriptions)."""
+
+    __tablename__ = "document_references"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("patients.id"), index=True
+    )
+    appointment_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("appointments.id"), index=True, nullable=True
+    )
+    
+    file_name: Mapped[str] = mapped_column(String)
+    file_path: Mapped[str] = mapped_column(String)  # Path on disk or object storage
+    content_type: Mapped[str] = mapped_column(String)  # MIME type (e.g., application/pdf)
+    document_type: Mapped[str] = mapped_column(String) # e.g., 'lab_report', 'prescription', 'other'
+    
+    uploaded_by_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), index=True
+    )
+    
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )

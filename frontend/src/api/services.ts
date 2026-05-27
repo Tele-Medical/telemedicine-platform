@@ -37,8 +37,20 @@ export const authService = {
 };
 
 export const appointmentService = {
-  getAppointments: async () => {
-    return apiClient('/appointments/', {
+  getAppointments: async (patientId?: string) => {
+    const isValidId = patientId && patientId !== 'undefined' && patientId !== 'null';
+    const url = isValidId ? `/appointments/?patient_id=${patientId}` : '/appointments/';
+    return apiClient(url, {
+      method: 'GET',
+    });
+  }
+};
+
+export const pharmacyService = {
+  getPrescriptions: async (patientId?: string) => {
+    const isValidId = patientId && patientId !== 'undefined' && patientId !== 'null';
+    const url = isValidId ? `/prescriptions?patient_id=${patientId}` : '/prescriptions';
+    return apiClient(url, {
       method: 'GET',
     });
   }

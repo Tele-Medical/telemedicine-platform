@@ -45,17 +45,23 @@ class PharmacyService:
             raise HTTPException(status_code=400, detail="Patient not found")
 
         # Validate medicines exist
-        medicine_ids = [item.medicine_id for item in request.items]
-        found_medicines = (
-            db.query(MedicineCatalog.id).filter(MedicineCatalog.id.in_(medicine_ids)).all()
-        )
-        found_ids = {m[0] for m in found_medicines}
-
-        missing_ids = set(medicine_ids) - found_ids
-        if missing_ids:
-            raise HTTPException(
-                status_code=400, detail=f"Medicines not found in catalog: {missing_ids}"
+        medicine_ids = [item.medicine_id for item in request.items if item.medicine_id]
+        if medicine_ids:
+            found_medicines = (
+                db.query(MedicineCatalog.id).filter(MedicineCatalog.id.in_(medicine_ids)).all()
             )
+            found_ids = {m[0] for m in found_medicines}
+
+            missing_ids = set(medicine_ids) - found_ids
+            if missing_ids:
+                raise HTTPException(
+                    status_code=400, detail=f"Medicines not found in catalog: {missing_ids}"
+                )
+
+        # Validate that items without medicine_id at least have a medicine_name
+        for item in request.items:
+            if not item.medicine_id and not item.medicine_name:
+                raise HTTPException(status_code=400, detail="Either medicine_id or medicine_name must be provided")
 
         # Create prescription
         rx = Prescription(
@@ -73,6 +79,7 @@ class PharmacyService:
             rx_item = PrescriptionItem(
                 prescription_id=rx.id,
                 medicine_id=item.medicine_id,
+                medicine_name=item.medicine_name,
                 dosage=item.dosage,
                 duration_days=item.duration_days,
                 quantity_prescribed=item.quantity_prescribed,
@@ -92,6 +99,14 @@ class PharmacyService:
         if not rx:
             raise HTTPException(status_code=404, detail="Prescription not found")
         return rx
+
+    @staticmethod
+    def get_prescriptions(db: Session, patient_id: uuid.UUID | None = None, current_user: User | None = None) -> list[Prescription]:
+        query = db.query(Prescription)
+        if patient_id:
+            query = query.filter(Prescription.patient_id == patient_id)
+        # If practitioner/patient specific logic is needed, add here
+        return query.order_by(Prescription.created_at.desc()).all()
 
     @staticmethod
     def get_availability(db: Session, medicine_id: uuid.UUID):

@@ -38,6 +38,7 @@ class PatientUpdate(BaseModel):
 
 class PatientRead(PatientBase):
     id: UUID
+    user_id: Optional[UUID] = None
     record_version: int
     is_active: bool
     created_at: datetime

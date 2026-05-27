@@ -1,5 +1,5 @@
-import React from 'react';
-import { Heart, Activity } from 'lucide-react';
+import React, { useState } from 'react';
+import { Heart, Activity, Plus, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db';
@@ -11,6 +11,8 @@ interface VitalsWidgetProps {
 
 const VitalsWidget: React.FC<VitalsWidgetProps> = ({ isDemo = false, patientId }) => {
   const { t } = useTranslation();
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [formData, setFormData] = useState({ temp: '', pulse: '', bp: '' });
 
   // Query actual observations/vitals from the offline-first IndexedDB
   const dbVitals = useLiveQuery(async () => {
@@ -51,26 +53,76 @@ const VitalsWidget: React.FC<VitalsWidgetProps> = ({ isDemo = false, patientId }
     }
   }
 
-  if (!bpValue && !pulseValue && !tempValue) {
-    return (
-      <div className="mt-6 bg-white rounded-2xl p-6 shadow-[0_1px_2px_rgba(15,23,42,.08)] border border-neutral-200/60 text-center flex flex-col items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-neutral-50 text-neutral-400 border border-neutral-100 flex items-center justify-center">
-          <Activity size={22} className="stroke-[2]" />
-        </div>
-        <div>
-          <h3 className="text-sm font-bold text-neutral-900">{t('clinical.no_vitals')}</h3>
-          <p className="text-xs text-neutral-500 mt-1 max-w-xs mx-auto">
-            {t('clinical.vitals_desc')}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!patientId) return;
+
+    const now = new Date().toISOString();
+    const ops: Promise<unknown>[] = [];
+    const outboxOps: Promise<unknown>[] = [];
+
+    const addObs = (code: string, value: string, display: string, unit: string) => {
+      const obsId = crypto.randomUUID();
+      const obs = {
+        id: obsId,
+        patient_id: patientId,
+        status: 'final',
+        category: 'vital-signs',
+        code,
+        display,
+        value_string: value,
+        unit,
+        created_at: now,
+        updated_at: now
+      };
+      ops.push(db.observations.put(obs));
+      outboxOps.push(db.outbox.add({
+        operation_id: crypto.randomUUID(),
+        entity_type: 'observation',
+        entity_id: obsId,
+        action: 'CREATE',
+        payload: obs,
+        created_at: now
+      }));
+    };
+
+    if (formData.temp) addObs('8310-5', formData.temp, 'Body temperature', 'F');
+    if (formData.pulse) addObs('8867-4', formData.pulse, 'Heart rate', '/min');
+    if (formData.bp) addObs('85354-9', formData.bp, 'Blood pressure systolic & diastolic', 'mmHg');
+
+    await Promise.all([...ops, ...outboxOps]);
+    setFormData({ temp: '', pulse: '', bp: '' });
+    setIsAddModalOpen(false);
+  };
+
+  const emptyState = (!bpValue && !pulseValue && !tempValue);
 
   return (
     <div className="mt-6 animate-fade-in">
-      <h2 className="text-lg font-bold text-neutral-900 mb-3 tracking-tight">{t('clinical.recent_vitals', 'Recent Vitals')}</h2>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-bold text-neutral-900 tracking-tight">{t('clinical.recent_vitals', 'Recent Vitals')}</h2>
+        {patientId && (
+          <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-600 transition-colors bg-primary/5 hover:bg-primary/10 px-3 py-1.5 rounded-full">
+            <Plus size={14} className="stroke-[3]" />
+            {t('clinical.add', 'Add')}
+          </button>
+        )}
+      </div>
+
+      {emptyState ? (
+        <div className="bg-white rounded-2xl p-6 shadow-[0_1px_2px_rgba(15,23,42,.08)] border border-neutral-200/60 text-center flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-neutral-50 text-neutral-400 border border-neutral-100 flex items-center justify-center">
+            <Activity size={22} className="stroke-[2]" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-neutral-900">{t('clinical.no_vitals')}</h3>
+            <p className="text-xs text-neutral-500 mt-1 max-w-xs mx-auto">
+              {t('clinical.vitals_desc')}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
         
         {/* BP Widget with High BP Alert if elevated */}
         {bpValue && (
@@ -119,6 +171,39 @@ const VitalsWidget: React.FC<VitalsWidgetProps> = ({ isDemo = false, patientId }
         )}
 
       </div>
+      )}
+
+      {/* Add Vitals Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl">
+            <div className="p-5 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50">
+              <h3 className="font-bold text-neutral-900">Add Vitals</h3>
+              <button onClick={() => setIsAddModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-neutral-100 text-neutral-500 hover:bg-neutral-200 hover:text-neutral-700 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wide mb-1.5">Temperature (°F)</label>
+                <input type="number" step="0.1" value={formData.temp} onChange={e => setFormData({...formData, temp: e.target.value})} placeholder="e.g. 98.6" className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none text-sm transition-all" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wide mb-1.5">Pulse (BPM)</label>
+                <input type="number" value={formData.pulse} onChange={e => setFormData({...formData, pulse: e.target.value})} placeholder="e.g. 72" className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none text-sm transition-all" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wide mb-1.5">Blood Pressure (mmHg)</label>
+                <input type="text" value={formData.bp} onChange={e => setFormData({...formData, bp: e.target.value})} placeholder="e.g. 120/80" className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none text-sm transition-all" />
+              </div>
+              <div className="mt-2 flex gap-2">
+                <button type="button" onClick={() => setIsAddModalOpen(false)} className="flex-1 py-3 px-4 rounded-xl text-sm font-bold bg-neutral-100 text-neutral-600 hover:bg-neutral-200 transition-colors">Cancel</button>
+                <button type="submit" disabled={!formData.temp && !formData.pulse && !formData.bp} className="flex-1 py-3 px-4 rounded-xl text-sm font-bold bg-primary text-white hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Save Vitals</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { db } from '../../db/db';
-import { User } from 'lucide-react';
+import { User, Sparkles } from 'lucide-react';
+import { SymptomIntakeWizard } from './SymptomIntakeWizard';
 
 interface Practitioner {
   id: string;
@@ -25,7 +26,7 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
   const { patientId: paramPatientId } = useParams<{ patientId?: string }>();
   const [searchParams] = useSearchParams();
   const queryPatientId = searchParams.get('patientId');
-  
+
   // Resolve patientId from props, url params, or query params
   const resolvedPatientId = propPatientId || paramPatientId || queryPatientId || '';
 
@@ -41,6 +42,9 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState(resolvedPatientId);
   const [selectedPatientName, setSelectedPatientName] = useState('');
+
+  const [showWizard, setShowWizard] = useState(false);
+  const [symptomIntake, setSymptomIntake] = useState<{ raw_text?: string; symptoms?: string[]; severity?: string } | null>(null);
 
   useEffect(() => {
     const fetchDocs = async () => {
@@ -103,7 +107,13 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
 
   const handleBook = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedDoctor || !appointmentDate || !selectedPatientId) return;
+    if (!appointmentDate || !selectedPatientId) return;
+
+    // Force clinical details capture before booking
+    if (!symptomIntake) {
+      setShowWizard(true);
+      return;
+    }
 
     setStatus('loading');
     setErrorMsg('');
@@ -112,15 +122,17 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
         method: 'POST',
         body: JSON.stringify({
           patient_id: selectedPatientId,
-          practitioner_id: selectedDoctor,
+          practitioner_id: selectedDoctor || null,
           scheduled_for: appointmentDate,
           channel: 'assisted',
-          chief_complaint: chiefComplaint,
-          triage_priority: triagePriority
+          chief_complaint: chiefComplaint || (symptomIntake?.raw_text || ''),
+          triage_priority: triagePriority,
+          symptom_intake: symptomIntake
         })
       });
       setStatus('success');
       setChiefComplaint('');
+      setSymptomIntake(null); // Reset after successful booking
       setTriagePriority('Standard');
       setTimeout(() => setStatus('idle'), 3000);
     } catch (err) {
@@ -137,10 +149,22 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
 
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-200 mt-6 max-w-xl text-neutral-900 font-sans">
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-200 mt-6 max-w-xl text-neutral-900 font-sans relative">
+      {showWizard && (
+        <SymptomIntakeWizard
+          onComplete={(data) => {
+            setSymptomIntake(data);
+            setChiefComplaint(data.raw_text);
+            setTriagePriority(data.severity === 'Severe' ? 'Critical' : 'Standard');
+            setSelectedDoctor(''); // Clear manual doctor so backend auto-routes
+            setShowWizard(false);
+          }}
+          onCancel={() => setShowWizard(false)}
+        />
+      )}
       <h3 className="text-lg font-bold mb-5 text-gray-800 border-b pb-2">{t('clinical.schedule_consultation')}</h3>
       <form onSubmit={handleBook} className="space-y-5">
-        
+
         {/* Patient Select / Info Panel */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -174,20 +198,40 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
 
         {/* Doctor Selection */}
         <div>
-          <label htmlFor="doctor" className="block text-sm font-semibold text-gray-700 mb-1">{t('clinical.select_doctor')}</label>
-          <select
-            id="doctor"
-            value={selectedDoctor}
-            onChange={(e) => setSelectedDoctor(e.target.value)}
-            className="block w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white text-neutral-800 text-sm font-medium"
-          >
-            <option value="" disabled>-- {t('clinical.select_doctor')} --</option>
-            {practitioners.map(doc => (
-              <option key={doc.id} value={doc.id}>
-                {doc.full_name || doc.name || 'Unknown Doctor'} - {doc.specialty || doc.specialization || 'Generalist'}
-              </option>
-            ))}
-          </select>
+          <div className="flex justify-between items-center mb-1">
+            <label htmlFor="doctor" className="block text-sm font-semibold text-gray-700">{t('clinical.select_doctor')}</label>
+            <button
+              type="button"
+              onClick={() => setShowWizard(true)}
+              className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium bg-blue-50 px-2 py-1 rounded"
+            >
+              <Sparkles className="w-4 h-4" />
+              Smart Triage Auto-Route
+            </button>
+          </div>
+          {symptomIntake ? (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl px-3.5 py-3 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-blue-900">Auto-Routing Enabled</p>
+                <p className="text-xs text-blue-700">Doctor will be assigned based on symptoms: {symptomIntake.symptoms?.join(', ')}</p>
+              </div>
+              <button type="button" onClick={() => setSymptomIntake(null)} className="text-xs text-red-600 hover:text-red-800 bg-white px-2 py-1 border rounded">Cancel</button>
+            </div>
+          ) : (
+            <select
+              id="doctor"
+              value={selectedDoctor}
+              onChange={(e) => setSelectedDoctor(e.target.value)}
+              className="block w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white text-neutral-800 text-sm font-medium"
+            >
+              <option value="" disabled>-- {t('clinical.select_doctor')} --</option>
+              {practitioners.map(doc => (
+                <option key={doc.id} value={doc.id}>
+                  {doc.full_name || doc.name || 'Unknown Doctor'} - {doc.specialty || doc.specialization || 'Generalist'}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* DateTime Selection */}
@@ -236,19 +280,20 @@ const AppointmentScheduler: React.FC<{ patientId?: string }> = ({ patientId: pro
         </div>
 
         <div className="pt-2">
-          <button 
-            type="submit" 
-            disabled={status === 'loading' || !selectedDoctor || !appointmentDate || !selectedPatientId}
-            className={`w-full text-white px-4 py-3 rounded-xl font-bold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-md ${
-              status === 'success' 
-                ? 'bg-success hover:bg-success-700 focus:ring-success/30' 
-                : 'bg-primary hover:bg-primary-700 focus:ring-primary/30 disabled:bg-neutral-300 disabled:cursor-not-allowed'
-            }`}
+          <button
+            type="submit"
+            disabled={status === 'loading' || !appointmentDate || !selectedPatientId}
+            className={`w-full text-white px-4 py-3 rounded-xl font-bold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-md ${status === 'success'
+              ? 'bg-success hover:bg-success-700 focus:ring-success/30'
+              : status === 'error'
+              ? 'bg-danger hover:bg-danger-700 focus:ring-danger/30'
+              : 'bg-primary hover:bg-primary-700 focus:ring-primary/30 disabled:bg-neutral-300 disabled:cursor-not-allowed'
+              }`}
           >
-            {status === 'loading' ? t('auth.sending') : status === 'success' ? `${t('common.success')} ✓` : t('clinical.book_appointment')}
+            {status === 'loading' ? t('auth.sending') : status === 'success' ? `${t('common.success')} ✓` : status === 'error' ? 'Retry Booking' : t('clinical.book_appointment')}
           </button>
         </div>
-        
+
         {status === 'error' && (
           <p className="text-sm text-danger font-bold text-center mt-2">{errorMsg || t('clinical.booking_failed')}</p>
         )}

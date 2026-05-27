@@ -17,3 +17,4 @@ from .pharmacy import (
     Fulfillment,
     FulfillmentItem,
 )
+from .symptom_intake import SymptomIntake

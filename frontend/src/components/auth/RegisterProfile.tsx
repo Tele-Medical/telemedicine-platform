@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { authService } from '../../api/services';
+import { apiClient } from '../../api/client';
 import { User, Globe, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -11,6 +12,9 @@ const RegisterProfile: React.FC<RegisterProfileProps> = ({ onComplete }) => {
   const { t, i18n } = useTranslation();
   const [fullName, setFullName] = useState('');
   const [language, setLanguage] = useState('pa'); // Default Punjabi
+  const [gender, setGender] = useState('male');
+  const [dob, setDob] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -28,6 +32,19 @@ const RegisterProfile: React.FC<RegisterProfileProps> = ({ onComplete }) => {
 
     try {
       await authService.updateProfile(trimmedName, language);
+      
+      const user = await authService.getMe();
+      if (user.patient_id) {
+        await apiClient(`/patients/${user.patient_id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            gender: gender,
+            date_of_birth: dob || null,
+            phone: phone || null
+          })
+        });
+      }
+
       onComplete();
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -82,6 +99,63 @@ const RegisterProfile: React.FC<RegisterProfileProps> = ({ onComplete }) => {
                 disabled={loading}
               />
             </div>
+          </div>
+
+          {/* Gender Segmented Selection */}
+          <div>
+            <label className="block text-sm font-semibold text-neutral-700 mb-1.5">
+              {t('auth.gender')} <span className="text-danger">*</span>
+            </label>
+            <div className="grid grid-cols-3 gap-2 bg-neutral-100/70 p-1 rounded-xl border border-neutral-200/50">
+              {['male', 'female', 'other'].map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => setGender(opt)}
+                  className={`py-2 text-sm font-bold rounded-lg capitalize transition-all ${
+                    gender === opt
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50/50'
+                  }`}
+                >
+                  {t(`auth.${opt}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Date of Birth */}
+          <div>
+            <label htmlFor="dob" className="block text-sm font-semibold text-neutral-700 mb-1.5">
+              {t('auth.dob')} <span className="text-neutral-400 font-normal text-xs">{t('auth.optional')}</span>
+            </label>
+            <input
+              id="dob"
+              type="date"
+              disabled={loading}
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+              max={new Date().toISOString().split('T')[0]}
+              className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-neutral-900 text-base cursor-pointer"
+            />
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label htmlFor="phone" className="block text-sm font-semibold text-neutral-700 mb-1.5">
+              {t('auth.phone_number')} <span className="text-neutral-400 font-normal text-xs">{t('auth.optional')}</span>
+            </label>
+            <input
+              id="phone"
+              type="tel"
+              disabled={loading}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/[^0-9+]/g, ''))}
+              placeholder={t('auth.phone_placeholder')}
+              className="w-full px-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-neutral-900 placeholder-neutral-400 text-base"
+              maxLength={15}
+            />
           </div>
 
           {/* Preferred Language Input */}

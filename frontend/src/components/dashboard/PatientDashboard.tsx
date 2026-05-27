@@ -6,6 +6,7 @@ import { appointmentService, authService } from '../../api/services';
 import { apiClient } from '../../api/client';
 import { AlertCircle, Calendar, PlusCircle, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { SymptomIntakeWizard } from '../consultation/SymptomIntakeWizard';
 
 interface User {
   full_name?: string;
@@ -27,6 +28,10 @@ const PatientDashboard: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showWizard, setShowWizard] = useState(false);
+
+  const activePatientId = localStorage.getItem('active_patient_id');
+  const activePatientName = localStorage.getItem('active_patient_name');
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
@@ -35,7 +40,9 @@ const PatientDashboard: React.FC = () => {
       const userData = await authService.getMe();
       setUser(userData);
       
-      const appts = await appointmentService.getAppointments();
+      const validActivePatientId = activePatientId && activePatientId !== 'undefined' ? activePatientId : null;
+      const selectedPatientId = validActivePatientId || userData?.patient_id;
+      const appts = await appointmentService.getAppointments(selectedPatientId || undefined);
       setAppointments(appts || []);
     } catch (err) {
       console.error("Error loading dashboard data:", err);
@@ -43,19 +50,23 @@ const PatientDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, activePatientId]);
 
   React.useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const handleRequestCare = async () => {
+  const handleRequestCare = () => {
+    setShowWizard(true);
+  };
+
+  const handleBookWithSymptoms = async (intakeData: { raw_text: string, symptoms: string[], severity: string, duration: string }) => {
     try {
       setLoading(true);
       setError(null);
       
       const currentUser = await authService.getMe();
-      const patientId = currentUser?.patient_id;
+      const patientId = activePatientId || currentUser?.patient_id;
       
       if (!patientId) {
         console.error("Patient profile not found in current user");
@@ -63,28 +74,15 @@ const PatientDashboard: React.FC = () => {
         return;
       }
 
-      let doctorId: string | null = null;
-      try {
-        const docs = await apiClient('/practitioners/');
-        if (docs && docs.length > 0) {
-          doctorId = docs[0].id;
-        }
-      } catch (err) {
-        console.warn("Failed to fetch practitioners", err);
-      }
-
-      if (!doctorId) {
-        setError(t('clinical.booking_failed', 'Booking failed: no practitioner available'));
-        return;
-      }
-
       await apiClient('/appointments/', {
         method: 'POST',
         body: JSON.stringify({
           patient_id: patientId,
-          practitioner_id: doctorId,
           channel: 'telemedicine',
           scheduled_for: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+          chief_complaint: intakeData.raw_text,
+          triage_priority: intakeData.severity === 'Severe' ? 'Critical' : 'Standard',
+          symptom_intake: intakeData
         })
       });
 
@@ -115,9 +113,18 @@ const PatientDashboard: React.FC = () => {
 
   return (
     <div className="p-4 max-w-3xl mx-auto animate-fade-in pb-24">
+      {showWizard && (
+        <SymptomIntakeWizard
+          onComplete={async (intakeData) => {
+            setShowWizard(false);
+            await handleBookWithSymptoms(intakeData);
+          }}
+          onCancel={() => setShowWizard(false)}
+        />
+      )}
       <header className="mb-6 mt-2">
         <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
-          {t('app.good_morning')}{user?.full_name ? `, ${user.full_name}` : ''}
+          {t('app.good_morning')}{activePatientName ? `, ${activePatientName}` : user?.full_name ? `, ${user.full_name}` : ''}
         </h1>
         <p className="text-neutral-500 text-sm mt-1">{t('app.health_overview')}</p>
       </header>
@@ -163,8 +170,8 @@ const PatientDashboard: React.FC = () => {
           </div>
         )}
         
-        <VitalsWidget isDemo={isDemoUser} patientId={user?.patient_id} />
-        <RecentRecordsList isDemo={isDemoUser} patientId={user?.patient_id} />
+        <VitalsWidget isDemo={isDemoUser} patientId={activePatientId || user?.patient_id} />
+        <RecentRecordsList isDemo={isDemoUser} patientId={activePatientId || user?.patient_id} />
       </main>
     </div>
   );

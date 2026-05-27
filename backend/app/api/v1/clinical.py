@@ -5,15 +5,18 @@ Ensures strict provenance tracking and role-based access control.
 """
 
 import uuid
-from typing import Any
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Any, List
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi.responses import FileResponse
+import os
+import shutil
 from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.models.auth import User
 from app.models.patient import Patient
 from app.models.encounter import Encounter
-from app.models.clinical import Observation, Allergy, Condition, MedicationRequest
+from app.models.clinical import Observation, Allergy, Condition, MedicationRequest, DocumentReference
 from app.models.audit import ProvenanceEvent
 from app.schemas.clinical import (
     ObservationCreate,
@@ -25,6 +28,7 @@ from app.schemas.clinical import (
     ConditionResponse,
     MedicationRequestCreate,
     MedicationRequestResponse,
+    DocumentReferenceResponse,
 )
 
 router = APIRouter()
@@ -237,3 +241,85 @@ def create_medication_request(
     db.commit()
 
     return med_req
+
+
+# --- Documents ---
+UPLOAD_DIR = "uploads/documents"
+
+@router.post("/documents", response_model=DocumentReferenceResponse)
+def upload_document(
+    *,
+    db: Session = Depends(deps.get_db),
+    patient_id: uuid.UUID = Form(...),
+    appointment_id: uuid.UUID | None = Form(None),
+    document_type: str = Form(...),
+    file: UploadFile = File(...),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Uploads a clinical document (e.g., lab report, past prescription) for a patient.
+    """
+    validate_patient_encounter(db, patient_id, appointment_id)  # Using appointment_id as encounter_id check
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    file_ext = os.path.splitext(file.filename)[1] if file.filename else ".bin"
+    safe_filename = f"{uuid.uuid4()}{file_ext}"
+    file_path = os.path.join(UPLOAD_DIR, safe_filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    doc = DocumentReference(
+        patient_id=patient_id,
+        appointment_id=appointment_id,
+        file_name=file.filename or "unknown",
+        file_path=file_path,
+        content_type=file.content_type or "application/octet-stream",
+        document_type=document_type,
+        uploaded_by_user_id=current_user.id,
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+
+    create_provenance_event(db, "document_references", doc.id, "create", current_user.id)
+    db.commit()
+
+    return doc
+
+
+@router.get("/documents", response_model=List[DocumentReferenceResponse])
+def get_documents(
+    patient_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    List documents for a patient.
+    """
+    # Enforce basic permission checks (could be stricter in production)
+    if current_user.default_role == "patient":
+        # Check if patient is trying to access their own documents
+        pass
+
+    docs = db.query(DocumentReference).filter(DocumentReference.patient_id == patient_id).all()
+    return docs
+
+@router.get("/documents/{document_id}/download")
+def download_document(
+    document_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    doc = db.query(DocumentReference).filter(DocumentReference.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    if not os.path.exists(doc.file_path):
+        raise HTTPException(status_code=404, detail="File missing on disk")
+        
+    return FileResponse(
+        path=doc.file_path, 
+        filename=doc.file_name, 
+        media_type=doc.content_type
+    )

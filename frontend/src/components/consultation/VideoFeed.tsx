@@ -14,18 +14,30 @@ import {
   Sliders,
   CheckCircle2,
   RefreshCw,
-  Volume2
+  Volume2,
+  Monitor,
+  MonitorOff
 } from 'lucide-react';
 
+
+import { type ChatMessage } from './InCallChat';
 
 interface VideoFeedProps {
   appointmentId?: string;
   userRole?: string;
+  onChatMessage?: (msg: ChatMessage) => void;
+  registerSendChat?: (sendFn: (text: string) => void) => void;
+  onAppSignal?: (type: string, payload: any) => void;
+  registerSendSignal?: (sendFn: (type: string, payload: any) => void) => void;
 }
 
 const VideoFeed: React.FC<VideoFeedProps> = ({ 
   appointmentId = '11111111-2222-3333-4444-555555555555', 
-  userRole = 'patient' 
+  userRole = 'patient',
+  onChatMessage,
+  registerSendChat,
+  onAppSignal,
+  registerSendSignal
 }) => {
   const { t } = useTranslation();
   const [isMuted, setIsMuted] = useState(false);
@@ -35,6 +47,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const [isSimHUDOpen, setIsSimHUDOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isAutoplayBlocked, setIsAutoplayBlocked] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
 
 
   const navigate = useNavigate();
@@ -145,13 +158,6 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         urls: turnUrl,
         username: turnUsername || '',
         credential: turnCredential || ''
-      });
-    } else {
-      // Diagnostic static TURN fallback for developers behind NAT/firewalls
-      iceServers.push({
-        urls: 'turn:turn.example.com:3478?transport=udp',
-        username: 'telehealth-user',
-        credential: 'telehealth-secure-password-2026'
       });
     }
 
@@ -286,23 +292,44 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           
           if (msg.type === 'welcome') {
             console.log("Joined signaling room:", msg.message);
+            // Announce presence to anyone already here
+            ws.send(JSON.stringify({ type: 'peer_present' }));
           } 
           
-          else if (msg.type === 'peer_joined') {
-            console.log("Remote peer joined. Initiating offer...");
-            const offer = await pc.createOffer({
-              offerToReceiveAudio: true,
-              offerToReceiveVideo: true
-            });
-            await pc.setLocalDescription(offer);
+          else if (msg.type === 'peer_present' || msg.type === 'peer_joined') {
+            console.log("Remote peer detected!");
             
-            ws.send(JSON.stringify({
-              type: 'offer',
-              sdp: offer.sdp
-            }));
-          } 
+            // Always bounce back a presence pulse so the other side knows we're here too
+            // But only if it was a peer_joined to prevent infinite ping-pong loops
+            if (msg.type === 'peer_joined') {
+              ws.send(JSON.stringify({ type: 'peer_present' }));
+            }
+
+            // The doctor is always the polite initiator, but only ONCE per connection
+            if ((userRole === 'doctor' || userRole === 'practitioner') && pc.signalingState === 'stable' && !pc.localDescription) {
+              console.log("Initiating offer as doctor...");
+              try {
+                const offer = await pc.createOffer({
+                  offerToReceiveAudio: true,
+                  offerToReceiveVideo: true
+                });
+                await pc.setLocalDescription(offer);
+                
+                ws.send(JSON.stringify({
+                  type: 'offer',
+                  sdp: offer.sdp
+                }));
+              } catch (e) {
+                console.error("Error creating offer:", e);
+              }
+            }
+          }
           
           else if (msg.type === 'offer') {
+            if (pc.signalingState !== 'stable') {
+              console.warn("Ignoring remote offer in state:", pc.signalingState);
+              return;
+            }
             console.log("Received remote offer. Setting remote description & sending answer...");
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: msg.sdp }));
             await processCandidatesQueue();
@@ -321,6 +348,10 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           } 
           
           else if (msg.type === 'answer') {
+            if (pc.signalingState !== 'have-local-offer') {
+              console.warn("Ignoring remote answer in state:", pc.signalingState);
+              return;
+            }
             console.log("Received remote answer. Completing peer handshake...");
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
             await processCandidatesQueue();
@@ -347,6 +378,23 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
             setConnectionState('disconnected');
             if (remoteVideoRef.current) {
               remoteVideoRef.current.srcObject = null;
+            }
+          }
+          
+          else if (msg.type === 'chat') {
+            if (onChatMessage) {
+              onChatMessage({
+                id: msg.id || Math.random().toString(),
+                senderId: msg.senderRole,
+                senderName: remotePeerName, // the other person
+                text: msg.text,
+                timestamp: msg.timestamp || Date.now()
+              });
+            }
+          }
+          else if (msg.type === 'app_signal') {
+            if (onAppSignal) {
+              onAppSignal(msg.signalType, msg.payload);
             }
           }
         } catch (jsonErr) {
@@ -401,10 +449,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   };
 
   const handleEndCall = () => {
-    if (window.confirm("Are you sure you want to end this clinical consultation?")) {
-      cleanupStreams();
-      navigate('/');
-    }
+    cleanupStreams();
+    navigate(-1); // Go back to the previous page (dashboard or queue)
   };
 
   const handleResolveAutoplay = async () => {
@@ -415,6 +461,40 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       } catch (err) {
         console.warn("Manual activation of autoplay failed:", err);
       }
+    }
+  };
+
+  const handleToggleScreenShare = async () => {
+    if (!pcRef.current) return;
+    try {
+      if (isScreenSharing) {
+        // Stop screen share and revert to camera
+        const stream = await startLocalMedia();
+        const videoTrack = stream?.getVideoTracks()[0];
+        if (videoTrack) {
+          const sender = pcRef.current.getSenders().find(s => s.track?.kind === 'video');
+          if (sender) sender.replaceTrack(videoTrack);
+        }
+        setIsScreenSharing(false);
+      } else {
+        // Start screen share
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const screenTrack = displayStream.getVideoTracks()[0];
+        
+        screenTrack.onended = () => {
+          handleToggleScreenShare(); // Revert if user stops sharing via browser UI
+        };
+
+        const sender = pcRef.current.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) sender.replaceTrack(screenTrack);
+        
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = displayStream;
+        }
+        setIsScreenSharing(true);
+      }
+    } catch (err) {
+      console.error("Failed to toggle screen sharing:", err);
     }
   };
 
@@ -497,6 +577,46 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
 
   const isVideoVisible = networkQuality === 'excellent' && connectionState === 'connected';
 
+  useEffect(() => {
+    if (registerSendChat) {
+      registerSendChat((text: string) => {
+        const msg = {
+          type: 'chat',
+          text,
+          senderId: userRole,
+          timestamp: new Date().toISOString(),
+        };
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify(msg));
+        }
+
+        // Add the message locally so the sender can see it
+        if (onChatMessage) {
+          onChatMessage({
+            id: Math.random().toString(36).substring(7),
+            text: text,
+            senderId: userRole,
+            senderName: 'You',
+            timestamp: Date.now(),
+          });
+        }
+      });
+    }
+
+    if (registerSendSignal) {
+      registerSendSignal((signalType: string, payload: any) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({
+            type: 'app_signal',
+            signalType,
+            payload,
+            senderRole: userRole
+          }));
+        }
+      });
+    }
+  }, [registerSendChat, registerSendSignal, userRole, t, onChatMessage]);
+
   // Ensure remote stream plays automatically when connection becomes visible
   useEffect(() => {
     if (isVideoVisible && remoteVideoRef.current && remoteVideoRef.current.srcObject) {
@@ -521,7 +641,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   }, [isVideoOff]);
 
   return (
-    <div className="relative w-full h-[45vh] bg-neutral-950 overflow-hidden rounded-b-3xl shadow-lg border-b border-neutral-800 transition-all duration-500 font-sans">
+    <div className="relative w-full h-[45vh] lg:h-full bg-neutral-950 overflow-hidden lg:rounded-none rounded-b-3xl shadow-lg border-b lg:border-b-0 border-neutral-800 transition-all duration-500 font-sans">
       
       {/* Remote Video Stream */}
       <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center">
@@ -725,6 +845,16 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg backdrop-blur-md border ${isVideoOff ? 'bg-danger border-danger text-white' : 'bg-black/60 border-white/10 text-white hover:bg-black/80'}`}
         >
           {isVideoOff ? <VideoOff size={20} className="stroke-[2]" /> : <Video size={20} className="stroke-[2]" />}
+        </button>
+
+        {/* Toggle Screen Share */}
+        <button 
+          onClick={handleToggleScreenShare}
+          disabled={isVideoOff || networkQuality === 'disconnected'}
+          aria-label={isScreenSharing ? "Stop sharing screen" : "Share screen"}
+          className={`w-12 h-12 hidden md:flex rounded-full items-center justify-center transition-all shadow-lg backdrop-blur-md border disabled:opacity-50 disabled:cursor-not-allowed ${isScreenSharing ? 'bg-primary border-primary text-white' : 'bg-black/60 border-white/10 text-white hover:bg-black/80'}`}
+        >
+          {isScreenSharing ? <MonitorOff size={20} className="stroke-[2]" /> : <Monitor size={20} className="stroke-[2]" />}
         </button>
       </div>
 

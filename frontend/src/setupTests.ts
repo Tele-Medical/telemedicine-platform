@@ -1,6 +1,8 @@
 import '@testing-library/jest-dom';
 import 'fake-indexeddb/auto';
-import { vi, beforeEach } from 'vitest';
+import { vi, beforeEach, afterEach, afterAll } from 'vitest';
+import { cleanup } from '@testing-library/react';
+import { db } from './db/db';
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
@@ -29,16 +31,24 @@ Object.defineProperty(navigator, 'onLine', { value: true, writable: true, config
 
 beforeEach(() => {
   localStorage.clear();
+});
+
+afterEach(() => {
+  cleanup();
   vi.clearAllMocks();
+});
+
+afterAll(() => {
+  // Close the database connection to prevent tests from hanging
+  if (db && db.close) {
+    db.close();
+  }
 });
 
 // Use raw keys for tests - most stable approach for i18n unit testing
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
-    i18n: {
-      changeLanguage: vi.fn().mockImplementation(() => Promise.resolve()),
-      language: 'en',
-    },
+    i18n: { language: 'en', changeLanguage: () => new Promise(() => {}) },
   }),
 }));

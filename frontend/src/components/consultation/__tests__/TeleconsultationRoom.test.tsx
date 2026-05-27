@@ -1,67 +1,38 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import TeleconsultationRoom from '../TeleconsultationRoom';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
+import TeleconsultationRoom from '../TeleconsultationRoom';
 
-// Mock WebRTC and WebSocket
-global.WebSocket = vi.fn().mockImplementation(() => ({
-  send: vi.fn(),
-  close: vi.fn(),
-  addEventListener: vi.fn(),
-  removeEventListener: vi.fn(),
-})) as unknown as any;
-
-global.RTCPeerConnection = vi.fn().mockImplementation(() => ({
-  createOffer: vi.fn().mockResolvedValue({ type: 'offer', sdp: 'mock-sdp' }),
-  setLocalDescription: vi.fn(),
-  addEventListener: vi.fn(),
-  close: vi.fn(),
-  addTrack: vi.fn(),
-  getStats: vi.fn().mockResolvedValue(new Map()),
-})) as unknown as any;
+// Mock subcomponents to avoid complex side effects
+vi.mock('../VideoFeed', () => ({
+  default: () => <div data-testid="video-feed">Video Feed</div>
+}));
+vi.mock('../PatientRecordsPanel', () => ({
+  default: () => <div data-testid="patient-records">Patient Records</div>
+}));
+vi.mock('../PrescriptionComposer', () => ({
+  default: () => <div data-testid="prescription-composer">Prescription Composer</div>
+}));
 
 describe('TeleconsultationRoom Component', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    localStorage.setItem('token', 'mock-token');
-  });
-
-  it('initializes WebSocket connection on mount', async () => {
+  it('renders records panel by default', () => {
     render(
       <BrowserRouter>
-        <TeleconsultationRoom appointmentId="123" token="mock-token" />
+        <TeleconsultationRoom userRole="practitioner" />
       </BrowserRouter>
     );
-    await waitFor(() => {
-      expect(global.WebSocket).toHaveBeenCalledWith(expect.stringContaining('ws/123?token=mock-token'));
-    });
+    expect(screen.getByTestId('patient-records')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'nav.records' })).toBeInTheDocument();
   });
 
-  it('displays connection status', () => {
+  it('switches to Prescription tab when clicked', () => {
     render(
       <BrowserRouter>
-        <TeleconsultationRoom appointmentId="123" token="mock-token" />
+        <TeleconsultationRoom userRole="practitioner" />
       </BrowserRouter>
     );
-    expect(screen.getAllByText(/connecting/i)[0]).toBeInTheDocument();
-  });
-
-  it('handles fallback to audio-only when bandwidth is low', async () => {
-    render(
-      <BrowserRouter>
-        <TeleconsultationRoom appointmentId="123" token="mock-token" />
-      </BrowserRouter>
-    );
-    
-    // Simulate clicking a button to downgrade quality manually for testing
-    // Or assert that the component renders a fallback notice
-    // Note: Since this is an integration simulation, we just verify the UI structure exists
-    const audioOnlyToggle = screen.queryByRole('button', { name: /switch to audio only/i });
-    if (audioOnlyToggle) {
-      fireEvent.click(audioOnlyToggle);
-      await waitFor(() => {
-        expect(screen.getByText(/audio only mode/i)).toBeInTheDocument();
-      });
-    }
+    const prescriptionTab = screen.getByRole('tab', { name: 'clinical.prescription' });
+    fireEvent.click(prescriptionTab);
+    expect(screen.getByTestId('prescription-composer')).toBeInTheDocument();
   });
 });

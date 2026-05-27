@@ -9,9 +9,10 @@ from app.models.patient import Patient
 from app.models.practitioner import Practitioner
 from app.models.appointment import Appointment
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate, AppointmentResponse
+from app.services.triage_service import evaluate_symptoms_and_route
+from app.models.symptom_intake import SymptomIntake
 
 router = APIRouter()
-
 
 @router.post("/", response_model=AppointmentResponse)
 def create_appointment(
@@ -25,9 +26,18 @@ def create_appointment(
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 
-    if appt_in.practitioner_id:
+    practitioner_id = appt_in.practitioner_id
+    triage_priority = appt_in.triage_priority
+
+    # If no practitioner is provided but we have symptom intake, auto-route
+    if not practitioner_id and appt_in.symptom_intake:
+        routing = evaluate_symptoms_and_route(db, appt_in.symptom_intake)
+        practitioner_id = routing["practitioner_id"]
+        triage_priority = routing["triage_priority"]
+
+    if practitioner_id:
         practitioner = (
-            db.query(Practitioner).filter(Practitioner.id == appt_in.practitioner_id).first()
+            db.query(Practitioner).filter(Practitioner.id == practitioner_id).first()
         )
         if not practitioner:
             raise HTTPException(status_code=404, detail="Practitioner not found")
@@ -41,17 +51,30 @@ def create_appointment(
 
     appt = Appointment(
         patient_id=appt_in.patient_id,
-        practitioner_id=appt_in.practitioner_id,
+        practitioner_id=practitioner_id,
         channel=appt_in.channel,
         scheduled_for=appt_in.scheduled_for,
         created_by_user_id=current_user.id,
         chief_complaint=appt_in.chief_complaint,
-        triage_priority=appt_in.triage_priority,
+        triage_priority=triage_priority,
         notes=appt_in.notes,
     )
     db.add(appt)
     db.commit()
     db.refresh(appt)
+
+    # Save SymptomIntake if provided
+    if appt_in.symptom_intake:
+        intake = SymptomIntake(
+            appointment_id=appt.id,
+            raw_text=appt_in.symptom_intake.raw_text,
+            symptoms=appt_in.symptom_intake.symptoms,
+            duration=appt_in.symptom_intake.duration,
+            severity=appt_in.symptom_intake.severity
+        )
+        db.add(intake)
+        db.commit()
+
     return appt
 
 
@@ -77,7 +100,16 @@ def get_appointments(
         if practitioner:
             query = query.filter(Appointment.practitioner_id == practitioner.id)
 
-    return query.offset(skip).limit(limit).all()
+    results = query.offset(skip).limit(limit).all()
+    for appt in results:
+        appt.practitioner_name = None
+        appt.practitioner_role = None
+        if appt.practitioner_id:
+            practitioner = db.query(Practitioner).filter(Practitioner.id == appt.practitioner_id).first()
+            if practitioner:
+                appt.practitioner_name = practitioner.full_name
+                appt.practitioner_role = practitioner.specialty_category
+    return results
 
 
 @router.patch("/{id}", response_model=AppointmentResponse)
@@ -193,9 +225,11 @@ def get_appointment_details(
     if current_user.default_role not in ["admin", "staff"]:
         if current_user.default_role == "patient":
             patient = (
-                db.query(Patient).filter(Patient.created_by_user_id == current_user.id).first()
+                db.query(Patient)
+                .filter(Patient.created_by_user_id == current_user.id, Patient.id == appt.patient_id)
+                .first()
             )
-            if not patient or appt.patient_id != patient.id:
+            if not patient:
                 raise HTTPException(
                     status_code=403, detail="Not authorized to access this appointment"
                 )

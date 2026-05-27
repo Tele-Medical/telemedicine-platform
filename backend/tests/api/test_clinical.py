@@ -75,7 +75,7 @@ def test_create_observation(client: TestClient, db_session: Session):
         "unit": "mmHg",
     }
 
-    response = client.post("/api/v1/observations", headers=auth_headers(doc_user), json=payload)
+    response = client.post("/api/v1/clinical/observations", headers=auth_headers(doc_user), json=payload)
 
     assert response.status_code == 200
     data = response.json()
@@ -108,7 +108,7 @@ def test_create_observation_unauthorized_patient(client: TestClient, db_session:
 
     payload = {"patient_id": str(patient.id), "code": "blood_pressure", "value_string": "120/80"}
 
-    response = client.post("/api/v1/observations", headers=auth_headers(patient_user), json=payload)
+    response = client.post("/api/v1/clinical/observations", headers=auth_headers(patient_user), json=payload)
 
     assert response.status_code == 403
 
@@ -120,7 +120,7 @@ def test_update_allergy_sync_conflict(client: TestClient, db_session: Session):
     # 1. Create Allergy
     create_payload = {"patient_id": str(patient.id), "substance": "Aspirin", "criticality": "low"}
     create_resp = client.post(
-        "/api/v1/allergies", headers=auth_headers(doc_user), json=create_payload
+        "/api/v1/clinical/allergies", headers=auth_headers(doc_user), json=create_payload
     )
     assert create_resp.status_code == 200
     allergy_id = create_resp.json()["id"]
@@ -132,7 +132,7 @@ def test_update_allergy_sync_conflict(client: TestClient, db_session: Session):
     }
 
     update_resp = client.patch(
-        f"/api/v1/allergies/{allergy_id}", headers=auth_headers(doc_user), json=update_payload
+        f"/api/v1/clinical/allergies/{allergy_id}", headers=auth_headers(doc_user), json=update_payload
     )
 
     assert (
@@ -146,7 +146,7 @@ def test_create_allergy(client: TestClient, db_session: Session):
 
     payload = {"patient_id": str(patient.id), "substance": "Penicillin", "criticality": "high"}
 
-    response = client.post("/api/v1/allergies", headers=auth_headers(doc_user), json=payload)
+    response = client.post("/api/v1/clinical/allergies", headers=auth_headers(doc_user), json=payload)
 
     assert response.status_code == 200
     data = response.json()
@@ -174,7 +174,7 @@ def test_create_condition(client: TestClient, db_session: Session):
         "disease_name": "Common Cold",
     }
 
-    response = client.post("/api/v1/conditions", headers=auth_headers(doc_user), json=payload)
+    response = client.post("/api/v1/clinical/conditions", headers=auth_headers(doc_user), json=payload)
 
     assert response.status_code == 200
     data = response.json()
@@ -206,7 +206,7 @@ def test_create_medication_request(client: TestClient, db_session: Session):
     }
 
     response = client.post(
-        "/api/v1/medication-requests", headers=auth_headers(doc_user), json=payload
+        "/api/v1/clinical/medication-requests", headers=auth_headers(doc_user), json=payload
     )
 
     assert response.status_code == 200

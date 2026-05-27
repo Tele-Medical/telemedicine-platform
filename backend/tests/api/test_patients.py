@@ -58,6 +58,24 @@ def test_create_patient_success(client: TestClient, db_session: Session):
     assert "id" in data
 
 
+def test_get_my_family(client: TestClient, db_session: Session):
+    user = make_user(db_session, phone="+5550003332_family")
+    # Link some patients
+    p1 = make_patient(db_session, "Family Member 1")
+    p1.user_id = user.id
+    p2 = make_patient(db_session, "Family Member 2")
+    p2.user_id = user.id
+    db_session.commit()
+
+    response = client.get("/api/v1/patients/me/family", headers=auth_headers(user))
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    names = {p["full_name"] for p in data}
+    assert "Family Member 1" in names
+    assert "Family Member 2" in names
+
+
 def test_create_patient_assisted_no_phone(client: TestClient, db_session: Session):
     """Test creating a patient without a phone number (assisted registration)."""
     user = make_user(db_session, phone="+5550003332")

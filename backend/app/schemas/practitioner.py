@@ -8,6 +8,7 @@ class PractitionerBase(BaseModel):
     full_name: str
     phone: Optional[str] = None
     specialty: Optional[str] = None
+    specialty_category: Optional[str] = None
     registration_number: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

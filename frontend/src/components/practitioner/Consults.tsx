@@ -16,38 +16,7 @@ interface CompletedConsult {
 const Consults: React.FC = () => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [consults] = useState<CompletedConsult[]>([
-    {
-      id: 'C1001',
-      patientName: 'Rohan Sharma',
-      age: 34,
-      gender: 'Male',
-      date: 'May 20, 2026',
-      diagnosis: 'Acute Gastrointestinal Infection',
-      medications: ['ORS Sachets', 'Metronidazole 400mg', 'Paracetamol 650mg'],
-      notes: 'Advised plenty of fluids and soft diet for 3 days. Follow up if fever exceeds 101F.',
-    },
-    {
-      id: 'C1002',
-      patientName: 'Meera Bai',
-      age: 62,
-      gender: 'Female',
-      date: 'May 18, 2026',
-      diagnosis: 'Hypertensive Heart Disease (Controlled)',
-      medications: ['Amlodipine 5mg', 'Telmisartan 40mg'],
-      notes: 'Blood pressure checked at 134/86 mmHg. General symptoms stable. Next comprehensive assessment in 1 month.',
-    },
-    {
-      id: 'C1003',
-      patientName: 'Vikram Singh',
-      age: 48,
-      gender: 'Male',
-      date: 'May 15, 2026',
-      diagnosis: 'Bronchial Asthma Flare-up',
-      medications: ['Salbutamol Inhaler', 'Montelukast 10mg'],
-      notes: 'Encouraged correct inhaler technique. Avoid exposure to dust and smoke.',
-    },
-  ]);
+  const [consults] = useState<CompletedConsult[]>([]);
 
   const filteredConsults = consults.filter(c =>
     c.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||

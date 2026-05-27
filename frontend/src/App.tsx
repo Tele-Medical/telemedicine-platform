@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import AppShell from './components/layout/AppShell';
 import LoginContainer from './components/auth/LoginContainer';
 import RegisterProfile from './components/auth/RegisterProfile';
+import { ProfileSelection } from './components/auth/ProfileSelection';
 import PatientDashboard from './components/dashboard/PatientDashboard';
 import TeleconsultationRoom from './components/consultation/TeleconsultationRoom';
 import { authService } from './api/services';
@@ -135,6 +136,18 @@ function App() {
         ) : (
           <AppShell onLogout={handleLogout}>
             {(() => {
+              const activePatientId = localStorage.getItem('active_patient_id');
+              const needsProfileSelection = (userRole === 'patient' || userRole === 'asha_worker' || userRole === 'asha') && !activePatientId;
+
+              if (needsProfileSelection) {
+                return (
+                  <Routes>
+                    <Route path="/select-profile" element={<ProfileSelection />} />
+                    <Route path="*" element={<Navigate to="/select-profile" replace />} />
+                  </Routes>
+                );
+              }
+
               switch (userRole) {
                 case 'doctor':
                 case 'practitioner':

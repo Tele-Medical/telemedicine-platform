@@ -13,7 +13,7 @@ vi.mock('../../api/client', () => ({
 
 // Mock WebRTC and WebSocket
 let websocketInstance: any = null;
-global.WebSocket = vi.fn().mockImplementation(() => {
+const MockWebSocket = vi.fn().mockImplementation(() => {
   const ws = {
     send: vi.fn(),
     close: vi.fn(),
@@ -25,7 +25,12 @@ global.WebSocket = vi.fn().mockImplementation(() => {
   };
   websocketInstance = ws;
   return ws;
-}) as unknown as any;
+});
+(MockWebSocket as any).OPEN = 1;
+(MockWebSocket as any).CONNECTING = 0;
+(MockWebSocket as any).CLOSING = 2;
+(MockWebSocket as any).CLOSED = 3;
+global.WebSocket = MockWebSocket as unknown as any;
 
 let peerConnectionInstance: any = null;
 global.RTCPeerConnection = vi.fn().mockImplementation((config) => {
@@ -227,5 +232,108 @@ describe('VideoFeed Component', () => {
     await waitFor(() => {
       expect(screen.getByText('clinical.excellent_signal')).toBeInTheDocument();
     });
+  });
+
+  it('handles ping-pong handshake and doctor initiates exactly one offer', async () => {
+    render(
+      <BrowserRouter>
+        <VideoFeed appointmentId="appt-123" userRole="doctor" />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(websocketInstance).not.toBeNull();
+    });
+
+    // Simulate welcome -> should send peer_present
+    websocketInstance.onmessage({
+      data: JSON.stringify({ type: 'welcome' }),
+    });
+
+    await waitFor(() => {
+      expect(websocketInstance.send).toHaveBeenCalledWith(JSON.stringify({ type: 'peer_present' }));
+    });
+
+    // Reset mocks to test offer creation
+    vi.clearAllMocks();
+    peerConnectionInstance.signalingState = 'stable';
+
+    // Simulate peer_joined -> doctor should send peer_present AND an offer
+    websocketInstance.onmessage({
+      data: JSON.stringify({ type: 'peer_joined' }),
+    });
+
+    await waitFor(() => {
+      expect(websocketInstance.send).toHaveBeenCalledWith(JSON.stringify({ type: 'peer_present' }));
+      expect(peerConnectionInstance.createOffer).toHaveBeenCalled();
+    });
+  });
+
+  it('prevents multiple offers from rapid peer_present messages', async () => {
+    render(
+      <BrowserRouter>
+        <VideoFeed appointmentId="appt-123" userRole="doctor" />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(websocketInstance).not.toBeNull();
+    });
+    
+    peerConnectionInstance.signalingState = 'stable';
+
+    // Simulate peer_present, which triggers an offer
+    websocketInstance.onmessage({ data: JSON.stringify({ type: 'peer_present' }) });
+
+    await waitFor(() => {
+      expect(peerConnectionInstance.createOffer).toHaveBeenCalled();
+    });
+
+    // Set local description to simulate the first offer completed
+    peerConnectionInstance.localDescription = { type: 'offer', sdp: 'fake-sdp' };
+    vi.clearAllMocks();
+
+    // Fire another peer_present -> should NOT trigger another createOffer
+    websocketInstance.onmessage({ data: JSON.stringify({ type: 'peer_present' }) });
+
+    // Wait a bit to ensure it wasn't called
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(peerConnectionInstance.createOffer).not.toHaveBeenCalled();
+  });
+
+  it('updates local chat on registerSendChat invocation', async () => {
+    let mockRegisterChat: any = null;
+    const mockOnChatMessage = vi.fn();
+
+    render(
+      <BrowserRouter>
+        <VideoFeed 
+          appointmentId="appt-123" 
+          userRole="doctor" 
+          registerSendChat={(fn) => { mockRegisterChat = fn; }}
+          onChatMessage={mockOnChatMessage}
+        />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(mockRegisterChat).not.toBeNull();
+      expect(websocketInstance).not.toBeNull();
+    });
+
+    // Simulate sending a message
+    mockRegisterChat("Hello World");
+
+    // Expect it to be sent over WS
+    await waitFor(() => {
+      expect(websocketInstance.send).toHaveBeenCalledWith(expect.stringContaining("Hello World"));
+    });
+
+    // Expect it to trigger the local onChatMessage callback
+    expect(mockOnChatMessage).toHaveBeenCalledWith(expect.objectContaining({
+      text: "Hello World",
+      senderId: "doctor",
+      senderName: "You",
+    }));
   });
 });

@@ -16,38 +16,7 @@ interface PatientRecord {
 const Patients: React.FC = () => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [patients] = useState<PatientRecord[]>([
-    {
-      id: 'P101',
-      name: 'Ravi Kumar',
-      age: 42,
-      gender: 'Male',
-      phone: '+91 98000 00001',
-      lastVisit: 'May 12, 2026',
-      bloodGroup: 'O+',
-      vitalsSummary: 'BP: 142/94 (Elevated) • Pulse: 72 bpm',
-    },
-    {
-      id: 'P102',
-      name: 'Sunita Devi',
-      age: 58,
-      gender: 'Female',
-      phone: '+91 98123 45678',
-      lastVisit: 'May 08, 2026',
-      bloodGroup: 'B+',
-      vitalsSummary: 'BP: 128/80 (Normal) • Pulse: 76 bpm',
-    },
-    {
-      id: 'P103',
-      name: 'Baldev Singh',
-      age: 65,
-      gender: 'Male',
-      phone: '+91 98987 65432',
-      lastVisit: 'May 14, 2026',
-      bloodGroup: 'A-',
-      vitalsSummary: 'BP: 156/98 (High) • Pulse: 84 bpm',
-    },
-  ]);
+  const [patients] = useState<PatientRecord[]>([]);
 
   const filteredPatients = patients.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -40,7 +40,6 @@ const BottomNav = () => {
           { to: '/', labelKey: 'nav.queue', icon: Calendar },
           { to: '/consults', labelKey: 'nav.consults', icon: Heart },
           { to: '/patients', labelKey: 'nav.patients', icon: User },
-          { to: '/prescriptions', labelKey: 'nav.prescriptions', icon: FileText },
           { to: '/profile', labelKey: 'nav.profile', icon: User },
         ];
       case 'asha':

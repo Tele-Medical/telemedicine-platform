@@ -30,6 +30,17 @@ def create_patient(
     return patient_service.create_patient(db, payload, creator_id=current_user.id)
 
 
+@router.get("/me/family", response_model=List[PatientRead])
+def get_family_patients(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Returns all patient profiles linked to the current logged-in user (Family Account).
+    """
+    from app.models.patient import Patient
+    return db.query(Patient).filter(Patient.user_id == current_user.id, Patient.is_active).all()
+
 @router.get("/", response_model=List[PatientRead])
 def search_patients(
     q: str = Query(..., min_length=2),

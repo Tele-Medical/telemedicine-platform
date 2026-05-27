@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, FileDown, CheckCircle, Clock } from 'lucide-react';
+import { apiClient } from '../../api/client';
 import { useTranslation } from 'react-i18next';
 
 interface PrescriptionRecord {
@@ -14,32 +15,29 @@ interface PrescriptionRecord {
 const Prescriptions: React.FC = () => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [prescriptions] = useState<PrescriptionRecord[]>([
-    {
-      id: 'RX-9201',
-      patientName: 'Ravi Kumar',
-      date: 'May 22, 2026',
-      medicationsCount: 3,
-      status: 'Pending Dispensation',
-      clinic: 'Rupnagar Sub-Clinic',
-    },
-    {
-      id: 'RX-9104',
-      patientName: 'Sunita Devi',
-      date: 'May 18, 2026',
-      medicationsCount: 2,
-      status: 'Dispensed',
-      clinic: 'Nangal Block Hospital',
-    },
-    {
-      id: 'RX-8992',
-      patientName: 'Meera Bai',
-      date: 'May 15, 2026',
-      medicationsCount: 2,
-      status: 'Dispensed',
-      clinic: 'Rupnagar Sub-Clinic',
-    },
-  ]);
+  const [prescriptions, setPrescriptions] = useState<PrescriptionRecord[]>([]);
+
+  useEffect(() => {
+    const fetchPrescriptions = async () => {
+      try {
+        const data = await apiClient('/prescriptions');
+        if (data && Array.isArray(data)) {
+          const formatted = data.map((p: { id: string, patient_id: string, created_at: string, items?: unknown[], status: string }) => ({
+            id: p.id.split('-')[0].toUpperCase(),
+            patientName: p.patient_id.substring(0, 8), // Assuming patient info isn't embedded, fallback to ID
+            date: new Date(p.created_at).toLocaleDateString(),
+            medicationsCount: p.items?.length || 0,
+            status: (p.status === 'dispensed' ? 'Dispensed' : 'Pending Dispensation') as "Pending Dispensation" | "Dispensed",
+            clinic: 'Virtual Clinic'
+          }));
+          setPrescriptions(formatted);
+        }
+      } catch (err) {
+        console.error('Failed to fetch prescriptions', err);
+      }
+    };
+    fetchPrescriptions();
+  }, []);
 
   const filteredPrescriptions = prescriptions.filter(p =>
     p.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||

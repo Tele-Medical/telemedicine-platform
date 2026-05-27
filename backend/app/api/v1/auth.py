@@ -56,9 +56,45 @@ def read_users_me(db: Session = Depends(get_db), current_user: User = Depends(ge
     if current_user.default_role == "patient":
         from app.models.patient import Patient
 
-        patient = db.query(Patient).filter(Patient.created_by_user_id == current_user.id).first()
-        if patient:
-            patient_id = patient.id
+        # 1. Try to find a patient record explicitly linked to this user's ID AND matching their phone number
+        patient = None
+        if current_user.phone:
+            patient = db.query(Patient).filter(
+                Patient.user_id == current_user.id,
+                Patient.phone == current_user.phone
+            ).first()
+        
+        # 2. If not found, look for any patient record (even unlinked) matching their phone number (handles legacy primary profiles)
+        if not patient and current_user.phone:
+            patient = db.query(Patient).filter(Patient.phone == current_user.phone).first()
+
+        # 3. Fallback: Try to find any record linked to this user ID
+        if not patient:
+            patient = db.query(Patient).filter(Patient.user_id == current_user.id).first()
+
+        # 4. Fallback: Try to find first patient record created by this user
+        if not patient:
+            patient = db.query(Patient).filter(Patient.created_by_user_id == current_user.id).first()
+
+        if not patient:
+            patient = Patient(
+                full_name=current_user.full_name or "Patient",
+                phone=current_user.phone,
+                preferred_language="pa",
+                user_id=current_user.id,
+                created_by_user_id=current_user.id,
+            )
+            db.add(patient)
+            db.commit()
+            db.refresh(patient)
+        else:
+            # Self-heal legacy profile by setting the user_id link
+            if patient.user_id != current_user.id:
+                patient.user_id = current_user.id
+                db.commit()
+                db.refresh(patient)
+        
+        patient_id = patient.id
     elif current_user.default_role in ["doctor", "practitioner"]:
         from app.models.practitioner import Practitioner
 

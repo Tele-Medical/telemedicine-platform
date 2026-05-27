@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
+from app.schemas.symptom_intake import SymptomIntakeBase
 
 
 class AppointmentBase(BaseModel):
@@ -15,11 +16,10 @@ class AppointmentBase(BaseModel):
     triage_priority: Literal["Critical", "Urgent", "Standard"] = "Standard"
     notes: Optional[str] = None
 
-
 class AppointmentCreate(AppointmentBase):
     """Schema for creating a new appointment."""
 
-    pass
+    symptom_intake: Optional[SymptomIntakeBase] = None
 
 
 class AppointmentUpdate(BaseModel):
@@ -37,5 +37,7 @@ class AppointmentResponse(AppointmentBase):
     updated_by_user_id: Optional[uuid.UUID] = None
     created_at: datetime
     updated_at: datetime
+    practitioner_name: Optional[str] = None
+    practitioner_role: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

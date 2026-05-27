@@ -14,7 +14,8 @@ class Practitioner(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     full_name: Mapped[str] = mapped_column(String, nullable=False)
     phone: Mapped[str | None] = mapped_column(String, nullable=True)
-    specialty: Mapped[str | None] = mapped_column(String, nullable=True)
+    specialty: Mapped[str | None] = mapped_column(String, nullable=True) # Free-text sub-specialty or notes
+    specialty_category: Mapped[str | None] = mapped_column(String, nullable=True) # Structured category for routing (e.g., Cardiology, General Medicine)
     registration_number: Mapped[str | None] = mapped_column(
         String, nullable=True
     )  # MCI License Number

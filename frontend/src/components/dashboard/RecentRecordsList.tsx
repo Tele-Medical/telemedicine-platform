@@ -3,6 +3,7 @@ import { FileText, ShieldAlert, Award } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db';
+import { apiClient } from '../../api/client';
 
 interface RecentRecordsListProps {
   isDemo?: boolean;
@@ -11,6 +12,38 @@ interface RecentRecordsListProps {
 
 const RecentRecordsList: React.FC<RecentRecordsListProps> = ({ isDemo = false, patientId }) => {
   const { t } = useTranslation();
+  const [apiRecords, setApiRecords] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (!patientId || isDemo) return;
+    
+    Promise.all([
+      apiClient(`/prescriptions?patient_id=${patientId}`).catch(() => []),
+      apiClient(`/clinical/documents?patient_id=${patientId}`).catch(() => [])
+    ]).then(([prescriptions, documents]) => {
+      const formattedPrescriptions = (prescriptions || []).map((p: any) => ({
+        id: p.id,
+        title: `Prescription`,
+        subtitle: p.clinic_name || 'Dr. Consult',
+        date: new Date(p.created_at).toLocaleDateString(),
+        sortDate: new Date(p.created_at).getTime(),
+        type: 'prescription',
+        downloadUrl: null // Wait, backend doesn't have PDF generation for prescriptions yet. We'll skip download for prescriptions for now.
+      }));
+
+      const formattedDocuments = (documents || []).map((d: any) => ({
+        id: d.id,
+        title: d.file_name,
+        subtitle: 'Document',
+        date: new Date(d.created_at).toLocaleDateString(),
+        sortDate: new Date(d.created_at).getTime(),
+        type: 'lab',
+        downloadUrl: `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/clinical/documents/${d.id}/download`
+      }));
+
+      setApiRecords([...formattedPrescriptions, ...formattedDocuments]);
+    });
+  }, [patientId, isDemo]);
 
   // Query actual conditions and allergies from local offline IndexedDB
   const dbRecords = useLiveQuery(async () => {
@@ -39,11 +72,11 @@ const RecentRecordsList: React.FC<RecentRecordsListProps> = ({ isDemo = false, p
       type: 'allergy'
     }));
 
-    const combined = [...formattedConds, ...formattedAllgs];
+    const combined = [...formattedConds, ...formattedAllgs, ...apiRecords];
     // Sort by date descending using robust numeric timestamps
     combined.sort((a, b) => b.sortDate - a.sortDate);
     return combined;
-  }, [patientId]) || [];
+  }, [patientId, apiRecords]) || [];
 
   const demoRecords = [
     { id: 'demo-1', title: `${t('clinical.lab_report')} - ${t('clinical.blood_test')}`, subtitle: 'Lab Report', date: 'Oct 12, 2026', type: 'lab' },
@@ -93,7 +126,13 @@ const RecentRecordsList: React.FC<RecentRecordsListProps> = ({ isDemo = false, p
               <h3 className="text-sm font-bold text-neutral-800">{record.title}</h3>
               <p className="text-xs text-neutral-500 mt-0.5">{record.subtitle} • {record.date}</p>
             </div>
-            <svg className="text-neutral-400 opacity-50" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            {record.downloadUrl ? (
+              <a href={record.downloadUrl} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+              </a>
+            ) : (
+              <svg className="text-neutral-400 opacity-50" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            )}
           </li>
         ))}
       </ul>

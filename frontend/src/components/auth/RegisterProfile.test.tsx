@@ -5,7 +5,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('../../api/services', () => ({
   authService: {
     updateProfile: vi.fn().mockResolvedValue({}),
+    getMe: vi.fn().mockResolvedValue({ patient_id: 'test-patient-id' }),
   }
+}));
+
+vi.mock('../../api/client', () => ({
+  apiClient: vi.fn().mockResolvedValue({}),
 }));
 
 describe('RegisterProfile Component', () => {
@@ -46,6 +51,7 @@ describe('RegisterProfile Component', () => {
 
     await waitFor(() => {
       expect(authService.updateProfile).toHaveBeenCalledWith('Aditya', 'pa');
+      expect(authService.getMe).toHaveBeenCalled();
       expect(handleComplete).toHaveBeenCalled();
     });
   });

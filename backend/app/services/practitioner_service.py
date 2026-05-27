@@ -13,5 +13,5 @@ def get_practitioner(db: Session, practitioner_id: UUID) -> Practitioner:
     return practitioner
 
 
-def list_practitioners(db: Session, skip: int = 0, limit: int = 100) -> List[Practitioner]:
-    return practitioner_repo.list_all(db, skip=skip, limit=limit)
+def list_practitioners(db: Session, specialty: str | None = None, skip: int = 0, limit: int = 100) -> List[Practitioner]:
+    return practitioner_repo.list_all(db, specialty=specialty, skip=skip, limit=limit)
