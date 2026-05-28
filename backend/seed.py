@@ -1,6 +1,6 @@
 import random
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -8,17 +8,13 @@ from app.core.config import settings
 from app.core.database import Base
 from app.core.security import get_password_hash
 from app.models.auth import Role, User, UserRole
-from app.models.patient import Patient, PatientIdentifier
 from app.models.practitioner import Practitioner
 from app.models.pharmacy import (
     MedicineCatalog,
     Pharmacy,
     StockBatch,
     StockMovement,
-    Prescription,
-    PrescriptionItem,
 )
-from app.models.appointment import Appointment
 
 
 def seed_db():
