@@ -140,8 +140,13 @@ def update_me(db: Session, current_user: User, payload: UserUpdate) -> User:
                 created_by_user_id=current_user.id,
             )
             db.add(patient)
-        elif patient.user_id is None:
-            patient.user_id = current_user.id
+        else:
+            if patient.user_id is None:
+                patient.user_id = current_user.id
+            if current_user.full_name:
+                patient.full_name = current_user.full_name
+            if current_user.preferred_language:
+                patient.preferred_language = current_user.preferred_language
 
     db.commit()
     db.refresh(current_user)

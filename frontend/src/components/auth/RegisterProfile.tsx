@@ -38,6 +38,7 @@ const RegisterProfile: React.FC<RegisterProfileProps> = ({ onComplete }) => {
         await apiClient(`/patients/${user.patient_id}`, {
           method: 'PATCH',
           body: JSON.stringify({
+            full_name: trimmedName,
             gender: gender,
             date_of_birth: dob || null,
             phone: phone || null
