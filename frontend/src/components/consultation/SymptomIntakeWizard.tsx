@@ -24,12 +24,30 @@ export function SymptomIntakeWizard({ onComplete, onCancel }: SymptomIntakeWizar
     const keywords = complaint.toLowerCase();
     const symptoms: string[] = [];
     
-    if (keywords.includes('head') || keywords.includes('dizzy')) symptoms.push('headache', 'dizziness');
-    if (keywords.includes('stomach') || keywords.includes('pain') || keywords.includes('nausea')) symptoms.push('abdominal pain', 'nausea');
-    if (keywords.includes('fever') || keywords.includes('hot')) symptoms.push('fever');
-    if (keywords.includes('cough') || keywords.includes('cold')) symptoms.push('cough', 'congestion');
-    if (keywords.includes('heart') || keywords.includes('chest')) symptoms.push('chest pain', 'palpitations');
-    if (keywords.includes('child') || keywords.includes('baby')) symptoms.push('pediatric concern');
+    if (keywords.includes('head') || keywords.includes('dizzy') || keywords.includes('migraine') || keywords.includes('numb') || keywords.includes('seizure')) {
+      symptoms.push('headache', 'dizziness');
+    }
+    if (keywords.includes('stomach') || keywords.includes('pain') || keywords.includes('nausea') || keywords.includes('vomit') || keywords.includes('diarrhea') || keywords.includes('belly')) {
+      symptoms.push('abdominal pain', 'nausea');
+    }
+    if (keywords.includes('fever') || keywords.includes('hot') || keywords.includes('chill') || keywords.includes('sweat')) {
+      symptoms.push('fever');
+    }
+    if (keywords.includes('cough') || keywords.includes('cold') || keywords.includes('throat') || keywords.includes('congestion')) {
+      symptoms.push('cough', 'congestion');
+    }
+    if (keywords.includes('heart') || keywords.includes('chest') || keywords.includes('palpit') || keywords.includes('breath')) {
+      symptoms.push('chest pain', 'palpitations');
+    }
+    if (keywords.includes('child') || keywords.includes('baby') || keywords.includes('toddler') || keywords.includes('kid') || keywords.includes('infant')) {
+      symptoms.push('pediatric concern');
+    }
+    if (keywords.includes('bone') || keywords.includes('joint') || keywords.includes('back') || keywords.includes('spasm') || keywords.includes('lift') || keywords.includes('muscle') || keywords.includes('strain') || keywords.includes('sprain') || keywords.includes('knee') || keywords.includes('shoulder') || keywords.includes('neck') || keywords.includes('fracture')) {
+      symptoms.push('orthopedic concern');
+    }
+    if (keywords.includes('rash') || keywords.includes('skin') || keywords.includes('itch') || keywords.includes('acne') || keywords.includes('hive')) {
+      symptoms.push('skin concern');
+    }
     
     if (symptoms.length === 0) {
       symptoms.push('general discomfort');
