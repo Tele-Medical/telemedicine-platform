@@ -27,7 +27,7 @@ export function SymptomIntakeWizard({ onComplete, onCancel }: SymptomIntakeWizar
     // Helper to perform whole-word matching using word boundaries
     const match = (tokensList: string[]) => {
       return tokensList.some(token => {
-        const pattern = new RegExp('\\b' + token.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '\\b', 'i');
+        const pattern = new RegExp('\\b' + token.replace(/[-\\^$*+?.()|[\]{}]/g, '\\$&') + '\\b', 'i');
         return pattern.test(keywords);
       });
     };
