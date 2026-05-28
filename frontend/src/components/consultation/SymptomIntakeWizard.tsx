@@ -24,12 +24,35 @@ export function SymptomIntakeWizard({ onComplete, onCancel }: SymptomIntakeWizar
     const keywords = complaint.toLowerCase();
     const symptoms: string[] = [];
     
-    if (keywords.includes('head') || keywords.includes('dizzy')) symptoms.push('headache', 'dizziness');
-    if (keywords.includes('stomach') || keywords.includes('pain') || keywords.includes('nausea')) symptoms.push('abdominal pain', 'nausea');
-    if (keywords.includes('fever') || keywords.includes('hot')) symptoms.push('fever');
-    if (keywords.includes('cough') || keywords.includes('cold')) symptoms.push('cough', 'congestion');
-    if (keywords.includes('heart') || keywords.includes('chest')) symptoms.push('chest pain', 'palpitations');
-    if (keywords.includes('child') || keywords.includes('baby')) symptoms.push('pediatric concern');
+    // Helper to perform whole-word matching using word boundaries
+    const match = (tokensList: string[]) => {
+      return tokensList.some(token => {
+        const pattern = new RegExp('\\b' + token.replace(/[-\\^$*+?.()|[\]{}]/g, '\\$&') + '\\b', 'i');
+        return pattern.test(keywords);
+      });
+    };
+    
+    if (match(['head', 'dizzy', 'dizziness', 'migraine', 'numb', 'seizure', 'headache'])) {
+      symptoms.push('headache', 'dizziness');
+    }
+    if (match(['fever', 'hot', 'chill', 'sweat', 'chills'])) {
+      symptoms.push('fever');
+    }
+    if (match(['cough', 'cold', 'throat', 'congestion', 'flu'])) {
+      symptoms.push('cough', 'congestion');
+    }
+    if (match(['heart', 'chest', 'palpit', 'palpitations', 'breath', 'breathless', 'breathlessness'])) {
+      symptoms.push('chest pain', 'palpitations');
+    }
+    if (match(['child', 'baby', 'toddler', 'kid', 'infant', 'newborn', 'son', 'daughter'])) {
+      symptoms.push('pediatric concern');
+    }
+    if (match(['bone', 'joint', 'spasm', 'lifting', 'muscle', 'strain', 'sprain', 'knee', 'shoulder', 'neck', 'fracture', 'spine', 'furniture', 'heavy', 'backache', 'sciatica'])) {
+      symptoms.push('orthopedic concern');
+    }
+    if (match(['rash', 'skin', 'itch', 'acne', 'hive', 'eczema'])) {
+      symptoms.push('skin concern');
+    }
     
     if (symptoms.length === 0) {
       symptoms.push('general discomfort');
