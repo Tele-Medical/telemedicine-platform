@@ -24,28 +24,33 @@ export function SymptomIntakeWizard({ onComplete, onCancel }: SymptomIntakeWizar
     const keywords = complaint.toLowerCase();
     const symptoms: string[] = [];
     
-    if (keywords.includes('head') || keywords.includes('dizzy') || keywords.includes('migraine') || keywords.includes('numb') || keywords.includes('seizure')) {
+    // Helper to perform whole-word matching using word boundaries
+    const match = (tokensList: string[]) => {
+      return tokensList.some(token => {
+        const pattern = new RegExp('\\b' + token.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '\\b', 'i');
+        return pattern.test(keywords);
+      });
+    };
+    
+    if (match(['head', 'dizzy', 'dizziness', 'migraine', 'numb', 'seizure', 'headache'])) {
       symptoms.push('headache', 'dizziness');
     }
-    if (keywords.includes('stomach') || keywords.includes('pain') || keywords.includes('nausea') || keywords.includes('vomit') || keywords.includes('diarrhea') || keywords.includes('belly')) {
-      symptoms.push('abdominal pain', 'nausea');
-    }
-    if (keywords.includes('fever') || keywords.includes('hot') || keywords.includes('chill') || keywords.includes('sweat')) {
+    if (match(['fever', 'hot', 'chill', 'sweat', 'chills'])) {
       symptoms.push('fever');
     }
-    if (keywords.includes('cough') || keywords.includes('cold') || keywords.includes('throat') || keywords.includes('congestion')) {
+    if (match(['cough', 'cold', 'throat', 'congestion', 'flu'])) {
       symptoms.push('cough', 'congestion');
     }
-    if (keywords.includes('heart') || keywords.includes('chest') || keywords.includes('palpit') || keywords.includes('breath')) {
+    if (match(['heart', 'chest', 'palpit', 'palpitations', 'breath', 'breathless', 'breathlessness'])) {
       symptoms.push('chest pain', 'palpitations');
     }
-    if (keywords.includes('child') || keywords.includes('baby') || keywords.includes('toddler') || keywords.includes('kid') || keywords.includes('infant')) {
+    if (match(['child', 'baby', 'toddler', 'kid', 'infant', 'newborn', 'son', 'daughter'])) {
       symptoms.push('pediatric concern');
     }
-    if (keywords.includes('bone') || keywords.includes('joint') || keywords.includes('back') || keywords.includes('spasm') || keywords.includes('lift') || keywords.includes('muscle') || keywords.includes('strain') || keywords.includes('sprain') || keywords.includes('knee') || keywords.includes('shoulder') || keywords.includes('neck') || keywords.includes('fracture')) {
+    if (match(['bone', 'joint', 'spasm', 'lifting', 'muscle', 'strain', 'sprain', 'knee', 'shoulder', 'neck', 'fracture', 'spine', 'furniture', 'heavy', 'backache', 'sciatica'])) {
       symptoms.push('orthopedic concern');
     }
-    if (keywords.includes('rash') || keywords.includes('skin') || keywords.includes('itch') || keywords.includes('acne') || keywords.includes('hive')) {
+    if (match(['rash', 'skin', 'itch', 'acne', 'hive', 'eczema'])) {
       symptoms.push('skin concern');
     }
     
