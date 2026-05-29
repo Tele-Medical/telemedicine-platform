@@ -46,7 +46,8 @@ const PatientDashboard: React.FC = () => {
       const selectedPatientId = validActivePatientId || userData?.patient_id;
       
       const appts = await appointmentService.getAppointments(selectedPatientId || undefined);
-      setAppointments(appts || []);
+      const activeAppts = (appts || []).filter((appt: Appointment) => appt.status === 'requested' || appt.status === 'confirmed');
+      setAppointments(activeAppts);
 
       if (selectedPatientId) {
         try {

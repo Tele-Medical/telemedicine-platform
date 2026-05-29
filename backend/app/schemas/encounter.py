@@ -41,5 +41,7 @@ class EncounterResponse(EncounterBase):
     updated_by_user_id: Optional[uuid.UUID] = None
     created_at: datetime
     updated_at: datetime
+    practitioner_name: Optional[str] = None
+    practitioner_role: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

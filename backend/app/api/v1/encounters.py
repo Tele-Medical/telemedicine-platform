@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
-from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Any, List
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.api import deps
@@ -73,7 +73,36 @@ def create_encounter(
     db.add(enc)
     db.commit()
     db.refresh(enc)
+    return populate_encounter_practitioner(db, enc)
+
+
+def populate_encounter_practitioner(db: Session, enc: Encounter) -> Encounter:
+    enc.practitioner_name = None
+    enc.practitioner_role = None
+    if enc.practitioner_id:
+        practitioner = db.query(Practitioner).filter(Practitioner.id == enc.practitioner_id).first()
+        if practitioner:
+            enc.practitioner_name = practitioner.full_name
+            enc.practitioner_role = practitioner.specialty_category
     return enc
+
+
+@router.get("/", response_model=List[EncounterResponse])
+def list_encounters(
+    patient_id: uuid.UUID = Query(...),
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """List clinical encounters for a patient."""
+    if current_user.default_role == "patient":
+        patient = db.query(Patient).filter(Patient.user_id == current_user.id).first()
+        if not patient or patient.id != patient_id:
+            raise HTTPException(status_code=403, detail="Not authorized to access these encounters")
+
+    encounters = db.query(Encounter).filter(Encounter.patient_id == patient_id).order_by(Encounter.created_at.desc()).all()
+    for enc in encounters:
+        populate_encounter_practitioner(db, enc)
+    return encounters
 
 
 @router.get("/{id}", response_model=EncounterResponse)
@@ -95,7 +124,7 @@ def get_encounter(
         if practitioner and enc.practitioner_id and enc.practitioner_id != practitioner.id:
             raise HTTPException(status_code=403, detail="Not authorized to access this encounter")
 
-    return enc
+    return populate_encounter_practitioner(db, enc)
 
 
 @router.post("/{id}/summary", response_model=EncounterResponse)
@@ -210,4 +239,4 @@ def submit_encounter_summary(
     db.add(enc)
     db.commit()
     db.refresh(enc)
-    return enc
+    return populate_encounter_practitioner(db, enc)

@@ -473,6 +473,12 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
             if (remoteVideoRef.current) {
               remoteVideoRef.current.srcObject = null;
             }
+            if (userRole === 'patient') {
+              setErrorMessage(t('clinical.call_ended_by_doctor', 'The doctor has ended the consultation. Returning to dashboard...'));
+              setTimeout(() => {
+                handleEndCall();
+              }, 2500);
+            }
           }
           
           else if (msg.type === 'chat') {
@@ -547,6 +553,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     cleanupStreams();
     if ((userRole === 'doctor' || userRole === 'practitioner') && encounterId) {
       navigate(`/encounter/${encounterId}`);
+    } else if (userRole === 'patient') {
+      navigate('/', { replace: true });
     } else {
       navigate(-1); // Go back to the previous page (dashboard or queue)
     }
@@ -686,6 +694,36 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       fetchAppointmentAndEncounter();
     }
   }, [appointmentId, userRole]);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    const checkAppointmentStatus = async () => {
+      if (!appointmentId || appointmentId.startsWith('appt-') || userRole !== 'patient') return;
+      try {
+        const data = await apiClient(`/appointments/${appointmentId}`);
+        if (data && (data.status === 'completed' || data.status === 'cancelled')) {
+          console.log(`Appointment status is ${data.status}, exiting call.`);
+          setErrorMessage(t('clinical.call_ended_by_doctor', 'The doctor has ended the consultation. Returning to dashboard...'));
+          clearInterval(intervalId);
+          setTimeout(() => {
+            handleEndCall();
+          }, 2000);
+        }
+      } catch (err) {
+        console.warn("Failed to poll appointment status", err);
+      }
+    };
+
+    if (appointmentId && !appointmentId.startsWith('appt-') && userRole === 'patient') {
+      checkAppointmentStatus();
+      intervalId = setInterval(checkAppointmentStatus, 5000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [appointmentId, userRole, t]);
 
   useEffect(() => {
     establishConnection();
