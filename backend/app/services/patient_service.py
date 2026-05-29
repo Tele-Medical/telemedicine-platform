@@ -23,6 +23,7 @@ def get_patient(db: Session, patient_id: UUID) -> Patient:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
     return patient
 
+
 def create_patient(db: Session, obj_in: PatientCreate, creator_id: UUID) -> Patient:
     """
     Creates a new patient record in the system.
@@ -37,16 +38,12 @@ def create_patient(db: Session, obj_in: PatientCreate, creator_id: UUID) -> Pati
         # If the creator is a patient, all patients they create are family members,
         # so they must be grouped under the creator's family account user ID to appear in /me/family.
         user_id = creator_id
-        
+
         # If a phone was provided, still ensure a User exists for optional future independent logins
         if obj_in.phone:
             user = db.query(User).filter(User.phone == obj_in.phone).first()
             if not user:
-                user = User(
-                    phone=obj_in.phone,
-                    full_name=obj_in.full_name,
-                    default_role="patient"
-                )
+                user = User(phone=obj_in.phone, full_name=obj_in.full_name, default_role="patient")
                 db.add(user)
                 db.flush()
     else:
@@ -55,13 +52,9 @@ def create_patient(db: Session, obj_in: PatientCreate, creator_id: UUID) -> Pati
             user = db.query(User).filter(User.phone == obj_in.phone).first()
             if not user:
                 # Create a new user account for this phone
-                user = User(
-                    phone=obj_in.phone,
-                    full_name=obj_in.full_name,
-                    default_role="patient"
-                )
+                user = User(phone=obj_in.phone, full_name=obj_in.full_name, default_role="patient")
                 db.add(user)
-                db.flush() # flush to get user.id
+                db.flush()  # flush to get user.id
             user_id = user.id
 
     patient_data = obj_in.model_dump(exclude_unset=True)

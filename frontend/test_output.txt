@@ -1,0 +1,635 @@
+
+ RUN  v1.6.1 /home/akshay/Desktop/college-project/telemedicine-platform/frontend
+
+stdout | src/components/asha/__tests__/ASHAClinicalConsultation.test.tsx > ASHAClinicalConsultation Component > renders clinical consultation page and toggles between tabs
+--- MOCK FETCH: /api/v1/practitioners/ GET
+
+stdout | src/components/asha/__tests__/ASHAClinicalConsultation.test.tsx > ASHAClinicalConsultation Component > auto-calculates patient BMI dynamically when height and weight are entered
+--- MOCK FETCH: /api/v1/practitioners/ GET
+
+stdout | src/components/asha/__tests__/ASHAClinicalConsultation.test.tsx > ASHAClinicalConsultation Component > verifies off-range vitals validation and warnings
+--- MOCK FETCH: /api/v1/practitioners/ GET
+
+stdout | src/components/asha/__tests__/ASHAClinicalConsultation.test.tsx > ASHAClinicalConsultation Component > serializes uploaded report documents to Base64 in IndexedDB when offline
+--- MOCK FETCH: /api/v1/practitioners/ GET
+
+stdout | src/components/asha/__tests__/ASHAClinicalConsultation.test.tsx > ASHAClinicalConsultation Component > integrates ML Auto-Route scheduling specialty matching
+--- MOCK FETCH: /api/v1/appointments/ POST
+
+stdout | src/components/asha/__tests__/ASHAClinicalConsultation.test.tsx > ASHAClinicalConsultation Component > integrates ML Auto-Route scheduling specialty matching
+--- MOCK FETCH: /api/v1/practitioners/ GET
+
+ ❯ src/components/asha/__tests__/ASHAClinicalConsultation.test.tsx  (5 tests | 1 failed) 1290ms
+   ❯ src/components/asha/__tests__/ASHAClinicalConsultation.test.tsx > ASHAClinicalConsultation Component > integrates ML Auto-Route scheduling specialty matching
+     → Unable to find an element with the text: /Recommended Specialty: Cardiology/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"max-w-3xl mx-auto px-4 py-8 text-neutral-900 font-sans animate-fade-in pb-16"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"bg-white rounded-3xl border border-neutral-200/60 p-5 shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-center gap-3.5"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-black text-xs shrink-0 shadow-inner"[39m
+          [36m>[39m
+            [0mHS[0m
+          [36m</div>[39m
+          [36m<div>[39m
+            [36m<h1[39m
+              [33mclass[39m=[32m"text-lg font-black tracking-tight text-neutral-950"[39m
+            [36m>[39m
+              [0mHarpreet Singh[0m
+            [36m</h1>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-[10px] text-neutral-400 font-bold uppercase tracking-wider mt-0.5"[39m
+            [36m>[39m
+              [0mPhone: [0m
+              [0m9876543210[0m
+              [0m • Gender: [0m
+              [0mmale[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"shrink-0 flex items-center"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"bg-emerald-50 text-emerald-700 border border-emerald-200/50 px-3 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"w-2 h-2 rounded-full bg-emerald-500 animate-ping"[39m
+            [36m/>[39m
+            [36m<span>[39m
+              [0mOnline Console[0m
+            [36m</span>[39m
+          [36m</span>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex bg-neutral-100 p-1.5 rounded-2xl border border-neutral-200/50 mb-6 gap-1 shadow-inner"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 text-neutral-500 hover:text-neutral-800 hover:bg-white/50 border-0"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"lucide lucide-activity text-neutral-400"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"14"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"14"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [36m<span>[39m
+            [0mSymptoms[0m
+          [36m</span>[39m
+        [36m</button>[39m
+        [36m<button[39m
+          [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 text-neutral-500 hover:text-neutral-800 hover:bg-white/50 border-0"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"lucide lucide-trending-up text-neutral-400"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"14"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"14"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M16 7h6v6"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"m22 7-8.5 8.5-5-5L2 17"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [36m<span>[39m
+            [0mVitals[0m
+          [36m</span>[39m
+        [36m</button>[39m
+        [36m<button[39m
+          [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 text-neutral-500 hover:text-neutral-800 hover:bg-white/50 border-0"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"lucide lucide-file-text text-neutral-400"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"14"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"14"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M14 2v5a1 1 0 0 0 1 1h5"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M10 9H8"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M16 13H8"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M16 17H8"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [36m<span>[39m
+            [0mReports[0m
+          [36m</span>[39m
+        [36m</button>[39m
+        [36m<button[39m
+          [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 bg-white text-primary shadow-md border-0"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"luci...
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"max-w-3xl mx-auto px-4 py-8 text-neutral-900 font-sans animate-fade-in pb-16"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"bg-white rounded-3xl border border-neutral-200/60 p-5 shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-3.5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-black text-xs shrink-0 shadow-inner"[39m
+            [36m>[39m
+              [0mHS[0m
+            [36m</div>[39m
+            [36m<div>[39m
+              [36m<h1[39m
+                [33mclass[39m=[32m"text-lg font-black tracking-tight text-neutral-950"[39m
+              [36m>[39m
+                [0mHarpreet Singh[0m
+              [36m</h1>[39m
+              [36m<p[39m
+                [33mclass[39m=[32m"text-[10px] text-neutral-400 font-bold uppercase tracking-wider mt-0.5"[39m
+              [36m>[39m
+                [0mPhone: [0m
+                [0m9876543210[0m
+                [0m • Gender: [0m
+                [0mmale[0m
+              [36m</p>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"shrink-0 flex items-center"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"bg-emerald-50 text-emerald-700 border border-emerald-200/50 px-3 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"w-2 h-2 rounded-full bg-emerald-500 animate-ping"[39m
+              [36m/>[39m
+              [36m<span>[39m
+                [0mOnline Console[0m
+              [36m</span>[39m
+            [36m</span>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex bg-neutral-100 p-1.5 rounded-2xl border border-neutral-200/50 mb-6 gap-1 shadow-inner"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 text-neutral-500 hover:text-neutral-800 hover:bg-white/50 border-0"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-activity text-neutral-400"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"14"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"14"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [36m<span>[39m
+              [0mSymptoms[0m
+            [36m</span>[39m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 text-neutral-500 hover:text-neutral-800 hover:bg-white/50 border-0"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-trending-up text-neutral-400"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"14"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"14"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M16 7h6v6"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"m22 7-8.5 8.5-5-5L2 17"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [36m<span>[39m
+              [0mVitals[0m
+            [36m</span>[39m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 text-neutral-500 hover:text-neutral-800 hover:bg-white/50 border-0"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-file-text text-neutral-400"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"14"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"14"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M14 2v5a1 1 0 0 0 1 1h5"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M10 9H8"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M16 13H8"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M16 17H8"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [36m<span>[39m
+              [0mReports[0m
+            [36m</span>[39m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text...
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/asha/__tests__/ASHAClinicalConsultation.test.tsx > ASHAClinicalConsultation Component > integrates ML Auto-Route scheduling specialty matching
+TestingLibraryElementError: Unable to find an element with the text: /Recommended Specialty: Cardiology/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"max-w-3xl mx-auto px-4 py-8 text-neutral-900 font-sans animate-fade-in pb-16"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"bg-white rounded-3xl border border-neutral-200/60 p-5 shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-center gap-3.5"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-black text-xs shrink-0 shadow-inner"[39m
+          [36m>[39m
+            [0mHS[0m
+          [36m</div>[39m
+          [36m<div>[39m
+            [36m<h1[39m
+              [33mclass[39m=[32m"text-lg font-black tracking-tight text-neutral-950"[39m
+            [36m>[39m
+              [0mHarpreet Singh[0m
+            [36m</h1>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-[10px] text-neutral-400 font-bold uppercase tracking-wider mt-0.5"[39m
+            [36m>[39m
+              [0mPhone: [0m
+              [0m9876543210[0m
+              [0m • Gender: [0m
+              [0mmale[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"shrink-0 flex items-center"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"bg-emerald-50 text-emerald-700 border border-emerald-200/50 px-3 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"w-2 h-2 rounded-full bg-emerald-500 animate-ping"[39m
+            [36m/>[39m
+            [36m<span>[39m
+              [0mOnline Console[0m
+            [36m</span>[39m
+          [36m</span>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex bg-neutral-100 p-1.5 rounded-2xl border border-neutral-200/50 mb-6 gap-1 shadow-inner"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 text-neutral-500 hover:text-neutral-800 hover:bg-white/50 border-0"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"lucide lucide-activity text-neutral-400"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"14"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"14"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [36m<span>[39m
+            [0mSymptoms[0m
+          [36m</span>[39m
+        [36m</button>[39m
+        [36m<button[39m
+          [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 text-neutral-500 hover:text-neutral-800 hover:bg-white/50 border-0"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"lucide lucide-trending-up text-neutral-400"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"14"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"14"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M16 7h6v6"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"m22 7-8.5 8.5-5-5L2 17"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [36m<span>[39m
+            [0mVitals[0m
+          [36m</span>[39m
+        [36m</button>[39m
+        [36m<button[39m
+          [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 text-neutral-500 hover:text-neutral-800 hover:bg-white/50 border-0"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"lucide lucide-file-text text-neutral-400"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"14"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"14"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M14 2v5a1 1 0 0 0 1 1h5"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M10 9H8"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M16 13H8"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M16 17H8"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [36m<span>[39m
+            [0mReports[0m
+          [36m</span>[39m
+        [36m</button>[39m
+        [36m<button[39m
+          [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 bg-white text-primary shadow-md border-0"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"luci...
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"max-w-3xl mx-auto px-4 py-8 text-neutral-900 font-sans animate-fade-in pb-16"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"bg-white rounded-3xl border border-neutral-200/60 p-5 shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-3.5"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-black text-xs shrink-0 shadow-inner"[39m
+            [36m>[39m
+              [0mHS[0m
+            [36m</div>[39m
+            [36m<div>[39m
+              [36m<h1[39m
+                [33mclass[39m=[32m"text-lg font-black tracking-tight text-neutral-950"[39m
+              [36m>[39m
+                [0mHarpreet Singh[0m
+              [36m</h1>[39m
+              [36m<p[39m
+                [33mclass[39m=[32m"text-[10px] text-neutral-400 font-bold uppercase tracking-wider mt-0.5"[39m
+              [36m>[39m
+                [0mPhone: [0m
+                [0m9876543210[0m
+                [0m • Gender: [0m
+                [0mmale[0m
+              [36m</p>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"shrink-0 flex items-center"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"bg-emerald-50 text-emerald-700 border border-emerald-200/50 px-3 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"w-2 h-2 rounded-full bg-emerald-500 animate-ping"[39m
+              [36m/>[39m
+              [36m<span>[39m
+                [0mOnline Console[0m
+              [36m</span>[39m
+            [36m</span>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex bg-neutral-100 p-1.5 rounded-2xl border border-neutral-200/50 mb-6 gap-1 shadow-inner"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 text-neutral-500 hover:text-neutral-800 hover:bg-white/50 border-0"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-activity text-neutral-400"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"14"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"14"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [36m<span>[39m
+              [0mSymptoms[0m
+            [36m</span>[39m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 text-neutral-500 hover:text-neutral-800 hover:bg-white/50 border-0"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-trending-up text-neutral-400"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"14"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"14"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M16 7h6v6"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"m22 7-8.5 8.5-5-5L2 17"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [36m<span>[39m
+              [0mVitals[0m
+            [36m</span>[39m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 text-neutral-500 hover:text-neutral-800 hover:bg-white/50 border-0"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-file-text text-neutral-400"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"14"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"14"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M14 2v5a1 1 0 0 0 1 1h5"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M10 9H8"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M16 13H8"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M16 17H8"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [36m<span>[39m
+              [0mReports[0m
+            [36m</span>[39m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"flex-1 py-3 px-2 rounded-xl text...
+ ❯ Proxy.waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ src/components/asha/__tests__/ASHAClinicalConsultation.test.tsx:190:11
+    188|     fireEvent.click(mlTriageBtn);
+    189| 
+    190|     await waitFor(() => {
+       |           ^
+    191|       expect(screen.getByText(/Recommended Specialty: Cardiology/i)).t…
+    192|       expect(screen.getByText(/Priority Level: Urgent/i)).toBeInTheDoc…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  10:22:23
+   Duration  2.12s (transform 108ms, setup 121ms, collect 152ms, tests 1.29s, environment 190ms, prepare 70ms)
+

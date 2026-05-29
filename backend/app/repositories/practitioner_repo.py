@@ -20,14 +20,10 @@ def get_by_user_id(db: Session, user_id: UUID) -> Optional[Practitioner]:
     )
 
 
-def list_all(db: Session, specialty: Optional[str] = None, skip: int = 0, limit: int = 100) -> List[Practitioner]:
+def list_all(
+    db: Session, specialty: Optional[str] = None, skip: int = 0, limit: int = 100
+) -> List[Practitioner]:
     query = db.query(Practitioner).filter(Practitioner.is_active)
     if specialty:
         query = query.filter(Practitioner.specialty_category == specialty)
-    return (
-        query
-        .order_by(Practitioner.id.asc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    return query.order_by(Practitioner.id.asc()).offset(skip).limit(limit).all()

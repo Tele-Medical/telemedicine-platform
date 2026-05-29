@@ -14,6 +14,7 @@ from app.models.symptom_intake import SymptomIntake
 
 router = APIRouter()
 
+
 @router.post("/", response_model=AppointmentResponse)
 def create_appointment(
     *,
@@ -36,9 +37,7 @@ def create_appointment(
         triage_priority = routing["triage_priority"]
 
     if practitioner_id:
-        practitioner = (
-            db.query(Practitioner).filter(Practitioner.id == practitioner_id).first()
-        )
+        practitioner = db.query(Practitioner).filter(Practitioner.id == practitioner_id).first()
         if not practitioner:
             raise HTTPException(status_code=404, detail="Practitioner not found")
 
@@ -70,7 +69,7 @@ def create_appointment(
             raw_text=appt_in.symptom_intake.raw_text,
             symptoms=appt_in.symptom_intake.symptoms,
             duration=appt_in.symptom_intake.duration,
-            severity=appt_in.symptom_intake.severity
+            severity=appt_in.symptom_intake.severity,
         )
         db.add(intake)
         db.commit()
@@ -105,7 +104,9 @@ def get_appointments(
         appt.practitioner_name = None
         appt.practitioner_role = None
         if appt.practitioner_id:
-            practitioner = db.query(Practitioner).filter(Practitioner.id == appt.practitioner_id).first()
+            practitioner = (
+                db.query(Practitioner).filter(Practitioner.id == appt.practitioner_id).first()
+            )
             if practitioner:
                 appt.practitioner_name = practitioner.full_name
                 appt.practitioner_role = practitioner.specialty_category
@@ -226,7 +227,9 @@ def get_appointment_details(
         if current_user.default_role == "patient":
             patient = (
                 db.query(Patient)
-                .filter(Patient.created_by_user_id == current_user.id, Patient.id == appt.patient_id)
+                .filter(
+                    Patient.created_by_user_id == current_user.id, Patient.id == appt.patient_id
+                )
                 .first()
             )
             if not patient:

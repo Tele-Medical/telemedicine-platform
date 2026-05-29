@@ -572,7 +572,6 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     return () => {
       cleanupStreams();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appointmentId]);
 
   const isVideoVisible = networkQuality === 'excellent' && connectionState === 'connected';

@@ -3,11 +3,13 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PatientRepository } from '../../repositories/PatientRepository';
 
 const schema = z.object({
   fullName: z.string().min(1, 'Full Name is required'),
   noPhone: z.boolean().optional(),
+  phone: z.string().optional(),
   guardianName: z.string().optional(),
   guardianPhone: z.string().optional(),
 }).superRefine((data, ctx) => {
@@ -26,6 +28,16 @@ const schema = z.object({
         path: ['guardianPhone'],
       });
     }
+  } else {
+    // If patient has a phone, validate it is standard 10 digits
+    const cleaned = (data.phone || '').trim().replace(/[^0-9]/g, '');
+    if (!/^[6-9]\d{9}$/.test(cleaned)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'A valid 10-digit mobile number starting with 6-9 is required',
+        path: ['phone'],
+      });
+    }
   }
 });
 
@@ -33,6 +45,10 @@ type FormData = z.infer<typeof schema>;
 
 const AssistedOnboardingWizard: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryPhone = searchParams.get('phone') || '';
+
   const [step, setStep] = useState(1);
 
   const {
@@ -46,6 +62,7 @@ const AssistedOnboardingWizard: React.FC = () => {
     defaultValues: {
       fullName: '',
       noPhone: false,
+      phone: queryPhone,
       guardianName: '',
       guardianPhone: '',
     },
@@ -54,21 +71,28 @@ const AssistedOnboardingWizard: React.FC = () => {
   const noPhone = watch('noPhone');
 
   const onSubmit = async (data: FormData) => {
-    await PatientRepository.save({
-      id: crypto.randomUUID(),
+    const patientId = crypto.randomUUID();
+    
+    const saved = await PatientRepository.save({
+      id: patientId,
       full_name: data.fullName,
-      guardian_name: data.guardianName,
-      guardian_phone: data.guardianPhone,
+      phone: data.noPhone ? null : (data.phone || null),
+      guardian_name: data.guardianName || null,
+      guardian_phone: data.guardianPhone || null,
       has_phone: !data.noPhone,
+      created_at: new Date().toISOString()
     });
-    setStep(2);
+
+    // Auto-route straight into the Consultation intake flow for this patient
+    navigate(`/consultation-flow/${saved.id || patientId}`);
   };
 
   return (
-    <div className="max-w-xl mx-auto mt-8 bg-white p-6 rounded shadow border border-gray-100">
+    <div className="max-w-xl mx-auto mt-8 bg-white p-6 rounded shadow border border-gray-100 font-sans text-neutral-900">
       <h2 className="text-xl font-bold mb-6 text-gray-800">{t('asha.patient_registration')}</h2>
       {step === 1 && (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          {/* Full Name */}
           <div>
             <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">{t('auth.full_name')}</label>
             <input
@@ -81,18 +105,44 @@ const AssistedOnboardingWizard: React.FC = () => {
             {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName.message}</p>}
           </div>
 
+          {/* Phone Number Input (Only shown if patient has a phone) */}
+          {!noPhone && (
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                Phone Number
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                disabled={!!queryPhone}
+                readOnly={!!queryPhone}
+                {...register('phone')}
+                className={`block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                  queryPhone ? 'bg-gray-100 cursor-not-allowed text-gray-500 font-bold' : ''
+                }`}
+                placeholder="e.g. 9876543210"
+              />
+              {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
+            </div>
+          )}
+
+          {/* No Phone Checkbox Indicator */}
           <div className="flex items-center bg-gray-50 p-3 rounded border border-gray-200">
             <input
               id="noPhone"
               type="checkbox"
+              disabled={!!queryPhone}
               {...register('noPhone')}
-              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed"
             />
-            <label htmlFor="noPhone" className="ml-2 block text-sm font-medium text-gray-700 cursor-pointer">
+            <label htmlFor="noPhone" className={`ml-2 block text-sm font-medium text-gray-700 cursor-pointer ${
+              queryPhone ? 'text-gray-400 cursor-not-allowed' : ''
+            }`}>
               {t('asha.no_phone_notice')}
             </label>
           </div>
 
+          {/* Guardian Info Fields */}
           {noPhone && (
             <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-md space-y-4">
               <p className="text-xs text-yellow-800 mb-2 font-medium uppercase tracking-wide">{t('asha.guardian_required')}</p>

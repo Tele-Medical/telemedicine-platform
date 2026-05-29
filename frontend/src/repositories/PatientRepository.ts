@@ -2,7 +2,6 @@ import { db } from '../db/db';
 import { apiClient } from '../api/client';
 
 export class PatientRepository {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async queueOutbox(patientData: any) {
     // Very basic UUID generation for now without external dependencies
     const opId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
@@ -17,7 +16,6 @@ export class PatientRepository {
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async save(patientData: any) {
     // 1. Write to local IndexedDB immediately
     await db.patients.put(patientData);
