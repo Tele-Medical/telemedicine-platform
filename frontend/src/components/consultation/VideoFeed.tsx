@@ -352,6 +352,9 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         // Strip out leading http:// or https:// from VITE_API_URL
         host = apiBase.replace(/^https?:\/\//, '');
         protocol = apiBase.startsWith('https') ? 'wss:' : 'ws:';
+      } else if (window.location.port === '5173') {
+        // Direct to backend in development to avoid Vite websocket proxy issues
+        host = `${window.location.hostname}:8000`;
       }
       
       // Build dynamic WS signaling path
