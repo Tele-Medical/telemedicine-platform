@@ -91,7 +91,14 @@ def get_appointments(
         query = query.filter(Appointment.patient_id == patient_id)
 
     if current_user.default_role == "patient":
-        query = query.filter(Appointment.created_by_user_id == current_user.id)
+        from sqlalchemy import or_
+
+        query = query.outerjoin(Patient, Appointment.patient_id == Patient.id).filter(
+            or_(
+                Appointment.created_by_user_id == current_user.id,
+                Patient.user_id == current_user.id,
+            )
+        )
     elif current_user.default_role == "practitioner":
         practitioner = (
             db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
@@ -99,6 +106,7 @@ def get_appointments(
         if practitioner:
             query = query.filter(Appointment.practitioner_id == practitioner.id)
 
+    query = query.order_by(Appointment.created_at.desc())
     results = query.offset(skip).limit(limit).all()
     for appt in results:
         appt.practitioner_name = None
@@ -126,8 +134,10 @@ def update_appointment(
     if not appt:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
-    if current_user.default_role == "patient" and appt.created_by_user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    if current_user.default_role == "patient":
+        patient = db.query(Patient).filter(Patient.id == appt.patient_id).first()
+        if appt.created_by_user_id != current_user.id and (not patient or patient.user_id != current_user.id):
+            raise HTTPException(status_code=403, detail="Not enough permissions")
 
     if current_user.default_role == "practitioner":
         practitioner = (
@@ -225,10 +235,16 @@ def get_appointment_details(
     # Enforce ownership/role checks to prevent IDOR
     if current_user.default_role not in ["admin", "staff"]:
         if current_user.default_role == "patient":
+            from sqlalchemy import or_
+
             patient = (
                 db.query(Patient)
                 .filter(
-                    Patient.created_by_user_id == current_user.id, Patient.id == appt.patient_id
+                    Patient.id == appt.patient_id,
+                    or_(
+                        Patient.created_by_user_id == current_user.id,
+                        Patient.user_id == current_user.id,
+                    ),
                 )
                 .first()
             )

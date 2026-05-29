@@ -24,6 +24,8 @@ class EncounterSummary(BaseModel):
 
     clinical_summary: str
     outcome: Optional[Literal["completed", "referred", "follow_up"]] = None
+    follow_up_date: Optional[datetime] = None
+    resolution_notes: Optional[str] = None
 
 
 class EncounterResponse(EncounterBase):
@@ -33,6 +35,7 @@ class EncounterResponse(EncounterBase):
     status: Literal["in_progress", "completed", "cancelled"]
     clinical_summary: Optional[str] = None
     outcome: Optional[Literal["completed", "referred", "follow_up"]] = None
+    care_loop_id: Optional[uuid.UUID] = None
     record_version: int
     created_by_user_id: Optional[uuid.UUID] = None
     updated_by_user_id: Optional[uuid.UUID] = None

@@ -75,7 +75,30 @@ def update(
 
 def search(db: Session, query: str, limit: int = 20) -> List[Patient]:
     """
-    Search active patients by name (partial match) or phone (prefix match).
+    Search active patients by name (partial match) or phone (prefix or suffix match).
+    Also matches linked User account phone numbers.
     """
-    search_filter = or_(Patient.full_name.ilike(f"%{query}%"), Patient.phone.like(f"{query}%"))
-    return db.query(Patient).filter(search_filter, Patient.is_active).limit(limit).all()
+    from app.models.auth import User
+
+    query = query.strip()
+    # Normalize query: if it's a 10-digit number, match the suffix of the phone field too
+    clean_query = "".join(filter(str.isdigit, query))
+    if len(clean_query) == 10:
+        search_filter = or_(
+            Patient.full_name.ilike(f"%{query}%"),
+            Patient.phone.like(f"%{clean_query}"),
+            User.phone.like(f"%{clean_query}"),
+        )
+    else:
+        search_filter = or_(
+            Patient.full_name.ilike(f"%{query}%"),
+            Patient.phone.like(f"{query}%"),
+            User.phone.like(f"{query}%"),
+        )
+    return (
+        db.query(Patient)
+        .outerjoin(User, Patient.user_id == User.id)
+        .filter(search_filter, Patient.is_active)
+        .limit(limit)
+        .all()
+    )

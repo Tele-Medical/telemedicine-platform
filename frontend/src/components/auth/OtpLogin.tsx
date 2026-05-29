@@ -13,6 +13,20 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']); // Changed to 6 digits for backend matching
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  const startCooldown = () => {
+    setResendCooldown(30);
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +37,7 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
         const fullPhone = `+91${phone}`;
         await authService.requestOtp(fullPhone);
         setStep('otp');
+        startCooldown();
       } catch (err: unknown) {
         if (err instanceof Error) {
           setError(err.message || t('common.error'));
@@ -32,6 +47,30 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
       } finally {
         setLoading(false);
       }
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      const fullPhone = `+91${phone}`;
+      await authService.requestOtp(fullPhone);
+      startCooldown();
+      const resendMsg = 'OTP resent successfully!';
+      setError(resendMsg);
+      setTimeout(() => {
+        setError((prev) => (prev === resendMsg ? '' : prev));
+      }, 3000);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || t('common.error'));
+      } else {
+        setError(t('common.error'));
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -54,6 +93,23 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
     if (e.key === 'Backspace' && otp[index] === '' && index > 0) {
       const prevInput = document.getElementById(`otp-input-${index - 1}`);
       prevInput?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pastedData = e.clipboardData.getData('text').replace(/[^0-9]/g, '');
+    if (pastedData.length > 0) {
+      const newOtp = [...otp];
+      const chars = pastedData.split('');
+      let focusIndex = 0;
+      for (let i = 0; i < chars.length && i < 6; i++) {
+        newOtp[i] = chars[i];
+        focusIndex = Math.min(i, 5);
+      }
+      setOtp(newOtp);
+      const nextInput = document.getElementById(`otp-input-${focusIndex}`);
+      nextInput?.focus();
+      e.preventDefault();
     }
   };
 
@@ -149,6 +205,7 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
                   value={digit}
                   onChange={(e) => handleOtpChange(index, e.target.value.replace(/[^0-9]/g, ''))}
                   onKeyDown={(e) => handleKeyDown(index, e)}
+                  onPaste={handlePaste}
                   className="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-bold bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-neutral-900"
                   maxLength={1}
                   required
@@ -164,7 +221,7 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
               {loading ? t('auth.verifying') : t('auth.verify_login')}
             </button>
             
-            <div className="text-center mt-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
               <button 
                 type="button" 
                 onClick={() => {
@@ -176,6 +233,19 @@ const OtpLogin: React.FC<OtpLoginProps> = ({ onLogin }) => {
                 className="text-sm text-neutral-500 hover:text-primary transition-colors font-medium"
               >
                 {t('auth.edit_phone')}
+              </button>
+
+              <button
+                type="button"
+                disabled={resendCooldown > 0 || loading}
+                onClick={handleResendOtp}
+                className={`text-sm font-semibold transition-colors outline-none focus-visible:ring-1 focus-visible:ring-primary/30 ${
+                  resendCooldown > 0 || loading
+                    ? 'text-neutral-300 cursor-not-allowed'
+                    : 'text-primary hover:text-primary-700'
+                }`}
+              >
+                {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
               </button>
             </div>
           </form>

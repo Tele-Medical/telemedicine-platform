@@ -45,7 +45,7 @@ const FamilyDirectory: React.FC = () => {
         // 1. Query Dexie Local DB
         const localMatches = await db.patients
           .where('phone')
-          .equals(phoneQuery)
+          .anyOf(phoneQuery, `+91${phoneQuery}`)
           .toArray();
 
         // Map raw Dexie records to structured PatientRecord
@@ -66,7 +66,11 @@ const FamilyDirectory: React.FC = () => {
           try {
             const res = await apiClient(`/patients/?q=${phoneQuery}`);
             if (res && Array.isArray(res)) {
-              onlineMatches = res.filter(p => p.phone === phoneQuery);
+              onlineMatches = res.filter(p => {
+                if (!p.phone) return true;
+                const pClean = p.phone.replace(/[^0-9]/g, '');
+                return pClean === phoneQuery || pClean === `91${phoneQuery}`;
+              });
             }
           } catch (apiErr) {
             console.warn('Sync lookup failed, falling back to local database profiles', apiErr);

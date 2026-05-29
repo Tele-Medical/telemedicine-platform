@@ -56,7 +56,11 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('access_token');
     localStorage.removeItem('role');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('active_patient_id');
+    localStorage.removeItem('active_patient_name');
     setIsAuthenticated(false);
     setUserRole(null);
     setProfile(null);

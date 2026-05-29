@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -9,6 +10,7 @@ from app.models.patient import Patient
 from app.models.practitioner import Practitioner
 from app.models.appointment import Appointment
 from app.models.encounter import Encounter
+from app.models.clinical import CareLoop
 from app.schemas.encounter import EncounterCreate, EncounterSummary, EncounterResponse
 
 router = APIRouter()
@@ -47,6 +49,19 @@ def create_encounter(
         )
         if not practitioner:
             raise HTTPException(status_code=403, detail="Practitioner profile not found")
+
+    # Prevent duplicate encounters by checking for an existing in-progress encounter for this appointment
+    if enc_in.appointment_id:
+        existing_enc = (
+            db.query(Encounter)
+            .filter(
+                Encounter.appointment_id == enc_in.appointment_id,
+                Encounter.status == "in_progress",
+            )
+            .first()
+        )
+        if existing_enc:
+            return existing_enc
 
     enc = Encounter(
         appointment_id=enc_in.appointment_id,
@@ -116,13 +131,81 @@ def submit_encounter_summary(
     enc.record_version += 1
     enc.updated_by_user_id = current_user.id
 
-    # Cascade status update to associated parent appointment if linked
+    # Manage CareLoop lifecycle
+    # 1. Check if there's an active care loop for this patient
+    care_loop = (
+        db.query(CareLoop)
+        .filter(CareLoop.patient_id == enc.patient_id, CareLoop.status == "active")
+        .first()
+    )
+
+    practitioner_profile_id = None
+    if current_user.default_role == "practitioner":
+        practitioner = (
+            db.query(Practitioner).filter(Practitioner.user_id == current_user.id).first()
+        )
+        if practitioner:
+            practitioner_profile_id = practitioner.id
+    if not practitioner_profile_id:
+        practitioner_profile_id = enc.practitioner_id
+
+    # If no active care loop exists, initialize one
+    if not care_loop:
+        # Resolve chief complaint
+        chief_complaint = "Telemedicine Consultation"
+        if enc.appointment_id:
+            appt = db.query(Appointment).filter(Appointment.id == enc.appointment_id).first()
+            if appt and appt.chief_complaint:
+                chief_complaint = appt.chief_complaint
+
+        care_loop = CareLoop(
+            patient_id=enc.patient_id,
+            practitioner_id=practitioner_profile_id or enc.practitioner_id,
+            chief_complaint=chief_complaint,
+            status="active",
+        )
+        db.add(care_loop)
+        db.flush()
+
+    enc.care_loop_id = care_loop.id
+
+    # 2. Update parent appointment if linked
     if enc.appointment_id:
         appt = db.query(Appointment).filter(Appointment.id == enc.appointment_id).first()
-        if appt and appt.status not in ("completed", "cancelled"):
-            appt.status = "completed"
-            appt.updated_by_user_id = current_user.id
-            db.add(appt)
+        if appt:
+            appt.care_loop_id = care_loop.id
+            if appt.status not in ("completed", "cancelled"):
+                appt.status = "completed"
+                appt.updated_by_user_id = current_user.id
+                db.add(appt)
+
+    # 3. Handle outcomes:
+    if summary_in.outcome == "completed":
+        # All Good / Discharged -> Complete the care loop
+        care_loop.status = "completed"
+        care_loop.resolved_at = datetime.now(timezone.utc)
+        care_loop.resolution_notes = summary_in.resolution_notes or summary_in.clinical_summary
+        db.add(care_loop)
+    elif summary_in.outcome == "follow_up":
+        # Needs follow-up -> Book follow-up if date is provided
+        if summary_in.follow_up_date:
+            channel = "telemedicine"
+            if enc.appointment_id:
+                appt = db.query(Appointment).filter(Appointment.id == enc.appointment_id).first()
+                if appt and appt.channel:
+                    channel = appt.channel
+
+            follow_up_appt = Appointment(
+                patient_id=enc.patient_id,
+                practitioner_id=practitioner_profile_id or enc.practitioner_id,
+                care_loop_id=care_loop.id,
+                channel=channel,
+                scheduled_for=summary_in.follow_up_date,
+                created_by_user_id=current_user.id,
+                chief_complaint=f"Follow-up: {summary_in.clinical_summary[:100]}...",
+                status="confirmed",  # Pre-confirmed by practitioner
+            )
+            db.add(follow_up_appt)
 
     db.add(enc)
     db.commit()

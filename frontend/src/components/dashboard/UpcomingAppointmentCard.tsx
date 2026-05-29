@@ -44,10 +44,17 @@ const UpcomingAppointmentCard: React.FC<UpcomingAppointmentCardProps> = ({ appoi
           <h2 className="text-lg font-bold text-neutral-900 tracking-tight">{t('clinical.upcoming')}</h2>
           {formattedDate && <p className="text-xs text-neutral-500 font-semibold mt-1">{formattedDate}</p>}
         </div>
-        <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-          statusKey === 'confirmed' ? 'bg-success/10 text-success border-success/20' : 'bg-primary/10 text-primary border-primary/20'
-        }`}>
-          {statusText}
+        <div className="flex gap-1.5 items-center">
+          {!!(appointment as any).care_loop_id && (
+            <div className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border bg-amber-50 text-amber-600 border-amber-200">
+              Follow-up
+            </div>
+          )}
+          <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+            statusKey === 'confirmed' ? 'bg-success/10 text-success border-success/20' : 'bg-primary/10 text-primary border-primary/20'
+          }`}>
+            {statusText}
+          </div>
         </div>
       </div>
 

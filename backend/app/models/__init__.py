@@ -4,7 +4,7 @@ from .patient import Patient, PatientIdentifier
 from .practitioner import Practitioner
 from .appointment import Appointment
 from .encounter import Encounter, EncounterParticipant, ConsultationNote
-from .clinical import Observation, Allergy, Condition, MedicationRequest
+from .clinical import Observation, Allergy, Condition, MedicationRequest, CareLoop
 from .audit import ProvenanceEvent, Consent, AuditEvent
 from .sync import SyncCursor, SyncConflict
 from .pharmacy import (

@@ -75,10 +75,10 @@ class ConnectionManager:
         for dead_conn in dead_connections:
             self.disconnect(dead_conn, appointment_id)
 
-    async def subscribe_and_listen(self, appointment_id: str, websocket: WebSocket, user_id: str):
+    async def subscribe_and_listen(self, appointment_id: str, websocket: WebSocket, user_id: str, connection_id: str):
         """
         Subscribes to a Redis channel and relays incoming messages to the specific WebSocket.
-        Automatically filters out messages sent by the user themselves.
+        Automatically filters out messages sent by the same connection.
         """
         pubsub = redis_client.pubsub()
         channel = f"telemetry:room:{appointment_id}"
@@ -88,8 +88,8 @@ class ConnectionManager:
             async for message in pubsub.listen():
                 if message and message.get("type") == "message":
                     data = json.loads(message["data"])
-                    # Filter out messages published by this specific user
-                    if data.get("sender_id") != user_id:
+                    # Filter out messages published by this specific connection
+                    if data.get("sender_connection_id") != connection_id:
                         try:
                             await websocket.send_json(data)
                         except Exception:
@@ -170,7 +170,7 @@ async def signaling_endpoint(
         from app.models import Patient
 
         patient = db.get(Patient, appointment.patient_id)
-        if patient and patient.created_by_user_id == user.id:
+        if patient and (patient.user_id == user.id or patient.created_by_user_id == user.id):
             is_patient = True
 
     if not is_practitioner and not is_patient:
@@ -181,10 +181,11 @@ async def signaling_endpoint(
     # 3. Connection and Lifecycle
     await manager.connect(websocket, appointment_id)
     user_id_str = str(user.id)
+    connection_id = str(uuid.uuid4())
 
     # Start the background task to listen to Redis messages for this room
     listen_task = asyncio.create_task(
-        manager.subscribe_and_listen(appointment_id, websocket, user_id_str)
+        manager.subscribe_and_listen(appointment_id, websocket, user_id_str, connection_id)
     )
 
     try:
@@ -200,6 +201,7 @@ async def signaling_endpoint(
                 "user_id": user_id_str,
                 "role": user.default_role,
                 "sender_id": user_id_str,
+                "sender_connection_id": connection_id,
             },
             appointment_id,
             exclude_socket=websocket,
@@ -209,6 +211,7 @@ async def signaling_endpoint(
             # Relay client-to-client signals
             data = await websocket.receive_json()
             data["sender_id"] = user_id_str  # Stamp with sender for filtering
+            data["sender_connection_id"] = connection_id # Stamp with unique connection for testing compatibility
 
             if data.get("type") == "network_status":
                 logger.info(f"Signal quality report for {appointment_id}: {data.get('status')}")
@@ -224,7 +227,12 @@ async def signaling_endpoint(
         listen_task.cancel()
         manager.disconnect(websocket, appointment_id)
         await manager.publish_to_room(
-            {"type": "peer_left", "user_id": user_id_str, "sender_id": user_id_str},
+            {
+                "type": "peer_left",
+                "user_id": user_id_str,
+                "sender_id": user_id_str,
+                "sender_connection_id": connection_id,
+            },
             appointment_id,
             exclude_socket=websocket,
         )

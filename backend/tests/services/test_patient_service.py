@@ -52,3 +52,18 @@ def test_update_patient_service(db_session: Session):
     assert updated.full_name == "After Update"
     assert updated.updated_by_user_id == user.id
     assert updated.record_version == 2
+
+
+def test_create_patient_normalization_service(db_session: Session):
+    user = make_user(db_session)
+    obj_in = PatientCreate(full_name="Child Patient", phone="9939674571")
+    patient = patient_service.create_patient(db_session, obj_in, creator_id=user.id)
+
+    assert patient.full_name == "Child Patient"
+    assert patient.phone == "+919939674571"
+    
+    # Verify the associated user is created with the normalized phone
+    assert patient.user_id is not None
+    linked_user = db_session.query(User).filter(User.id == patient.user_id).first()
+    assert linked_user is not None
+    assert linked_user.phone == "+919939674571"

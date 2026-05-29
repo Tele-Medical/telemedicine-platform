@@ -14,8 +14,8 @@ from app.core.security import create_access_token
 # ---------------------------------------------------------------------------
 
 
-def make_user(db: Session, phone: str = "+5550001111") -> User:
-    user = User(phone=phone, is_active=True, default_role="patient")
+def make_user(db: Session, phone: str = "+5550001111", role: str = "doctor") -> User:
+    user = User(phone=phone, is_active=True, default_role=role)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -59,7 +59,7 @@ def test_create_patient_success(client: TestClient, db_session: Session):
 
 
 def test_get_my_family(client: TestClient, db_session: Session):
-    user = make_user(db_session, phone="+5550003332_family")
+    user = make_user(db_session, phone="+5550003332_family", role="patient")
     # Link some patients
     p1 = make_patient(db_session, "Family Member 1")
     p1.user_id = user.id

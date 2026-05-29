@@ -20,6 +20,9 @@ class Encounter(Base):
     practitioner_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("practitioners.id"), nullable=True, index=True
     )
+    care_loop_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("care_loops.id"), nullable=True, index=True
+    )
 
     encounter_mode: Mapped[str] = mapped_column(String)  # video, audio, async, audio_fallback
     status: Mapped[str] = mapped_column(
