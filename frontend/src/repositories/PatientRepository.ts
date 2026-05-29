@@ -31,8 +31,10 @@ export class PatientRepository {
             id: patientData.id,
             full_name: patientData.full_name,
             phone: patientData.phone || patientData.guardian_phone || null,
-            preferred_language: 'en',
-            village: 'Nabha Sub-centre'
+            preferred_language: patientData.preferred_language || 'pa',
+            gender: patientData.gender || 'unknown',
+            date_of_birth: patientData.date_of_birth || null,
+            village: patientData.village || 'Nabha Sub-centre'
           })
         });
 

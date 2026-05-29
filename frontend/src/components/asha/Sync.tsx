@@ -55,8 +55,10 @@ const Sync: React.FC = () => {
                 id: payload.id ? String(payload.id) : undefined,
                 full_name: payload.full_name ? String(payload.full_name) : '',
                 phone: (payload.phone || payload.guardian_phone) ? String(payload.phone || payload.guardian_phone) : null,
-                preferred_language: 'en',
-                village: 'Nabha Sub-centre'
+                preferred_language: payload.preferred_language || 'pa',
+                gender: payload.gender || 'unknown',
+                date_of_birth: payload.date_of_birth || null,
+                village: payload.village || 'Nabha Sub-centre'
               })
             }) as { id?: string } | null | undefined;
 
