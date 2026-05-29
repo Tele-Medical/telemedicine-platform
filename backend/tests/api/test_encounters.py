@@ -181,3 +181,99 @@ def test_submit_encounter_summary_unauthorized(client: TestClient, db_session: S
     )
 
     assert sum_resp.status_code == 403  # Forbidden
+
+
+def test_submit_encounter_summary_cured_resolves_care_loop(client: TestClient, db_session: Session):
+    from app.models.clinical import CareLoop
+
+    doc_user = make_user(db_session, phone="+918000000008", role="practitioner")
+    doc = make_practitioner(db_session, doc_user)
+    patient = make_patient(db_session)
+
+    # 1. Create Encounter
+    enc_resp = client.post(
+        "/api/v1/encounters/",
+        headers=auth_headers(doc_user),
+        json={
+            "patient_id": str(patient.id),
+            "practitioner_id": str(doc.id),
+            "encounter_mode": "video",
+        },
+    )
+    assert enc_resp.status_code == 200
+    enc_id = enc_resp.json()["id"]
+
+    # 2. Submit summary as "completed" (Cured / All Good)
+    summary_payload = {
+        "clinical_summary": "Patient has recovered fully.",
+        "outcome": "completed",
+        "resolution_notes": "No fever for 48 hours. Discharged."
+    }
+    sum_resp = client.post(
+        f"/api/v1/encounters/{enc_id}/summary",
+        headers=auth_headers(doc_user),
+        json=summary_payload
+    )
+    assert sum_resp.status_code == 200
+
+    # 3. Verify CareLoop in database
+    care_loops = db_session.query(CareLoop).filter(CareLoop.patient_id == patient.id).all()
+    assert len(care_loops) == 1
+    loop = care_loops[0]
+    assert loop.status == "completed"
+    assert loop.resolution_notes == "No fever for 48 hours. Discharged."
+    assert loop.resolved_at is not None
+
+
+def test_submit_encounter_summary_follow_up_schedules_appointment(client: TestClient, db_session: Session):
+    from app.models.clinical import CareLoop
+    from app.models.appointment import Appointment
+    from datetime import datetime, timezone, timedelta
+
+    doc_user = make_user(db_session, phone="+918000000009", role="practitioner")
+    doc = make_practitioner(db_session, doc_user)
+    patient = make_patient(db_session)
+
+    # 1. Create Encounter
+    enc_resp = client.post(
+        "/api/v1/encounters/",
+        headers=auth_headers(doc_user),
+        json={
+            "patient_id": str(patient.id),
+            "practitioner_id": str(doc.id),
+            "encounter_mode": "video",
+        },
+    )
+    assert enc_resp.status_code == 200
+    enc_id = enc_resp.json()["id"]
+
+    # 2. Submit summary as "follow_up"
+    follow_up_date = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+    summary_payload = {
+        "clinical_summary": "Check patient progress in one week.",
+        "outcome": "follow_up",
+        "follow_up_date": follow_up_date
+    }
+    sum_resp = client.post(
+        f"/api/v1/encounters/{enc_id}/summary",
+        headers=auth_headers(doc_user),
+        json=summary_payload
+    )
+    assert sum_resp.status_code == 200
+
+    # 3. Verify CareLoop is active
+    care_loops = db_session.query(CareLoop).filter(CareLoop.patient_id == patient.id).all()
+    assert len(care_loops) == 1
+    loop = care_loops[0]
+    assert loop.status == "active"
+
+    # 4. Verify pre-confirmed follow-up appointment was scheduled
+    appointments = db_session.query(Appointment).filter(
+        Appointment.patient_id == patient.id,
+        Appointment.care_loop_id == loop.id
+    ).all()
+    assert len(appointments) == 1
+    appt = appointments[0]
+    assert appt.status == "confirmed"
+    assert appt.chief_complaint.startswith("Follow-up:")
+

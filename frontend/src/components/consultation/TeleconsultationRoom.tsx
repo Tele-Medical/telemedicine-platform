@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import VideoFeed from './VideoFeed';
 import PatientRecordsPanel from './PatientRecordsPanel';
 import PrescriptionComposer from './PrescriptionComposer';
 import InCallChat, { type ChatMessage } from './InCallChat';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { apiClient } from '../../api/client';
 
 interface TeleconsultationRoomProps {
   userRole?: string;
@@ -34,6 +35,19 @@ const TeleconsultationRoom: React.FC<TeleconsultationRoomProps> = ({
   const [sendSignalCallback, setSendSignalCallback] = useState<((type: string, payload: any) => void) | null>(null);
 
   const patientId = searchParams.get('patientId');
+  const [resolvedPatientId, setResolvedPatientId] = useState<string | null>(patientId);
+
+  useEffect(() => {
+    if (!resolvedPatientId && appointmentId && !appointmentId.startsWith('appt-')) {
+      apiClient(`/appointments/${appointmentId}`)
+        .then(data => {
+          if (data && data.patient_id) {
+            setResolvedPatientId(data.patient_id);
+          }
+        })
+        .catch(err => console.warn("Failed to fetch patientId from appointment in TeleconsultationRoom", err));
+    }
+  }, [appointmentId, resolvedPatientId]);
 
   const handleChatMessage = useCallback((msg: ChatMessage) => {
     setChatMessages(prev => [...prev, msg]);
@@ -129,7 +143,7 @@ const TeleconsultationRoom: React.FC<TeleconsultationRoomProps> = ({
               className="animate-fade-in h-full"
             >
               <PatientRecordsPanel 
-                patientId={patientId || undefined} 
+                patientId={resolvedPatientId || undefined} 
                 appointmentId={appointmentId}
                 refreshTrigger={refreshTrigger}
                 onDataUpdated={() => {
@@ -145,7 +159,7 @@ const TeleconsultationRoom: React.FC<TeleconsultationRoomProps> = ({
               aria-labelledby="tab-prescription"
               className="animate-fade-in h-full"
             >
-              <PrescriptionComposer appointmentId={appointmentId} patientId={patientId || undefined} />
+              <PrescriptionComposer appointmentId={appointmentId} patientId={resolvedPatientId || undefined} />
             </div>
           )}
           {activeTab === 'chat' as any && (

@@ -32,7 +32,7 @@ const ConsultPatientSearch: React.FC = () => {
       // 1. Local Search (Dexie)
       const localMatches = await db.patients
         .where('phone')
-        .equals(cleanPhone)
+        .anyOf(cleanPhone, `+91${cleanPhone}`)
         .toArray();
 
       // 2. Online Search (API)
@@ -41,7 +41,11 @@ const ConsultPatientSearch: React.FC = () => {
         try {
           const res = await apiClient(`/patients/?q=${cleanPhone}`);
           if (res && Array.isArray(res)) {
-            onlineMatches = res.filter(p => p.phone === cleanPhone);
+            onlineMatches = res.filter(p => {
+              if (!p.phone) return true;
+              const pClean = p.phone.replace(/[^0-9]/g, '');
+              return pClean === cleanPhone || pClean === `91${cleanPhone}`;
+            });
           }
         } catch (apiErr) {
           console.warn('API lookup failed, relying on offline database matches', apiErr);

@@ -55,3 +55,11 @@ export const pharmacyService = {
     });
   }
 };
+
+export const encounterService = {
+  getEncounters: async (patientId: string) => {
+    return apiClient(`/encounters/?patient_id=${patientId}`, {
+      method: 'GET',
+    });
+  }
+};

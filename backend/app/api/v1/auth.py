@@ -91,9 +91,16 @@ def read_users_me(db: Session = Depends(get_db), current_user: User = Depends(ge
             db.commit()
             db.refresh(patient)
         else:
-            # Self-heal legacy profile by setting the user_id link
+            # Self-heal legacy profile by setting the user_id link and phone number
+            updated = False
             if patient.user_id != current_user.id:
                 patient.user_id = current_user.id
+                updated = True
+            if not patient.phone and current_user.phone:
+                patient.phone = current_user.phone
+                updated = True
+            
+            if updated:
                 db.commit()
                 db.refresh(patient)
 

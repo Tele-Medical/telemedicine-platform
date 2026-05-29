@@ -73,6 +73,18 @@ def verify_otp(db: Session, payload: OTPVerify) -> TokenResponse:
     # 4. Find or Create User
     user = db.query(User).filter(User.phone == payload.phone).first()
     if not user:
+        # Fallback suffix match for legacy/unnormalized phone numbers
+        clean_phone = "".join(filter(str.isdigit, payload.phone))
+        if len(clean_phone) >= 10:
+            clean_suffix = clean_phone[-10:]
+            user = db.query(User).filter(User.phone.like(f"%{clean_suffix}")).first()
+            if user:
+                # Self-heal legacy user phone format
+                user.phone = payload.phone
+                db.commit()
+                db.refresh(user)
+
+    if not user:
         user = User(phone=payload.phone, default_role="patient")
         db.add(user)
         db.commit()
@@ -143,6 +155,8 @@ def update_me(db: Session, current_user: User, payload: UserUpdate) -> User:
         else:
             if patient.user_id is None:
                 patient.user_id = current_user.id
+            if not patient.phone and current_user.phone:
+                patient.phone = current_user.phone
             if current_user.full_name:
                 patient.full_name = current_user.full_name
             if current_user.preferred_language:

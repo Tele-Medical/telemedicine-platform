@@ -48,7 +48,6 @@ const BottomNav = () => {
         return [
           { to: '/', labelKey: 'nav.assisted', icon: Heart },
           { to: '/patients', labelKey: 'nav.patients', icon: User },
-          { to: '/appointments', labelKey: 'nav.appointments', icon: Calendar },
           { to: '/sync', labelKey: 'nav.sync', icon: RefreshCw },
           { to: '/profile', labelKey: 'nav.profile', icon: User },
         ];

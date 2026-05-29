@@ -26,6 +26,8 @@ const PatientDashboard: React.FC = () => {
   const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [activeLoop, setActiveLoop] = useState<any | null>(null);
+  const [latestResolvedLoop, setLatestResolvedLoop] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showWizard, setShowWizard] = useState(false);
@@ -42,8 +44,25 @@ const PatientDashboard: React.FC = () => {
       
       const validActivePatientId = activePatientId && activePatientId !== 'undefined' ? activePatientId : null;
       const selectedPatientId = validActivePatientId || userData?.patient_id;
+      
       const appts = await appointmentService.getAppointments(selectedPatientId || undefined);
-      setAppointments(appts || []);
+      const activeAppts = (appts || []).filter((appt: Appointment) => appt.status === 'requested' || appt.status === 'confirmed');
+      setAppointments(activeAppts);
+
+      if (selectedPatientId) {
+        try {
+          const activeLoopData = await apiClient(`/care-loops/active?patient_id=${selectedPatientId}`);
+          setActiveLoop(activeLoopData);
+          if (!activeLoopData) {
+            const resolvedLoopData = await apiClient(`/care-loops/latest-resolved?patient_id=${selectedPatientId}`);
+            setLatestResolvedLoop(resolvedLoopData);
+          } else {
+            setLatestResolvedLoop(null);
+          }
+        } catch (err) {
+          console.error("Error loading care loop data:", err);
+        }
+      }
     } catch (err) {
       console.error("Error loading dashboard data:", err);
       setError(t('app.sync_failed'));
@@ -146,8 +165,60 @@ const PatientDashboard: React.FC = () => {
       )}
 
       <main className="space-y-6">
+        {activeLoop && (
+          <div className="mb-2 p-5 bg-gradient-to-r from-amber-50 to-amber-100/50 border border-amber-200/80 rounded-3xl flex items-start gap-4 shadow-sm animate-fade-in">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/10 shrink-0 mt-0.5">
+              <Calendar size={20} className="stroke-[2.25]" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black bg-amber-200/85 text-amber-900 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                  Under Follow-up
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-neutral-900">Active Consultation Loop</h3>
+              <p className="text-xs text-neutral-600 font-medium">
+                Chief Complaint: <span className="font-bold text-neutral-800">"{activeLoop.chief_complaint}"</span>
+              </p>
+            </div>
+          </div>
+        )}
+
         {appointments.length > 0 ? (
           <UpcomingAppointmentCard appointment={appointments[0]} />
+        ) : latestResolvedLoop ? (
+          /* Premium Care Resolved - Cured & Healthy Card */
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200/80 rounded-3xl p-8 text-center flex flex-col items-center gap-5 shadow-sm animate-fade-in">
+            <div className="w-16 h-16 rounded-full bg-green-500 text-white flex items-center justify-center shadow-md shadow-green-500/15">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-800 rounded-full text-[10px] font-black uppercase tracking-widest">
+                Care Resolved - Cured & Healthy!
+              </div>
+              <h2 className="text-xl font-black text-neutral-900">You are in peak health!</h2>
+              {latestResolvedLoop.resolution_notes && (
+                <div className="bg-white/80 border border-green-100 rounded-2xl p-4 mt-2 max-w-md mx-auto shadow-inner text-left">
+                  <p className="text-[10px] font-extrabold text-green-800 uppercase tracking-wider mb-1">Doctor's Recovery Notes</p>
+                  <p className="text-sm font-medium text-neutral-700 italic">
+                    "{latestResolvedLoop.resolution_notes}"
+                  </p>
+                </div>
+              )}
+              <p className="text-neutral-500 text-xs font-medium max-w-sm mt-3 mx-auto">
+                Your care loop for <span className="font-bold text-neutral-700">"{latestResolvedLoop.chief_complaint}"</span> was successfully concluded. Feel free to request care at any time if symptoms return.
+              </p>
+            </div>
+            <button 
+              onClick={handleRequestCare}
+              className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 active:scale-[0.98] transition-all text-white font-bold rounded-full shadow-md shadow-emerald-500/10 flex items-center gap-2 text-sm outline-none"
+            >
+              <PlusCircle size={18} />
+              <span>Request New Care Loop</span>
+            </button>
+          </div>
         ) : (
           /* Proper design compliant Empty State Card */
           <div className="bg-white rounded-2xl shadow-[0_1px_2px_rgba(15,23,42,.08)] p-6 border border-neutral-200/60 flex flex-col items-center text-center gap-5">

@@ -188,3 +188,39 @@ class DocumentReference(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+
+
+class CareLoop(Base):
+    """Represents a continuous loop/episode of care for a patient and complaint."""
+
+    __tablename__ = "care_loops"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("patients.id"), nullable=False, index=True
+    )
+    practitioner_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("practitioners.id"), nullable=False
+    )
+
+    status: Mapped[str] = mapped_column(String, default="active")  # active, completed, cancelled
+    chief_complaint: Mapped[str] = mapped_column(String(500), nullable=False)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolution_notes: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('active', 'completed', 'cancelled')",
+            name="care_loops_status_check",
+        ),
+    )
+

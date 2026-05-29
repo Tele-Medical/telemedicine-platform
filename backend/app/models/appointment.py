@@ -17,6 +17,9 @@ class Appointment(Base):
     practitioner_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("practitioners.id"), nullable=True, index=True
     )
+    care_loop_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("care_loops.id"), nullable=True, index=True
+    )
 
     status: Mapped[str] = mapped_column(
         String, default="requested"

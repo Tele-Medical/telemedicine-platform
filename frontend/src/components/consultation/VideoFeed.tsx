@@ -48,6 +48,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isAutoplayBlocked, setIsAutoplayBlocked] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [encounterId, setEncounterId] = useState<string | null>(null);
+  const [isSignalingConnected, setIsSignalingConnected] = useState(false);
 
 
   const navigate = useNavigate();
@@ -62,6 +64,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isCleaningUpRef = useRef(false);
   const candidatesQueueRef = useRef<RTCIceCandidateInit[]>([]);
+  const isNegotiatingRef = useRef(false);
+  const connectionIdRef = useRef<number>(0);
 
   const [remotePeerName, setRemotePeerName] = useState(userRole === 'patient' ? 'Doctor' : 'Patient');
 
@@ -117,10 +121,17 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
 
   // 2. Setup RTCPeerConnection and WS Signaling
   const establishConnection = async () => {
+    const currentId = ++connectionIdRef.current;
     isCleaningUpRef.current = false;
     setConnectionState('connecting');
     setErrorMessage(null);
     candidatesQueueRef.current = [];
+
+    // Clear any existing retry timeout so we don't start duplicate/competing loops
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
 
     // Clean up any existing connection first to avoid resource leaks
     if (pcRef.current) {
@@ -133,15 +144,15 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     }
     if (wsRef.current) {
       try {
+        // Remove event handlers before closing so closing does NOT trigger the onclose/scheduleReconnect loops
+        wsRef.current.onclose = null;
+        wsRef.current.onerror = null;
         wsRef.current.close();
       } catch (e) {
         console.warn('Error closing prior websocket:', e);
       }
       wsRef.current = null;
     }
-
-    // Ensure local stream is ready
-    const localStream = localStreamRef.current || await startLocalMedia();
 
     // Set up WebRTC RTCPeerConnection with dynamic TURN config from env/fallback
     const turnUrl = import.meta.env.VITE_TURN_URL;
@@ -161,16 +172,59 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       });
     }
 
-    const pc = new RTCPeerConnection({ iceServers });
-    pcRef.current = pc;
+    let pc: RTCPeerConnection;
+    try {
+      pc = new RTCPeerConnection({ iceServers });
+      pcRef.current = pc;
+    } catch (pcErr) {
+      console.error("Failed to create RTCPeerConnection:", pcErr);
+      setErrorMessage(t('clinical.webrtc_not_supported', "WebRTC is not fully supported or is disabled in your browser."));
+      return;
+    }
 
-    // Attach local stream tracks
-    if (localStream) {
-      localStream.getTracks().forEach(track => {
-        pc.addTrack(track, localStream);
+    // Attach already captured local stream tracks immediately if available
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        try {
+          pc.addTrack(track, localStreamRef.current!);
+        } catch (trackErr) {
+          console.warn("Error attaching track:", trackErr);
+        }
       });
     }
 
+    // Dynamic negotiationneeded event listener (WebRTC Standard compliant renegotiation)
+    pc.onnegotiationneeded = async () => {
+      if ((userRole === 'doctor' || userRole === 'practitioner') && pc.signalingState === 'stable' && !isNegotiatingRef.current) {
+        console.log("Negotiation needed. Initiating offer as doctor...");
+        isNegotiatingRef.current = true;
+        try {
+          const offer = await pc.createOffer({
+            offerToReceiveAudio: true,
+            offerToReceiveVideo: true
+          });
+          await pc.setLocalDescription(offer);
+          
+          if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+              type: 'offer',
+              sdp: offer.sdp
+            }));
+          }
+        } catch (e) {
+          console.error("Error creating offer in onnegotiationneeded:", e);
+          isNegotiatingRef.current = false;
+        }
+      }
+    };
+
+    // Monitor WebRTC signaling state changes to clear negotiation locks
+    pc.onsignalingstatechange = () => {
+      console.log("RTCPeerConnection signalingState:", pc.signalingState);
+      if (pc.signalingState === 'stable') {
+        isNegotiatingRef.current = false;
+      }
+    };
 
     // Monitor WebRTC Connection State changes
     pc.onconnectionstatechange = () => {
@@ -246,7 +300,6 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       }
     };
 
-
     // Helper to empty candidates queue once remote description is set
     const processCandidatesQueue = async () => {
       console.log(`Processing ${candidatesQueueRef.current.length} queued ICE candidates`);
@@ -261,6 +314,31 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         }
       }
     };
+
+    // Start local media capture concurrently in background
+    if (!localStreamRef.current) {
+      startLocalMedia().then(stream => {
+        if (currentId !== connectionIdRef.current || isCleaningUpRef.current) {
+          if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+          }
+          return;
+        }
+
+        if (stream && pcRef.current) {
+          console.log("Background local media captured, attaching tracks to PeerConnection");
+          stream.getTracks().forEach(track => {
+            try {
+              pcRef.current?.addTrack(track, stream);
+            } catch (trackErr) {
+              console.warn("Error attaching track from background stream:", trackErr);
+            }
+          });
+        }
+      }).catch(err => {
+        console.error("Error in background startLocalMedia:", err);
+      });
+    }
 
     // 3. Connect to WebSocket Signaling Server
     try {
@@ -284,6 +362,12 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
 
       ws.onopen = () => {
         console.log("Signaling WebSocket connected successfully.");
+        setIsSignalingConnected(true);
+        // Clear any scheduled reconnect timer upon successful connection
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+          retryTimeoutRef.current = null;
+        }
       };
 
       ws.onmessage = async (event) => {
@@ -306,8 +390,9 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
             }
 
             // The doctor is always the polite initiator, but only ONCE per connection
-            if ((userRole === 'doctor' || userRole === 'practitioner') && pc.signalingState === 'stable' && !pc.localDescription) {
+            if ((userRole === 'doctor' || userRole === 'practitioner') && pc.signalingState === 'stable' && !isNegotiatingRef.current) {
               console.log("Initiating offer as doctor...");
+              isNegotiatingRef.current = true;
               try {
                 const offer = await pc.createOffer({
                   offerToReceiveAudio: true,
@@ -321,30 +406,36 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
                 }));
               } catch (e) {
                 console.error("Error creating offer:", e);
+                isNegotiatingRef.current = false;
               }
             }
           }
           
           else if (msg.type === 'offer') {
-            if (pc.signalingState !== 'stable') {
-              console.warn("Ignoring remote offer in state:", pc.signalingState);
+            if (pc.signalingState !== 'stable' || isNegotiatingRef.current) {
+              console.warn("Ignoring remote offer in state:", pc.signalingState, "isNegotiating:", isNegotiatingRef.current);
               return;
             }
             console.log("Received remote offer. Setting remote description & sending answer...");
-            await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: msg.sdp }));
-            await processCandidatesQueue();
+            isNegotiatingRef.current = true;
+            try {
+              await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: msg.sdp }));
+              await processCandidatesQueue();
 
-            const answer = await pc.createAnswer({
-              offerToReceiveAudio: true,
-              offerToReceiveVideo: true
-            });
-            await pc.setLocalDescription(answer);
-            
-            ws.send(JSON.stringify({
-              type: 'answer',
-              sdp: answer.sdp
-            }));
-            // Safe transition: connectionState is now updated via pc.onconnectionstatechange/oniceconnectionstatechange
+              const answer = await pc.createAnswer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: true
+              });
+              await pc.setLocalDescription(answer);
+              
+              ws.send(JSON.stringify({
+                type: 'answer',
+                sdp: answer.sdp
+              }));
+            } catch (err) {
+              console.error("Error processing offer/answer:", err);
+              isNegotiatingRef.current = false;
+            }
           } 
           
           else if (msg.type === 'answer') {
@@ -353,11 +444,14 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
               return;
             }
             console.log("Received remote answer. Completing peer handshake...");
-            await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
-            await processCandidatesQueue();
-            // Safe transition: connectionState is now updated via pc.onconnectionstatechange/oniceconnectionstatechange
+            try {
+              await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
+              await processCandidatesQueue();
+            } catch (err) {
+              console.error("Error setting remote answer:", err);
+              isNegotiatingRef.current = false;
+            }
           } 
- 
           
           else if (msg.type === 'candidate') {
             if (msg.candidate) {
@@ -378,6 +472,12 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
             setConnectionState('disconnected');
             if (remoteVideoRef.current) {
               remoteVideoRef.current.srcObject = null;
+            }
+            if (userRole === 'patient') {
+              setErrorMessage(t('clinical.call_ended_by_doctor', 'The doctor has ended the consultation. Returning to dashboard...'));
+              setTimeout(() => {
+                handleEndCall();
+              }, 2500);
             }
           }
           
@@ -408,6 +508,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
 
       ws.onclose = () => {
         console.log("Signaling WebSocket closed.");
+        setIsSignalingConnected(false);
         // Try auto-reconnect if not deliberately unmounted and not in simulated off mode
         if (!isCleaningUpRef.current && connectionState !== 'connected' && networkQuality !== 'disconnected') {
           scheduleReconnect();
@@ -450,7 +551,13 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
 
   const handleEndCall = () => {
     cleanupStreams();
-    navigate(-1); // Go back to the previous page (dashboard or queue)
+    if ((userRole === 'doctor' || userRole === 'practitioner') && encounterId) {
+      navigate(`/encounter/${encounterId}`);
+    } else if (userRole === 'patient') {
+      navigate('/', { replace: true });
+    } else {
+      navigate(-1); // Go back to the previous page (dashboard or queue)
+    }
   };
 
   const handleResolveAutoplay = async () => {
@@ -550,12 +657,33 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   };
 
   useEffect(() => {
-    const fetchPeerName = async () => {
+    const fetchAppointmentAndEncounter = async () => {
       try {
         const data = await apiClient(`/appointments/${appointmentId}`);
         if (data) {
           const peerName = userRole === 'patient' ? data.practitioner_name : data.patient_name;
           setRemotePeerName(peerName);
+
+          // If we are a doctor/practitioner, initialize or retrieve the encounter
+          if (userRole === 'doctor' || userRole === 'practitioner') {
+            try {
+              const enc = await apiClient('/encounters/', {
+                method: 'POST',
+                body: JSON.stringify({
+                  appointment_id: appointmentId,
+                  patient_id: data.patient_id,
+                  practitioner_id: data.practitioner_id,
+                  encounter_mode: 'video'
+                })
+              });
+              if (enc && enc.id) {
+                console.log("Encounter initialized successfully:", enc.id);
+                setEncounterId(enc.id);
+              }
+            } catch (encErr) {
+              console.error("Failed to initialize encounter:", encErr);
+            }
+          }
         }
       } catch (err) {
         console.warn("Failed to fetch appointment details for names", err);
@@ -563,9 +691,39 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     };
     
     if (appointmentId && !appointmentId.startsWith('appt-')) {
-      fetchPeerName();
+      fetchAppointmentAndEncounter();
     }
   }, [appointmentId, userRole]);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    const checkAppointmentStatus = async () => {
+      if (!appointmentId || appointmentId.startsWith('appt-') || userRole !== 'patient') return;
+      try {
+        const data = await apiClient(`/appointments/${appointmentId}`);
+        if (data && (data.status === 'completed' || data.status === 'cancelled')) {
+          console.log(`Appointment status is ${data.status}, exiting call.`);
+          setErrorMessage(t('clinical.call_ended_by_doctor', 'The doctor has ended the consultation. Returning to dashboard...'));
+          clearInterval(intervalId);
+          setTimeout(() => {
+            handleEndCall();
+          }, 2000);
+        }
+      } catch (err) {
+        console.warn("Failed to poll appointment status", err);
+      }
+    };
+
+    if (appointmentId && !appointmentId.startsWith('appt-') && userRole === 'patient') {
+      checkAppointmentStatus();
+      intervalId = setInterval(checkAppointmentStatus, 5000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [appointmentId, userRole, t]);
 
   useEffect(() => {
     establishConnection();
@@ -685,7 +843,11 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
             <h3 className="text-white font-bold text-lg">{remotePeerName}</h3>
             <p className="text-neutral-400 text-xs mt-1">
               {connectionState === 'connecting'
-                ? t('clinical.connecting', 'Connecting to secure consultation...')
+                ? (isSignalingConnected 
+                    ? (userRole === 'patient' 
+                        ? t('clinical.waiting_for_doctor', 'Waiting for doctor to join...') 
+                        : t('clinical.waiting_for_patient', 'Waiting for patient to join...'))
+                    : t('clinical.connecting', 'Connecting to secure consultation...'))
                 : networkQuality === 'weak' 
                   ? t('clinical.weak_connection_desc') 
                   : t('clinical.no_signal_desc')}

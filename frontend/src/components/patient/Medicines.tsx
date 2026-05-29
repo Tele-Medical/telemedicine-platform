@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Pill, Clock, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { pharmacyService } from '../../api/services';
+import { pharmacyService, authService } from '../../api/services';
 
 interface Medicine {
   id: string;
@@ -21,8 +21,12 @@ const Medicines: React.FC = () => {
   useEffect(() => {
     const fetchPrescriptions = async () => {
       try {
-        const patientId = localStorage.getItem('active_patient_id') || undefined;
-        const prescriptions = await pharmacyService.getPrescriptions(patientId);
+        let patientId = localStorage.getItem('active_patient_id');
+        if (!patientId || patientId === 'undefined' || patientId === 'null') {
+          const userData = await authService.getMe();
+          patientId = userData?.patient_id || null;
+        }
+        const prescriptions = await pharmacyService.getPrescriptions(patientId || undefined);
         
         const fetchedMedicines: Medicine[] = [];
         prescriptions.forEach((rx: any) => {

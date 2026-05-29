@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Search, PlusCircle, X, Check, Calendar } from 'lucide-react';
+import { FileText, Search, PlusCircle, X, Check, Calendar, Activity, Clipboard } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { encounterService, authService } from '../../api/services';
 
 interface HealthRecord {
   id: string;
@@ -14,13 +15,39 @@ const Records: React.FC = () => {
   const { t } = useTranslation();
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'lab' | 'prescription' | 'other'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'lab' | 'prescription' | 'other' | 'history'>('all');
   
   // State for Add Record modal/form
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newType, setNewType] = useState<'lab' | 'prescription' | 'other'>('lab');
   const [newFacility, setNewFacility] = useState('');
+
+  const [encounters, setEncounters] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      setLoadingHistory(true);
+      try {
+        let patientId = localStorage.getItem('active_patient_id');
+        if (!patientId || patientId === 'undefined' || patientId === 'null') {
+          const userData = await authService.getMe();
+          patientId = userData?.patient_id || null;
+        }
+        if (patientId) {
+          const data = await encounterService.getEncounters(patientId);
+          const completedEncounters = (data || []).filter((e: any) => e.status === 'completed');
+          setEncounters(completedEncounters);
+        }
+      } catch (err) {
+        console.error("Failed to fetch encounters history:", err);
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+    fetchHistory();
+  }, []);
 
   // Initial load
   useEffect(() => {
@@ -76,8 +103,18 @@ const Records: React.FC = () => {
   const filteredRecords = records.filter(record => {
     const matchesSearch = record.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           (record.facility && record.facility.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesFilter = activeFilter === 'all' || record.type === activeFilter;
+    const matchesFilter = activeFilter === 'all' || (activeFilter !== 'history' && record.type === activeFilter);
     return matchesSearch && matchesFilter;
+  });
+
+  const filteredEncounters = encounters.filter(enc => {
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = 
+      (enc.practitioner_name && enc.practitioner_name.toLowerCase().includes(query)) ||
+      (enc.practitioner_role && enc.practitioner_role.toLowerCase().includes(query)) ||
+      (enc.clinical_summary && enc.clinical_summary.toLowerCase().includes(query)) ||
+      (enc.outcome && enc.outcome.toLowerCase().includes(query));
+    return matchesSearch;
   });
 
   return (
@@ -111,7 +148,7 @@ const Records: React.FC = () => {
 
         {/* Tab Filters */}
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {(['all', 'lab', 'prescription', 'other'] as const).map((filter) => (
+          {(['all', 'lab', 'prescription', 'other', 'history'] as const).map((filter) => (
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
@@ -121,14 +158,98 @@ const Records: React.FC = () => {
                   : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50'
               }`}
             >
-              {filter === 'all' ? t('nav.all_records') : filter === 'lab' ? t('nav.lab_reports') : filter === 'prescription' ? t('nav.prescriptions') : t('nav.others')}
+              {filter === 'all' 
+                ? t('nav.all_records') 
+                : filter === 'lab' 
+                  ? t('nav.lab_reports') 
+                  : filter === 'prescription' 
+                    ? t('nav.prescriptions') 
+                    : filter === 'history'
+                      ? t('nav.history', 'Consultation History')
+                      : t('nav.others')}
             </button>
           ))}
         </div>
       </div>
 
       {/* Records List */}
-      {filteredRecords.length > 0 ? (
+      {activeFilter === 'history' ? (
+        loadingHistory ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : filteredEncounters.length > 0 ? (
+          <ul className="flex flex-col gap-4">
+            {filteredEncounters.map((enc) => {
+              const formattedDate = new Date(enc.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+              
+              const outcomeBadgeClass = enc.outcome === 'completed'
+                ? 'bg-success/15 border border-success/30 text-success'
+                : enc.outcome === 'follow_up'
+                  ? 'bg-warning/15 border border-warning/30 text-warning'
+                  : enc.outcome === 'referred'
+                    ? 'bg-primary/15 border border-primary/30 text-primary'
+                    : 'bg-neutral-100 border border-neutral-200 text-neutral-600';
+
+              const outcomeText = enc.outcome === 'completed'
+                ? 'Cured & Discharged'
+                : enc.outcome === 'follow_up'
+                  ? 'Follow-up Scheduled'
+                  : enc.outcome === 'referred'
+                    ? 'Referred'
+                    : 'Consultation Completed';
+
+              return (
+                <li 
+                  key={enc.id} 
+                  className="bg-white rounded-3xl p-5 shadow-[0_1px_2px_rgba(15,23,42,0.06)] border border-neutral-200/60 flex flex-col gap-4.5 hover:shadow-md transition-all duration-300"
+                >
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex gap-3.5">
+                      <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <Activity size={20} className="stroke-[2.25]" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-neutral-900 leading-tight">
+                          Consultation with {enc.practitioner_name || 'Practitioner'}
+                        </h3>
+                        <p className="text-xs text-neutral-500 font-semibold mt-1 flex items-center gap-1.5">
+                          <span>{enc.practitioner_role || 'Healthcare Provider'}</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-neutral-300"></span>
+                          <span>{formattedDate}</span>
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black tracking-wider uppercase shrink-0 ${outcomeBadgeClass}`}>
+                      {outcomeText}
+                    </span>
+                  </div>
+
+                  <div className="bg-neutral-50 rounded-2xl p-4 border border-neutral-100/80 text-xs">
+                    <p className="text-[10px] font-extrabold text-neutral-400 uppercase tracking-widest mb-1.5">Doctor's Clinical Notes</p>
+                    <p className="text-neutral-700 font-medium italic leading-relaxed">
+                      "{enc.clinical_summary || 'No clinical summary recorded.'}"
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="bg-white border border-neutral-200/60 rounded-2xl p-8 flex flex-col items-center justify-center text-center gap-4 shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-neutral-100 text-neutral-400 flex items-center justify-center">
+              <Clipboard size={24} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-neutral-900">No Consultation History</h3>
+              <p className="text-xs text-neutral-500 mt-1 max-w-xs mx-auto">
+                No past video consultations were found for your account.
+              </p>
+            </div>
+          </div>
+        )
+      ) : filteredRecords.length > 0 ? (
         <ul className="flex flex-col gap-3">
           {filteredRecords.map((record) => (
             <li 
