@@ -43,6 +43,7 @@ const BottomNav = () => {
           { to: '/profile', labelKey: 'nav.profile', icon: User },
         ];
       case 'asha':
+      case 'asha_worker':
       case 'staff':
         return [
           { to: '/', labelKey: 'nav.assisted', icon: Heart },

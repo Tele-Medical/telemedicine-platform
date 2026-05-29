@@ -16,6 +16,7 @@ class AppointmentBase(BaseModel):
     triage_priority: Literal["Critical", "Urgent", "Standard"] = "Standard"
     notes: Optional[str] = None
 
+
 class AppointmentCreate(AppointmentBase):
     """Schema for creating a new appointment."""
 

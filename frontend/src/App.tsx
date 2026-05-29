@@ -19,6 +19,9 @@ import Patients from './components/practitioner/Patients';
 import Prescriptions from './components/practitioner/Prescriptions';
 import Assisted from './components/asha/Assisted';
 import Sync from './components/asha/Sync';
+import ConsultPatientSearch from './components/asha/ConsultPatientSearch';
+import FamilyDirectory from './components/asha/FamilyDirectory';
+import ASHAClinicalConsultation from './components/asha/ASHAClinicalConsultation';
 import Inventory from './components/pharmacist/Inventory';
 import Users from './components/admin/Users';
 import Clinics from './components/admin/Clinics';
@@ -137,7 +140,7 @@ function App() {
           <AppShell onLogout={handleLogout}>
             {(() => {
               const activePatientId = localStorage.getItem('active_patient_id');
-              const needsProfileSelection = (userRole === 'patient' || userRole === 'asha_worker' || userRole === 'asha') && !activePatientId;
+              const needsProfileSelection = userRole === 'patient' && !activePatientId;
 
               if (needsProfileSelection) {
                 return (
@@ -172,6 +175,9 @@ function App() {
                   return (
                     <Routes>
                       <Route path="/" element={<Assisted />} />
+                      <Route path="/consult-patient" element={<ConsultPatientSearch />} />
+                      <Route path="/consult-patient/family" element={<FamilyDirectory />} />
+                      <Route path="/consultation-flow/:patientId" element={<ASHAClinicalConsultation />} />
                       <Route path="/register" element={<AssistedOnboardingWizard />} />
                       <Route path="/schedule" element={<AppointmentScheduler />} />
                       <Route path="/schedule/:patientId" element={<AppointmentScheduler />} />

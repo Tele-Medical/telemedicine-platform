@@ -61,7 +61,9 @@ class PharmacyService:
         # Validate that items without medicine_id at least have a medicine_name
         for item in request.items:
             if not item.medicine_id and not item.medicine_name:
-                raise HTTPException(status_code=400, detail="Either medicine_id or medicine_name must be provided")
+                raise HTTPException(
+                    status_code=400, detail="Either medicine_id or medicine_name must be provided"
+                )
 
         # Create prescription
         rx = Prescription(
@@ -101,7 +103,9 @@ class PharmacyService:
         return rx
 
     @staticmethod
-    def get_prescriptions(db: Session, patient_id: uuid.UUID | None = None, current_user: User | None = None) -> list[Prescription]:
+    def get_prescriptions(
+        db: Session, patient_id: uuid.UUID | None = None, current_user: User | None = None
+    ) -> list[Prescription]:
         query = db.query(Prescription)
         if patient_id:
             query = query.filter(Prescription.patient_id == patient_id)

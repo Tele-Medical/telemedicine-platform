@@ -173,16 +173,18 @@ class DocumentReference(Base):
     appointment_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("appointments.id"), index=True, nullable=True
     )
-    
+
     file_name: Mapped[str] = mapped_column(String)
     file_path: Mapped[str] = mapped_column(String)  # Path on disk or object storage
     content_type: Mapped[str] = mapped_column(String)  # MIME type (e.g., application/pdf)
-    document_type: Mapped[str] = mapped_column(String) # e.g., 'lab_report', 'prescription', 'other'
-    
+    document_type: Mapped[str] = mapped_column(
+        String
+    )  # e.g., 'lab_report', 'prescription', 'other'
+
     uploaded_by_user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), index=True
     )
-    
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

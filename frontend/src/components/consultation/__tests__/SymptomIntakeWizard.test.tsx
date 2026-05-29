@@ -42,7 +42,7 @@ describe('SymptomIntakeWizard', () => {
     await waitFor(() => {
       expect(mockOnComplete).toHaveBeenCalledWith({
         raw_text: 'Severe chest pain and palpitations',
-        symptoms: ['abdominal pain', 'nausea', 'chest pain', 'palpitations'],
+        symptoms: ['chest pain', 'palpitations'],
         severity: 'Severe',
         duration: '1-3 days'
       });

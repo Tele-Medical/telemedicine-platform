@@ -75,7 +75,9 @@ def test_create_observation(client: TestClient, db_session: Session):
         "unit": "mmHg",
     }
 
-    response = client.post("/api/v1/clinical/observations", headers=auth_headers(doc_user), json=payload)
+    response = client.post(
+        "/api/v1/clinical/observations", headers=auth_headers(doc_user), json=payload
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -108,7 +110,9 @@ def test_create_observation_unauthorized_patient(client: TestClient, db_session:
 
     payload = {"patient_id": str(patient.id), "code": "blood_pressure", "value_string": "120/80"}
 
-    response = client.post("/api/v1/clinical/observations", headers=auth_headers(patient_user), json=payload)
+    response = client.post(
+        "/api/v1/clinical/observations", headers=auth_headers(patient_user), json=payload
+    )
 
     assert response.status_code == 403
 
@@ -132,7 +136,9 @@ def test_update_allergy_sync_conflict(client: TestClient, db_session: Session):
     }
 
     update_resp = client.patch(
-        f"/api/v1/clinical/allergies/{allergy_id}", headers=auth_headers(doc_user), json=update_payload
+        f"/api/v1/clinical/allergies/{allergy_id}",
+        headers=auth_headers(doc_user),
+        json=update_payload,
     )
 
     assert (
@@ -146,7 +152,9 @@ def test_create_allergy(client: TestClient, db_session: Session):
 
     payload = {"patient_id": str(patient.id), "substance": "Penicillin", "criticality": "high"}
 
-    response = client.post("/api/v1/clinical/allergies", headers=auth_headers(doc_user), json=payload)
+    response = client.post(
+        "/api/v1/clinical/allergies", headers=auth_headers(doc_user), json=payload
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -174,7 +182,9 @@ def test_create_condition(client: TestClient, db_session: Session):
         "disease_name": "Common Cold",
     }
 
-    response = client.post("/api/v1/clinical/conditions", headers=auth_headers(doc_user), json=payload)
+    response = client.post(
+        "/api/v1/clinical/conditions", headers=auth_headers(doc_user), json=payload
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -213,3 +223,82 @@ def test_create_medication_request(client: TestClient, db_session: Session):
     data = response.json()
     assert data["dosage_instruction"] == "1 tablet twice a day"
     assert data["record_version"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Tests for Clinical GET Endpoints
+# ---------------------------------------------------------------------------
+
+
+def test_get_observations(client: TestClient, db_session: Session):
+    doc_user = make_user(db_session, phone="+917000000021", role="practitioner")
+    patient = make_patient(db_session)
+    from app.models.clinical import Observation
+
+    obs = Observation(
+        patient_id=patient.id,
+        code="8310-5",
+        value_string="98.6",
+        unit="F",
+        created_by_user_id=doc_user.id,
+    )
+    db_session.add(obs)
+    db_session.commit()
+
+    response = client.get(
+        f"/api/v1/clinical/observations?patient_id={patient.id}", headers=auth_headers(doc_user)
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["code"] == "8310-5"
+    assert data[0]["value_string"] == "98.6"
+
+
+def test_get_conditions(client: TestClient, db_session: Session):
+    doc_user = make_user(db_session, phone="+917000000022", role="practitioner")
+    patient = make_patient(db_session)
+    from app.models.clinical import Condition
+
+    cond = Condition(
+        patient_id=patient.id,
+        clinical_status="active",
+        disease_name="Anemia",
+        created_by_user_id=doc_user.id,
+    )
+    db_session.add(cond)
+    db_session.commit()
+
+    response = client.get(
+        f"/api/v1/clinical/conditions?patient_id={patient.id}", headers=auth_headers(doc_user)
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["disease_name"] == "Anemia"
+
+
+def test_get_allergies(client: TestClient, db_session: Session):
+    doc_user = make_user(db_session, phone="+917000000023", role="practitioner")
+    patient = make_patient(db_session)
+    from app.models.clinical import Allergy
+
+    allergy = Allergy(
+        patient_id=patient.id,
+        substance="Peanuts",
+        criticality="high",
+        created_by_user_id=doc_user.id,
+    )
+    db_session.add(allergy)
+    db_session.commit()
+
+    response = client.get(
+        f"/api/v1/clinical/allergies?patient_id={patient.id}", headers=auth_headers(doc_user)
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["substance"] == "Peanuts"

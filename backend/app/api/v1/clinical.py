@@ -16,7 +16,13 @@ from app.api import deps
 from app.models.auth import User
 from app.models.patient import Patient
 from app.models.encounter import Encounter
-from app.models.clinical import Observation, Allergy, Condition, MedicationRequest, DocumentReference
+from app.models.clinical import (
+    Observation,
+    Allergy,
+    Condition,
+    MedicationRequest,
+    DocumentReference,
+)
 from app.models.audit import ProvenanceEvent
 from app.schemas.clinical import (
     ObservationCreate,
@@ -243,8 +249,48 @@ def create_medication_request(
     return med_req
 
 
+# --- Observations GET ---
+@router.get("/observations", response_model=List[ObservationResponse])
+def get_observations(
+    patient_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Retrieves observations (e.g. Vitals) recorded for a patient.
+    """
+    return db.query(Observation).filter(Observation.patient_id == patient_id).all()
+
+
+# --- Conditions GET ---
+@router.get("/conditions", response_model=List[ConditionResponse])
+def get_conditions(
+    patient_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Retrieves conditions or diagnoses recorded for a patient.
+    """
+    return db.query(Condition).filter(Condition.patient_id == patient_id).all()
+
+
+# --- Allergies GET ---
+@router.get("/allergies", response_model=List[AllergyResponse])
+def get_allergies(
+    patient_id: uuid.UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Retrieves allergies recorded for a patient.
+    """
+    return db.query(Allergy).filter(Allergy.patient_id == patient_id).all()
+
+
 # --- Documents ---
 UPLOAD_DIR = "uploads/documents"
+
 
 @router.post("/documents", response_model=DocumentReferenceResponse)
 def upload_document(
@@ -259,7 +305,9 @@ def upload_document(
     """
     Uploads a clinical document (e.g., lab report, past prescription) for a patient.
     """
-    validate_patient_encounter(db, patient_id, appointment_id)  # Using appointment_id as encounter_id check
+    validate_patient_encounter(
+        db, patient_id, appointment_id
+    )  # Using appointment_id as encounter_id check
 
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     file_ext = os.path.splitext(file.filename)[1] if file.filename else ".bin"
@@ -305,6 +353,7 @@ def get_documents(
     docs = db.query(DocumentReference).filter(DocumentReference.patient_id == patient_id).all()
     return docs
 
+
 @router.get("/documents/{document_id}/download")
 def download_document(
     document_id: uuid.UUID,
@@ -314,12 +363,8 @@ def download_document(
     doc = db.query(DocumentReference).filter(DocumentReference.id == document_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
-        
+
     if not os.path.exists(doc.file_path):
         raise HTTPException(status_code=404, detail="File missing on disk")
-        
-    return FileResponse(
-        path=doc.file_path, 
-        filename=doc.file_name, 
-        media_type=doc.content_type
-    )
+
+    return FileResponse(path=doc.file_path, filename=doc.file_name, media_type=doc.content_type)

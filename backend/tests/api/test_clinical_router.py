@@ -5,12 +5,14 @@ from app.models.auth import User
 from app.models.patient import Patient
 from app.core.security import create_access_token
 
+
 def make_user(db: Session, phone: str = "+5550001111", role: str = "patient") -> User:
     user = User(phone=phone, is_active=True, default_role=role)
     db.add(user)
     db.commit()
     db.refresh(user)
     return user
+
 
 def make_patient(db: Session, full_name: str = "Test Patient") -> Patient:
     patient = Patient(full_name=full_name)
@@ -19,9 +21,11 @@ def make_patient(db: Session, full_name: str = "Test Patient") -> Patient:
     db.refresh(patient)
     return patient
 
+
 def auth_headers(user: User) -> dict:
     token = create_access_token(subject=str(user.id))
     return {"Authorization": f"Bearer {token}"}
+
 
 def test_get_clinical_documents_routing(client: TestClient, db_session: Session):
     # Setup user

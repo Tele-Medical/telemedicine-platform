@@ -94,6 +94,18 @@ const Assisted: React.FC = () => {
 
   return (
     <div className="animate-fade-in pb-12 text-neutral-900 font-sans">
+      {/* Page Title Header */}
+      <header className="mb-6 mt-2 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-black text-neutral-950 tracking-tight">
+            {t('asha.assisted_title', 'Assisted Checkups')}
+          </h1>
+          <p className="text-xs text-neutral-400 font-bold uppercase tracking-wider mt-0.5">
+            Frontline Healthcare Console
+          </p>
+        </div>
+      </header>
+
       {/* 1. Welcoming & Branding Greeting Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-600 to-teal-800 text-white p-6 shadow-soft mb-8 border border-teal-700/50">
         <div className="absolute right-0 top-0 w-32 h-32 bg-white/5 rounded-full blur-xl transform translate-x-8 -translate-y-8 pointer-events-none" />
@@ -208,7 +220,40 @@ const Assisted: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Modern Glassmorphic Quick Actions Panel */}
+      {/* 3. Hero Consult Patient Action Banner */}
+      <div className="mb-8">
+        <button 
+          onClick={() => navigate('/consult-patient')} 
+          className="w-full bg-gradient-to-r from-primary-600 to-indigo-700 text-white p-6 rounded-3xl border-0 shadow-lg hover:shadow-xl active:scale-[0.99] transition-all text-left flex items-center justify-between group outline-none focus-visible:ring-2 focus-visible:ring-primary/20 relative overflow-hidden"
+        >
+          {/* Subtle background graphics */}
+          <div className="absolute right-0 top-0 w-48 h-48 bg-white/5 rounded-full blur-xl transform translate-x-12 -translate-y-12 pointer-events-none group-hover:scale-110 transition-transform duration-500" />
+          <div className="absolute -left-12 -bottom-12 w-32 h-32 bg-teal-500/10 rounded-full blur-xl pointer-events-none" />
+          
+          <div className="flex items-center gap-4.5 relative z-10">
+            <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 border border-white/20 group-hover:scale-110 transition-transform duration-300 shadow-md">
+              <Heart size={26} className="stroke-[2.25] text-teal-200 animate-pulse" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black tracking-tight text-white flex items-center gap-2">
+                <span>Consult Patient</span>
+                <span className="text-[9px] font-black bg-teal-400 text-teal-950 px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
+                  Active
+                </span>
+              </h2>
+              <p className="text-teal-100/90 text-xs mt-1 max-w-lg font-medium leading-relaxed">
+                Initiate a complete clinical screening. Search by mobile number, access family member cohorts, run ML-based specialty routing, record vital tests, and upload laboratory files.
+              </p>
+            </div>
+          </div>
+          
+          <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm text-white flex items-center justify-center shrink-0 border border-white/15 group-hover:translate-x-1.5 transition-all duration-300 shadow-sm">
+            <ChevronRight size={20} className="stroke-[2.5]" />
+          </div>
+        </button>
+      </div>
+
+      {/* 4. Modern Glassmorphic Quick Actions Panel */}
       <h2 className="text-[11px] font-black text-neutral-400 uppercase tracking-widest mb-4">Quick Operational Tasks</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         

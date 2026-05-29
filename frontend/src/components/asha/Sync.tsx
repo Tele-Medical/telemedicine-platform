@@ -14,6 +14,18 @@ import { db } from '../../db/db';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { apiClient } from '../../api/client';
 
+const base64ToBlob = (base64: string, contentType: string): Blob => {
+  const parts = base64.split(',');
+  const rawBase64 = parts.length > 1 ? parts[1] : parts[0];
+  const byteString = atob(rawBase64);
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  return new Blob([ab], { type: contentType });
+};
+
 const Sync: React.FC = () => {
   const { t } = useTranslation();
   const { isOnline } = useNetworkStatus();
@@ -32,7 +44,7 @@ const Sync: React.FC = () => {
     try {
       // Loop through outbox items and sync them
       for (const item of outboxItems) {
-        const payload = (item.payload || {}) as Record<string, unknown>;
+        const payload = (item.payload || {}) as Record<string, any>;
         let success = false;
 
         try {
@@ -57,12 +69,12 @@ const Sync: React.FC = () => {
               await db.transaction('rw', [db.patients, db.appointments], async () => {
                 const patientData = await db.patients.get(oldId);
                 if (patientData) {
-                  const updatedPatient = {
-                    ...patientData,
-                    id: newId
-                  };
-                  await db.patients.put(updatedPatient);
-                  await db.patients.delete(oldId);
+                   const updatedPatient = {
+                     ...patientData,
+                     id: newId
+                   };
+                   await db.patients.put(updatedPatient);
+                   await db.patients.delete(oldId);
                 }
 
                 // Reconcile references in appointments
@@ -81,7 +93,7 @@ const Sync: React.FC = () => {
             }
             success = true;
           } else if (item.entity_type === 'observation') {
-            await apiClient('/observations', {
+            await apiClient('/clinical/observations', {
               method: 'POST',
               body: JSON.stringify({
                 patient_id: payload.patient_id,
@@ -93,7 +105,7 @@ const Sync: React.FC = () => {
             });
             success = true;
           } else if (item.entity_type === 'condition') {
-            await apiClient('/conditions', {
+            await apiClient('/clinical/conditions', {
               method: 'POST',
               body: JSON.stringify({
                 patient_id: payload.patient_id,
@@ -105,7 +117,7 @@ const Sync: React.FC = () => {
             });
             success = true;
           } else if (item.entity_type === 'allergy') {
-            await apiClient('/allergies', {
+            await apiClient('/clinical/allergies', {
               method: 'POST',
               body: JSON.stringify({
                 patient_id: payload.patient_id,
@@ -113,6 +125,61 @@ const Sync: React.FC = () => {
                 criticality: payload.criticality || 'unable_to_assess'
               })
             });
+            success = true;
+          } else if (item.entity_type === 'document_reference') {
+            const doc = await db.documents.get(item.entity_id) as { base64_data?: string; content_type?: string } | undefined;
+            if (doc && doc.base64_data && doc.content_type) {
+              const blob = base64ToBlob(doc.base64_data, doc.content_type);
+              const formData = new FormData();
+              formData.append('patient_id', payload.patient_id);
+              if (payload.appointment_id) {
+                formData.append('appointment_id', payload.appointment_id);
+              }
+              formData.append('document_type', payload.document_type || 'report');
+              formData.append('file', blob, payload.file_name);
+
+              await apiClient('/clinical/documents', {
+                method: 'POST',
+                body: formData
+              });
+
+              // Clear local base64 data to save storage
+              await db.documents.update(item.entity_id, { base64_data: '' });
+            }
+            success = true;
+          } else if (item.entity_type === 'appointment') {
+            // Find any symptom intake for this patient/appointment
+            const symptomsList = await db.symptoms.where('patient_id').equals(payload.patient_id).toArray();
+            // Sort by created_at desc to find latest
+            const latestSymptom = symptomsList.length > 0
+              ? symptomsList.sort((a, b) => new Date(b.created_at as string).getTime() - new Date(a.created_at as string).getTime())[0]
+              : null;
+
+            const apptBody: Record<string, any> = {
+              patient_id: payload.patient_id,
+              practitioner_id: payload.practitioner_id,
+              scheduled_for: payload.scheduled_for,
+              channel: payload.channel || 'assisted',
+              chief_complaint: payload.chief_complaint,
+              triage_priority: payload.triage_priority || 'Standard',
+            };
+
+            if (latestSymptom) {
+              apptBody.symptom_intake = {
+                raw_text: latestSymptom.raw_text,
+                symptoms: latestSymptom.symptoms,
+                duration: latestSymptom.duration || '1-3 days',
+                severity: latestSymptom.severity || 'Standard'
+              };
+            }
+
+            await apiClient('/appointments/', {
+              method: 'POST',
+              body: JSON.stringify(apptBody)
+            });
+            success = true;
+          } else if (item.entity_type === 'symptom_intake') {
+            // Standalone symptom intakes are synced as part of appointments.
             success = true;
           }
 

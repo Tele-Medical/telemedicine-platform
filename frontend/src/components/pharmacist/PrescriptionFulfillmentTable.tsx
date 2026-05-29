@@ -35,7 +35,10 @@ const PrescriptionFulfillmentTable: React.FC = () => {
     setSubmittingIds(prev => new Set(prev).add(id));
     try {
       await apiClient(`/fulfillments/prescription/${id}/accept`, {
-        method: 'POST'
+        method: 'POST',
+        body: JSON.stringify({
+          pharmacy_id: 'a24c53d6-5f4a-4e62-8b0d-3d5c8a7b12e3'
+        })
       });
       setPrescriptions(prev => prev.map(p => 
         p.id === id ? { ...p, status: 'fulfilled' } : p

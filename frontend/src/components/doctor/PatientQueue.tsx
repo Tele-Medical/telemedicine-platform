@@ -5,6 +5,7 @@ import { apiClient } from '../../api/client';
 
 interface Appointment {
   id: string;
+  patientId: string;
   patientName: string;
   time: string;
   status: string;
@@ -68,7 +69,7 @@ const PatientQueue: React.FC = () => {
                 </div>
               </div>
               <button 
-                onClick={() => navigate(`/consultation?appointmentId=${apt.id}`)}
+                onClick={() => navigate(`/consultation?appointmentId=${apt.id}&patientId=${apt.patientId}`)}
                 className="bg-white text-blue-600 border border-blue-200 px-4 py-2 rounded-md font-medium hover:bg-blue-50 transition-colors shadow-sm active:scale-95"
               >
                 {t('clinical.join_call')}

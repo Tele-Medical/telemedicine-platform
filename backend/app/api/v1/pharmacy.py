@@ -39,6 +39,7 @@ def get_prescription(
 ):
     return PharmacyService.get_prescription(db, prescription_id)
 
+
 @router.get("/prescriptions", response_model=List[PrescriptionResponse])
 def get_prescriptions(
     patient_id: Optional[uuid.UUID] = None,
@@ -134,7 +135,7 @@ def list_pending_fulfillments(
     for prescription, patient_name in results:
         items = (
             db.query(MedicineCatalog.name)
-            .join(PrescriptionItem, PrescriptionItem.medicine_catalog_id == MedicineCatalog.id)
+            .join(PrescriptionItem, PrescriptionItem.medicine_id == MedicineCatalog.id)
             .filter(PrescriptionItem.prescription_id == prescription.id)
             .all()
         )

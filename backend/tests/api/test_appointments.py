@@ -31,7 +31,10 @@ def make_patient(db: Session, full_name: str = "Test Patient") -> Patient:
 
 def make_practitioner(db: Session, user: User, specialty: str = "General") -> Practitioner:
     practitioner = Practitioner(
-        user_id=user.id, full_name="Dr. Test Practitioner", specialty=specialty, specialty_category=specialty
+        user_id=user.id,
+        full_name="Dr. Test Practitioner",
+        specialty=specialty,
+        specialty_category=specialty,
     )
     db.add(practitioner)
     db.commit()
@@ -92,8 +95,8 @@ def test_create_appointment_with_symptoms(client: TestClient, db_session: Sessio
             "raw_text": "Severe chest pain and palpitations",
             "symptoms": ["chest pain", "palpitations"],
             "severity": "Severe",
-            "duration": "2 hours"
-        }
+            "duration": "2 hours",
+        },
     }
 
     response = client.post(
@@ -220,7 +223,7 @@ def test_update_appointment_invalid_status(client: TestClient, db_session: Sessi
 def test_get_appointment_with_multiple_family_profiles(client: TestClient, db_session: Session):
     # Setup user
     user = make_user(db_session, phone="+919000000009", role="patient")
-    
+
     # Setup two patients for the same user
     patient1 = make_patient(db_session, full_name="Family Member 1")
     patient1.created_by_user_id = user.id

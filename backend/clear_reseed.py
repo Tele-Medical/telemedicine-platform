@@ -4,12 +4,15 @@ from app.core.config import settings
 from app.core.database import Base
 from seed import seed_db
 
+
 def main():
     if not settings.database_url or "localhost" in settings.database_url:
-        print("WARNING: You are about to run this on your LOCAL database or no DATABASE_URL is set.")
+        print(
+            "WARNING: You are about to run this on your LOCAL database or no DATABASE_URL is set."
+        )
         print(f"DATABASE_URL currently set to: {settings.database_url}")
         confirm = input("Are you sure you want to proceed? (yes/no): ").strip().lower()
-        if confirm != 'yes':
+        if confirm != "yes":
             print("Aborted.")
             sys.exit(0)
 
@@ -26,6 +29,7 @@ def main():
     seed_db()
 
     print("\nDATABASE SUCCESSFULLY REFRESHED AND RESEEDED!")
+
 
 if __name__ == "__main__":
     main()

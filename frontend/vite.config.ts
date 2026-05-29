@@ -54,5 +54,4 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
     pool: 'forks',
   },
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any)

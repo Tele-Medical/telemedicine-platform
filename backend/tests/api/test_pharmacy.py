@@ -59,7 +59,7 @@ def test_create_prescription(client: TestClient, db_session: Session):
                 "dosage": "1x daily",
                 "duration_days": 2,
                 "quantity_prescribed": 2,
-            }
+            },
         ],
     }
 
@@ -102,6 +102,7 @@ def test_get_prescription(client: TestClient, db_session: Session):
     assert response.json()["id"] == str(rx.id)
     assert len(response.json()["items"]) == 1
 
+
 def test_get_prescriptions_list(client: TestClient, db_session: Session):
     headers, doctor = get_auth_headers(db_session)
     from app.models.patient import Patient
@@ -118,7 +119,7 @@ def test_get_prescriptions_list(client: TestClient, db_session: Session):
     response = client.get("/api/v1/prescriptions", headers=headers)
     assert response.status_code == 200
     assert len(response.json()) >= 1
-    
+
     response_filter = client.get(f"/api/v1/prescriptions?patient_id={patient.id}", headers=headers)
     assert response_filter.status_code == 200
     assert len(response_filter.json()) == 1
