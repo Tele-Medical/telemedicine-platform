@@ -296,7 +296,15 @@ const ASHAClinicalConsultation: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const recordsToSave = [];
+      const recordsToSave: {
+        id: string;
+        patient_id: string;
+        encounter_id: string | null;
+        code: string;
+        value_string: string;
+        unit: string;
+        created_at: string;
+      }[] = [];
 
       // Helper to compile vital observations
       const appendObservation = (code: string, value: string, unit: string) => {

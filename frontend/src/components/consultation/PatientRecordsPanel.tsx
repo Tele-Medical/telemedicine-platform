@@ -181,11 +181,11 @@ const PatientRecordsPanel: React.FC<PatientRecordsPanelProps> = ({
 
   const filteredDocs = documents.filter(d => d.file_name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  // Resolve LOINC clinical codes
   const getObservation = (codeList: string[]) => {
     const obs = observations.find(o => codeList.includes(o.code));
     if (!obs) return { value: '--', unit: '' };
-    return { value: obs.value_string || obs.value_numeric, unit: obs.unit || '' };
+    const rawVal = obs.value_string !== undefined && obs.value_string !== null ? obs.value_string : obs.value_numeric;
+    return { value: rawVal !== undefined && rawVal !== null ? String(rawVal) : '--', unit: obs.unit || '' };
   };
 
   return (

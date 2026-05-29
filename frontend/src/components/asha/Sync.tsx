@@ -127,8 +127,8 @@ const Sync: React.FC = () => {
             });
             success = true;
           } else if (item.entity_type === 'document_reference') {
-            const doc = await db.documents.get(item.entity_id);
-            if (doc && doc.base64_data) {
+            const doc = await db.documents.get(item.entity_id) as { base64_data?: string; content_type?: string } | undefined;
+            if (doc && doc.base64_data && doc.content_type) {
               const blob = base64ToBlob(doc.base64_data, doc.content_type);
               const formData = new FormData();
               formData.append('patient_id', payload.patient_id);
