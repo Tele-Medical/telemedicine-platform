@@ -4,14 +4,14 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { User, Globe, Calendar, AlertCircle, ArrowLeft, Heart } from 'lucide-react';
+import { User, Globe, AlertCircle, ArrowLeft, Heart } from 'lucide-react';
 import { PatientRepository } from '../../repositories/PatientRepository';
 
 const schema = z.object({
   fullName: z.string().min(2, 'Please enter a valid full name (minimum 2 characters).'),
   gender: z.enum(['male', 'female', 'other']),
   dob: z.string().optional(),
-  language: z.string().default('pa'),
+  language: z.string(),
   noPhone: z.boolean().optional(),
   phone: z.string().optional(),
   guardianName: z.string().optional(),
@@ -44,7 +44,16 @@ const schema = z.object({
   }
 });
 
-type FormData = z.infer<typeof schema>;
+interface FormData {
+  fullName: string;
+  gender: 'male' | 'female' | 'other';
+  dob?: string;
+  language: string;
+  noPhone?: boolean;
+  phone?: string;
+  guardianName?: string;
+  guardianPhone?: string;
+}
 
 const AssistedOnboardingWizard: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -77,7 +86,6 @@ const AssistedOnboardingWizard: React.FC = () => {
 
   const noPhone = watch('noPhone');
   const gender = watch('gender');
-  const language = watch('language');
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
