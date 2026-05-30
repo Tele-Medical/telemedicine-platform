@@ -355,20 +355,27 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       const token = localStorage.getItem('token') || '';
       
       const apiBase = import.meta.env.VITE_API_URL || '';
-      let protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      let host = window.location.host;
+      let wsUrl = '';
       
       if (apiBase) {
-        // Strip out leading http:// or https:// from VITE_API_URL
-        host = apiBase.replace(/^https?:\/\//, '');
-        protocol = apiBase.startsWith('https') ? 'wss:' : 'ws:';
-      } else if (window.location.port === '5173') {
-        // Direct to backend in development to avoid Vite websocket proxy issues
-        host = `${window.location.hostname}:8000`;
+        // Use standard URL parsing for robust protocol and host extraction
+        const urlObj = new URL(apiBase);
+        const wsProtocol = urlObj.protocol === 'https:' ? 'wss:' : 'ws:';
+        // If API_URL already includes /api/v1, don't append it again
+        let basePath = urlObj.pathname.endsWith('/') ? urlObj.pathname.slice(0, -1) : urlObj.pathname;
+        if (basePath.endsWith('/api/v1')) {
+          basePath = basePath.slice(0, -7);
+        }
+        wsUrl = `${wsProtocol}//${urlObj.host}${basePath}/api/v1/telemetry/ws/${appointmentId}?token=${encodeURIComponent(token)}`;
+      } else {
+        // Fallback for local development or same-origin deployments
+        let protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        let host = window.location.host;
+        if (window.location.port === '5173') {
+          host = `${window.location.hostname}:8000`;
+        }
+        wsUrl = `${protocol}//${host}/api/v1/telemetry/ws/${appointmentId}?token=${encodeURIComponent(token)}`;
       }
-      
-      // Build dynamic WS signaling path
-      const wsUrl = `${protocol}//${host}/api/v1/telemetry/ws/${appointmentId}?token=${encodeURIComponent(token)}`;
       
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
