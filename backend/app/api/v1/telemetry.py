@@ -94,6 +94,8 @@ class ConnectionManager:
                             await websocket.send_json(data)
                         except Exception:
                             break  # Connection probably closed
+        except Exception as e:
+            logger.error(f"Redis PubSub listener error for room {appointment_id}: {e}")
         finally:
             await pubsub.unsubscribe(channel)
             await pubsub.aclose()
