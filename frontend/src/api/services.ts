@@ -49,9 +49,38 @@ export const appointmentService = {
 export const pharmacyService = {
   getPrescriptions: async (patientId?: string) => {
     const isValidId = patientId && patientId !== 'undefined' && patientId !== 'null';
-    const url = isValidId ? `/prescriptions?patient_id=${patientId}` : '/prescriptions';
-    return apiClient(url, {
-      method: 'GET',
+    const query = isValidId ? `?patient_id=${patientId}` : '';
+    return apiClient(`/prescriptions${query}`, {
+      method: 'GET'
+    });
+  },
+  createPrescription: async (payload: any) => {
+    return apiClient('/prescriptions', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+  uploadInventory: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient('/pharmacy/inventory/upload', {
+      method: 'POST',
+      body: formData
+    });
+  },
+  checkAvailability: async (medicineId: string, lat: number, lng: number, radius = 2.0) => {
+    return apiClient(`/medicines/${medicineId}/nearby?lat=${lat}&lng=${lng}&radius=${radius}`);
+  },
+  updateInventoryStock: async (medicineId: string, quantity: number) => {
+    return apiClient(`/pharmacy/inventory/${medicineId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ quantity })
+    });
+  },
+  addToCatalog: async (name: string) => {
+    return apiClient(`/pharmacy/catalog`, {
+      method: 'POST',
+      body: JSON.stringify({ name })
     });
   }
 };

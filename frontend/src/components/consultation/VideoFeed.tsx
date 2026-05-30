@@ -161,7 +161,17 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
 
     const iceServers: RTCIceServer[] = [
       { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
+      { urls: 'stun:stun1.l.google.com:19302' },
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      }
     ];
 
     if (turnUrl) {
@@ -477,10 +487,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
               remoteVideoRef.current.srcObject = null;
             }
             if (userRole === 'patient') {
-              setErrorMessage(t('clinical.call_ended_by_doctor', 'The doctor has ended the consultation. Returning to dashboard...'));
-              setTimeout(() => {
-                handleEndCall();
-              }, 2500);
+              setErrorMessage(t('clinical.call_ended_by_doctor', 'The doctor has disconnected. Please wait for them to reconnect...'));
             }
           }
           

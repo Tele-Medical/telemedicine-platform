@@ -9,9 +9,11 @@ from app.core.config import settings
 from app.core.database import Base
 
 # Import all models here for autogenerate
-
-
-# this is the Alembic Config object, which provides
+from app.models.patient import *  # noqa: F403
+from app.models.clinical import *  # noqa: F403
+from app.models.pharmacy import *  # noqa: F403
+from app.models.sync import *  # noqa: F403
+from app.models.auth import *  # noqa: F403
 # access to the values within the .ini file in use.
 config = context.config
 

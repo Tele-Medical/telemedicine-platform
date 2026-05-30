@@ -121,9 +121,9 @@ describe('VideoFeed Component', () => {
       const pcCallConfig = (global.RTCPeerConnection as any).mock.calls[0][0];
       const iceServers = pcCallConfig.iceServers;
       
-      // Google STUN servers + our mock VITE_TURN_URL
-      expect(iceServers.length).toBe(3);
-      expect(iceServers[2]).toEqual({
+      // Google STUN servers + 2 openrelay TURN + our mock VITE_TURN_URL
+      expect(iceServers.length).toBe(5);
+      expect(iceServers[4]).toEqual({
         urls: 'turn:turn.nabha.in:443',
         username: 'nabha-user',
         credential: 'nabha-pass',

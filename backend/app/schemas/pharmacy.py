@@ -13,10 +13,12 @@ class PrescriptionItemCreate(BaseModel):
 
 
 class PrescriptionCreate(BaseModel):
-    patient_id: uuid.UUID
-    encounter_id: Optional[uuid.UUID] = None
-    notes: Optional[str] = None
-    items: List[PrescriptionItemCreate]
+    patient_id: uuid.UUID | None = None
+    encounter_id: uuid.UUID | None = None
+    notes: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    items: list[PrescriptionItemCreate]
 
 
 class PrescriptionItemResponse(BaseModel):
