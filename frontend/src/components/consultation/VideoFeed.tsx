@@ -410,23 +410,47 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
             }
 
             // The doctor is always the polite initiator, but only ONCE per connection
-            if ((userRole === 'doctor' || userRole === 'practitioner') && pc.signalingState === 'stable' && !isNegotiatingRef.current) {
-              console.log("Initiating offer as doctor...");
-              isNegotiatingRef.current = true;
-              try {
-                const offer = await pc.createOffer({
-                  offerToReceiveAudio: true,
-                  offerToReceiveVideo: true
-                });
-                await pc.setLocalDescription(offer);
-                
-                ws.send(JSON.stringify({
-                  type: 'offer',
-                  sdp: offer.sdp
-                }));
-              } catch (e) {
-                console.error("Error creating offer:", e);
-                isNegotiatingRef.current = false;
+            if (userRole === 'doctor' || userRole === 'practitioner') {
+              if (pc.signalingState === 'stable' && !isNegotiatingRef.current) {
+                console.log("Initiating offer as doctor...");
+                isNegotiatingRef.current = true;
+                try {
+                  const offer = await pc.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                  });
+                  await pc.setLocalDescription(offer);
+                  
+                  ws.send(JSON.stringify({
+                    type: 'offer',
+                    sdp: offer.sdp
+                  }));
+                } catch (e) {
+                  console.error("Error creating offer:", e);
+                  isNegotiatingRef.current = false;
+                }
+              } else if (msg.type === 'peer_joined') {
+                // If the peer JUST joined (reloaded or connected late), and we already created an offer 
+                // (e.g. from onnegotiationneeded when camera started), the peer missed our SDP and ICE candidates.
+                // We MUST perform an ICE restart to force a new offer and fresh ICE gathering!
+                console.log("Peer just joined but we are already in state:", pc.signalingState, "- Forcing ICE restart to sync...");
+                isNegotiatingRef.current = true;
+                try {
+                  const offer = await pc.createOffer({
+                    iceRestart: true,
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                  });
+                  await pc.setLocalDescription(offer);
+                  
+                  ws.send(JSON.stringify({
+                    type: 'offer',
+                    sdp: offer.sdp
+                  }));
+                } catch (e) {
+                  console.error("Error creating ICE restart offer:", e);
+                  isNegotiatingRef.current = false;
+                }
               }
             }
           }
