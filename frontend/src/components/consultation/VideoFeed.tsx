@@ -369,7 +369,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         wsUrl = `${wsProtocol}//${urlObj.host}${basePath}/api/v1/telemetry/ws/${appointmentId}?token=${encodeURIComponent(token)}`;
       } else {
         // Fallback for local development or same-origin deployments
-        let protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         let host = window.location.host;
         if (window.location.port === '5173') {
           host = `${window.location.hostname}:8000`;
