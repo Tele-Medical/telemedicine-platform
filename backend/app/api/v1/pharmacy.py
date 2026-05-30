@@ -198,7 +198,7 @@ def get_demand_forecast(
             0.0
         )
         # 10 km radius for receiving notifications
-        demand_query = demand_query.filter((Prescription.latitude == None) | (distance <= 10.0))
+        demand_query = demand_query.filter((Prescription.latitude.is_(None)) | (distance <= 10.0))
 
     demand_results = demand_query.group_by(MedicineCatalog.id).all()
 
@@ -388,7 +388,7 @@ def get_nearby_medicines(
         .filter(StockBatch.medicine_id == medicine_id)
         .group_by(Pharmacy.id, Pharmacy.latitude, Pharmacy.longitude)
         .having(func.sum(StockBatch.current_quantity) > 0)
-        .having((Pharmacy.latitude == None) | (distance <= radius))
+        .having((Pharmacy.latitude.is_(None)) | (distance <= radius))
         .order_by(distance)
         .all()
     )

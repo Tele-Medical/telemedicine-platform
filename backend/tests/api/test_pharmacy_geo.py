@@ -1,8 +1,7 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-import pytest
 
 from app.models.auth import User
 from app.core.security import create_access_token
