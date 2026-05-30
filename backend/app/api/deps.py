@@ -33,14 +33,21 @@ def get_current_user(
         token = token_data.credentials
         payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         if payload.get("type") != "access":
+            print(f"Token type is not access: {payload.get('type')}")
             raise credentials_exception
         user_id: str | None = payload.get("sub")
         if user_id is None:
+            print("Token sub (user_id) is missing")
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        print(f"JWTError in get_current_user: {e}")
         raise credentials_exception
 
     user = db.query(User).filter(User.id == user_id).first()
-    if user is None or not user.is_active:
+    if user is None:
+        print(f"User {user_id} not found in database")
+        raise credentials_exception
+    if not user.is_active:
+        print(f"User {user_id} is inactive")
         raise credentials_exception
     return user

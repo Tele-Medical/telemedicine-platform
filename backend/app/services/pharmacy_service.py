@@ -64,12 +64,24 @@ class PharmacyService:
                 raise HTTPException(
                     status_code=400, detail="Either medicine_id or medicine_name must be provided"
                 )
+            
+            # Self-healing: if medicine_id is missing but we have a name, resolve it or create it
+            if not item.medicine_id and item.medicine_name:
+                med = db.query(MedicineCatalog).filter(MedicineCatalog.name.ilike(f"%{item.medicine_name}%")).first()
+                if not med:
+                    # Requirement 4: automatically get added to the list
+                    med = MedicineCatalog(name=item.medicine_name, type="other")
+                    db.add(med)
+                    db.flush()
+                item.medicine_id = med.id
 
         # Create prescription
         rx = Prescription(
             patient_id=request.patient_id,
             encounter_id=request.encounter_id,
             notes=request.notes,
+            latitude=request.latitude,
+            longitude=request.longitude,
             created_by_user_id=current_user.id,
             status="pending",
         )

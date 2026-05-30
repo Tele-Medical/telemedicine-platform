@@ -23,6 +23,8 @@ const PrescriptionComposer: React.FC<PrescriptionComposerProps> = ({ appointment
   const [notes, setNotes] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [autocompleteResults, setAutocompleteResults] = useState<any[]>([]);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
 
   const draftKey = appointmentId ? `prescription_draft_${appointmentId}` : 'prescription_draft';
 
@@ -175,19 +177,59 @@ const PrescriptionComposer: React.FC<PrescriptionComposerProps> = ({ appointment
         <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-4">{t('pharmacy.add_medicine')}</h3>
         
         <div className="flex flex-col gap-3.5">
-          <div>
+          <div className="relative">
             <label htmlFor="medicine-name" className="block text-xs font-bold text-neutral-500 mb-1">{t('pharmacy.medicine_name')}</label>
             <input 
               id="medicine-name"
               type="text" 
               value={currentName}
-              onChange={(e) => {
-                setCurrentName(e.target.value);
+              onChange={async (e) => {
+                const val = e.target.value;
+                setCurrentName(val);
                 if (errorMsg) setErrorMsg('');
+                
+                if (val.length >= 2) {
+                  try {
+                    const results = await apiClient(`/medicines/catalog/search?q=${encodeURIComponent(val)}`);
+                    setAutocompleteResults(results);
+                    setShowAutocomplete(true);
+                  } catch (_err) {
+                    setAutocompleteResults([]);
+                  }
+                } else {
+                  setAutocompleteResults([]);
+                  setShowAutocomplete(false);
+                }
+              }}
+              onFocus={() => {
+                if (autocompleteResults.length > 0) setShowAutocomplete(true);
+              }}
+              onBlur={() => {
+                // Short delay to allow click on autocomplete item
+                setTimeout(() => setShowAutocomplete(false), 200);
               }}
               placeholder="e.g. Paracetamol 500mg" 
               className="w-full bg-neutral-50 border border-neutral-200 focus:border-primary rounded-xl px-4 py-3 text-neutral-800 placeholder-neutral-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              autoComplete="off"
             />
+            {showAutocomplete && autocompleteResults.length > 0 && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                {autocompleteResults.map((result: any) => (
+                  <div 
+                    key={result.id} 
+                    className="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-neutral-100 last:border-0"
+                    onMouseDown={() => {
+                      setCurrentName(result.name);
+                      setShowAutocomplete(false);
+                      setAutocompleteResults([]);
+                    }}
+                  >
+                    <div className="font-bold text-sm text-neutral-900">{result.name}</div>
+                    <div className="text-xs text-neutral-500">{result.form} • {result.strength}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           
           <div className="grid grid-cols-2 gap-3.5">

@@ -1,9 +1,10 @@
-import React from 'react';
-import { FileText, ShieldAlert, Award } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, ShieldAlert, Award, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/db';
 import { apiClient } from '../../api/client';
+import { MedicineAvailabilityMap } from '../consultation/MedicineAvailabilityMap';
 
 interface RecentRecordsListProps {
   isDemo?: boolean;
@@ -13,6 +14,7 @@ interface RecentRecordsListProps {
 const RecentRecordsList: React.FC<RecentRecordsListProps> = ({ isDemo = false, patientId }) => {
   const { t } = useTranslation();
   const [apiRecords, setApiRecords] = React.useState<any[]>([]);
+  const [selectedMedicine, setSelectedMedicine] = useState<{id: string, name: string} | null>(null);
 
   React.useEffect(() => {
     if (!patientId || isDemo) return;
@@ -21,15 +23,33 @@ const RecentRecordsList: React.FC<RecentRecordsListProps> = ({ isDemo = false, p
       apiClient(`/prescriptions?patient_id=${patientId}`).catch(() => []),
       apiClient(`/clinical/documents?patient_id=${patientId}`).catch(() => [])
     ]).then(([prescriptions, documents]) => {
-      const formattedPrescriptions = (prescriptions || []).map((p: any) => ({
-        id: p.id,
-        title: `Prescription`,
-        subtitle: p.clinic_name || 'Dr. Consult',
-        date: new Date(p.created_at).toLocaleDateString(),
-        sortDate: new Date(p.created_at).getTime(),
-        type: 'prescription',
-        downloadUrl: null // Wait, backend doesn't have PDF generation for prescriptions yet. We'll skip download for prescriptions for now.
-      }));
+      const formattedPrescriptions: any[] = [];
+      (prescriptions || []).forEach((p: any) => {
+        if (p.items && p.items.length > 0) {
+          p.items.forEach((item: any) => {
+            formattedPrescriptions.push({
+              id: item.id,
+              medicineId: item.medicine_id,
+              title: item.medicine_name || 'Prescription Medication',
+              subtitle: `Prescribed • ${item.dosage || ''}`,
+              date: new Date(p.created_at).toLocaleDateString(),
+              sortDate: new Date(p.created_at).getTime(),
+              type: 'prescription_item',
+              downloadUrl: null
+            });
+          });
+        } else {
+          formattedPrescriptions.push({
+            id: p.id,
+            title: `Prescription`,
+            subtitle: 'Dr. Consult',
+            date: new Date(p.created_at).toLocaleDateString(),
+            sortDate: new Date(p.created_at).getTime(),
+            type: 'prescription',
+            downloadUrl: null
+          });
+        }
+      });
 
       const formattedDocuments = (documents || []).map((d: any) => ({
         id: d.id,
@@ -80,7 +100,7 @@ const RecentRecordsList: React.FC<RecentRecordsListProps> = ({ isDemo = false, p
 
   const demoRecords = [
     { id: 'demo-1', title: `${t('clinical.lab_report')} - ${t('clinical.blood_test')}`, subtitle: 'Lab Report', date: 'Oct 12, 2026', type: 'lab' },
-    { id: 'demo-2', title: `${t('clinical.prescription')} - ${t('clinical.default_practitioner')}`, subtitle: 'Prescription', date: 'Oct 05, 2026', type: 'prescription' },
+    { id: 'demo-2', title: `Azithromycin 500mg`, medicineId: 'demo-uuid', subtitle: 'Prescribed • 1x daily', date: 'Oct 05, 2026', type: 'prescription_item' },
   ];
 
   const activeRecords = (dbRecords.length === 0 && isDemo) ? demoRecords : dbRecords;
@@ -105,33 +125,53 @@ const RecentRecordsList: React.FC<RecentRecordsListProps> = ({ isDemo = false, p
 
   return (
     <div className="mt-6 mb-8 text-neutral-900">
+      {selectedMedicine && (
+        <MedicineAvailabilityMap 
+          medicineId={selectedMedicine.id} 
+          medicineName={selectedMedicine.name} 
+          onClose={() => setSelectedMedicine(null)} 
+        />
+      )}
       <div className="flex justify-between items-center mb-3">
         <h2 className="text-lg font-bold text-neutral-900 tracking-tight">{t('clinical.recent_records')}</h2>
       </div>
       
       <ul className="flex flex-col gap-3">
         {activeRecords.map(record => (
-          <li key={record.id} className="bg-white rounded-xl p-4 shadow-sm border border-neutral-200/60 flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer hover:bg-gray-50">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              record.type === 'lab' ? 'bg-blue-50 text-blue-600' : 
-              record.type === 'prescription' ? 'bg-green-50 text-green-600' :
-              record.type === 'allergy' ? 'bg-red-50 text-red-600' :
-              'bg-purple-50 text-purple-600'
-            }`}>
-              {record.type === 'allergy' ? <ShieldAlert size={18} /> :
-               record.type === 'condition' ? <Award size={18} /> :
-               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>}
+          <li key={record.id} className="bg-white rounded-xl p-4 shadow-sm border border-neutral-200/60 flex flex-col gap-3 active:scale-[0.98] transition-transform hover:bg-gray-50">
+            <div className="flex items-center gap-4">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                record.type === 'lab' ? 'bg-blue-50 text-blue-600' : 
+                (record.type === 'prescription' || record.type === 'prescription_item') ? 'bg-green-50 text-green-600' :
+                record.type === 'allergy' ? 'bg-red-50 text-red-600' :
+                'bg-purple-50 text-purple-600'
+              }`}>
+                {record.type === 'allergy' ? <ShieldAlert size={18} /> :
+                 record.type === 'condition' ? <Award size={18} /> :
+                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>}
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-neutral-800">{record.title}</h3>
+                <p className="text-xs text-neutral-500 mt-0.5">{record.subtitle} • {record.date}</p>
+              </div>
+              {record.downloadUrl && (
+                <a href={record.downloadUrl} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                </a>
+              )}
             </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-neutral-800">{record.title}</h3>
-              <p className="text-xs text-neutral-500 mt-0.5">{record.subtitle} • {record.date}</p>
-            </div>
-            {record.downloadUrl ? (
-              <a href={record.downloadUrl} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-              </a>
-            ) : (
-              <svg className="text-neutral-400 opacity-50" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            
+            {/* Phase 4: Patient Medicine Geographic Availability Check Button */}
+            {record.type === 'prescription_item' && record.medicineId && (
+              <div className="pt-2 mt-1 border-t border-neutral-100 flex justify-end">
+                <button 
+                  onClick={() => setSelectedMedicine({ id: record.medicineId, name: record.title })}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm transition-all"
+                >
+                  <MapPin size={14} />
+                  Check Local Availability
+                </button>
+              </div>
             )}
           </li>
         ))}
